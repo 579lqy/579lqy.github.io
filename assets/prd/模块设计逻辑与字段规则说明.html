@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>"我的账单"模块设计逻辑与字段规则说明</title>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&f[]=satoshi@400,500,700&display=swap">
+<style>
+:root{
+  --bg:#0a0f1c; --card:#151c2e; --accent:#38bdf8; --accent-soft:rgba(56,189,248,.14);
+  --text:#e8edf6; --muted:#9ca3af; --border:#1f2a44;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:'Satoshi',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.75;
+  -webkit-font-smoothing:antialiased}
+.topbar{position:sticky;top:0;background:rgba(10,15,28,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:14px 24px;z-index:10}
+.topbar a{color:var(--accent);text-decoration:none;font-weight:700;font-size:14px}
+.topbar a:hover{text-decoration:underline}
+.wrap{max-width:880px;margin:0 auto;padding:36px 24px 80px}
+.markdown-body{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:40px 44px}
+.markdown-body h1{font-family:'Clash Display',sans-serif;font-size:30px;line-height:1.2;margin:.2em 0 .6em;
+  color:#fff;border-bottom:1px solid var(--border);padding-bottom:.4em}
+.markdown-body h2{font-family:'Clash Display',sans-serif;font-size:23px;margin:1.8em 0 .6em;color:#fff;
+  border-bottom:1px solid var(--border);padding-bottom:.3em}
+.markdown-body h3{font-size:18px;margin:1.4em 0 .5em;color:var(--accent)}
+.markdown-body p{color:var(--text);margin:.7em 0}
+.markdown-body ul,.markdown-body ol{padding-left:1.6em;margin:.6em 0;color:var(--text)}
+.markdown-body li{margin:.35em 0}
+.markdown-body strong{color:#fff}
+.markdown-body pre{background:#0b1424;border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;overflow:auto;margin:1em 0;white-space:pre-wrap;word-break:break-word}
+.markdown-body pre code{font-family:'SFMono-Regular',Consolas,monospace;background:none;color:#cfe3f5;padding:0;font-size:.85em;line-height:1.6}
+@media(max-width:640px){.markdown-body{padding:24px 18px}.wrap{padding:20px 12px 60px}}
+</style></head>
+<body>
+<div class="topbar"><a href="../../index.html">← 返回作品集</a></div>
+<div class="wrap"><div class="markdown-body"><h1>&quot;我的账单&quot;模块设计逻辑与字段规则说明</h1>
+<p>账单详情⻚内层表格字段名为&quot;出账流⽔号&quot;；账单详情⻚头部新增展⽰外层&quot;账单编号&quot;。两者关系：1个账单编号（服务/产品+账期）→N个出账流⽔号。</p>
+<h2>1.名词术语表</h2>
+<h2>2.架构总览</h2>
+<pre><code>1 ⽉账单概览（个⼈空间 / 企业空间共⽤⻚⾯框架）
+2 ├─ 顶部说明区（数据时效提⽰）
+3 ├─ 账单⽉份选择器（⽇历下拉，⽀持跨年）
+4 ├─ 账⼾切换器（仅企业空间显⽰）
+5 ├─ 账期汇总卡⽚（出账状态 + 应付/已还/待还三个⾦额）
+6 │ └─ &quot;已还款⾦额-查看详情&quot; → 跳转「还款详情」⻚
+7 ├─ 消费明细表（按产品，唯⼀的浏览维度）
+8 │ ├─ 展开箭头 → ⾏内嵌套「账本明细」表
+9 │ └─ &quot;详情&quot;操作 → 跳转「账单详情」⻚
+10 └─ &quot;导出账单&quot;按钮 → 弹出「导出」弹窗
+11
+12 还款详情（独⽴⻚⾯，⾮弹窗）
+13 └─ 返回 → ⽉账单概览
+14
+15 账单详情（独⽴⻚⾯）</code></pre>
+<pre><code>16 ├─ 头部：账单编号 + 服务名称 + 账⼾标识（企业空间⾏）+ 账单时间 + ⽀付状态
+17 ├─ 账单信息表（出账流⽔号维度，可能多⾏）
+18 └─ 返回 → ⽉账单概览</code></pre>
+<h2>3.个⼈空间vs企业空间差异</h2>
+<p>判断原则：凡是&quot;多账⼾/多主体&quot;相关的字段，个⼈空间天然没有对应概念，不需要⽤条件判断去逐个隐藏，⽽是从信息架构设计上就不引⼊。</p>
+<h2>4.业务规则与字段定义</h2>
+<h2>4.1账单⽉份选择器</h2>
+<ul><li>交互：点击弹出⽇历下拉，顶部年份⽂字+左右翻年箭头（«/»），下⽅1‒12⽉⽹格，当前选中⽉ ⾼亮</li></ul>
+<ul><li>可选范围=近12个⾃然⽉（含当⽉）：晚于当前⾃然⽉、或早于&quot;当前⽉−11&quot;的⽉份置灰不可选；翻年箭头到边界年份⾃动禁⽤</li></ul>
+<h2>4.2⾦额字段公式</h2>
+<pre><code>1 应付⾦额 = ⽬录总价 − 优惠⾦额 − 优惠券抵扣⾦额 − 抹零⾦额
+2 待还款⾦额 = 应付⾦额 − 已还款⾦额
+3 已还款⾦额 = 现⾦⽀付⾦额 + 账⼾余额⽀付⾦额 + 代⾦券抵扣⾦额（还款明细⾥的三项之和）</code></pre>
+<h2>4.3出账状态</h2>
+<p>三态，互斥：</p>
+<h2>4.4数据时效性（参考原账单⻚）</h2>
+<ul><li>当⽉数据延迟约5⼩时更新</li></ul>
+<ul><li>最终账单在次⽉2⽇12点后才可查看/导出，此前数据仅供参考</li></ul>
+<ul><li>⽀持查询/导出近12个⽉账单数据</li></ul>
+<p>导出弹窗</p>
+<h2>5.交互流程说明</h2>
+<h2>5.1⻚⾯跳转关系</h2>
+<ul><li>消费明细表&quot;详情&quot;→账单详情⻚（同⼀浏览器历史记录内跳转，⾮弹窗）</li></ul>
+<ul><li>汇总卡⽚&quot;已还款⾦额-查看详情&quot;→还款详情⻚（同⼀浏览器历史记录内跳转，⾮弹窗）</li></ul>
+<ul><li>两个详情⻚均通过&quot;返回&quot;跳转回⽉账单概览</li></ul>
+<ul><li>导出按钮→弹窗（⾮跳转），关闭弹窗回到当前⻚⾯状态</li></ul>
+<h2>5.2账⼾切换器（企业空间）</h2>
+<ul><li>位置：⻚⾯顶部，跟&quot;账单⽉份&quot;选择器并排</li></ul>
+<ul><li>交互：下拉+搜索框（按账⼾名称/标识过滤），列表第⼀项固定为&quot;全部账⼾&quot;</li></ul>
+<ul><li>选中某账⼾后：不跳⻚，原地重新过滤下⽅汇总卡⽚和消费明细表的数据</li></ul>
+<ul><li>下拉每⼀项展⽰：账⼾名称（主⽂字）+账⼾标识（⼩字）</li></ul>
+<ul><li>&quot;全部账⼾&quot;是聚合视图，此时消费明细表显⽰&quot;账⼾标识&quot;列；选中具体账⼾后该列⾃动隐藏（信息已在切换器上下⽂中体现，避免冗余）</li></ul></div></div>
+</body></html>
