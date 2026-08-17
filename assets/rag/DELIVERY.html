@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>代码交付清单（DELIVERY）</title>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&f[]=satoshi@400,500,700&display=swap">
+<style>
+:root{
+  --bg:#0a0f1c; --card:#151c2e; --accent:#38bdf8; --accent-soft:rgba(56,189,248,.14);
+  --text:#e8edf6; --muted:#9ca3af; --border:#1f2a44;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:'Satoshi',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.75;
+  -webkit-font-smoothing:antialiased}
+.topbar{position:sticky;top:0;background:rgba(10,15,28,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:14px 24px;z-index:10}
+.topbar a{color:var(--accent);text-decoration:none;font-weight:700;font-size:14px}
+.topbar a:hover{text-decoration:underline}
+.wrap{max-width:880px;margin:0 auto;padding:36px 24px 80px}
+.markdown-body{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:40px 44px}
+.markdown-body h1{font-family:'Clash Display',sans-serif;font-size:30px;line-height:1.2;margin:.2em 0 .6em;
+  color:#fff;border-bottom:1px solid var(--border);padding-bottom:.4em}
+.markdown-body h2{font-family:'Clash Display',sans-serif;font-size:23px;margin:1.8em 0 .6em;color:#fff;
+  border-bottom:1px solid var(--border);padding-bottom:.3em}
+.markdown-body h3{font-size:18px;margin:1.4em 0 .5em;color:var(--accent)}
+.markdown-body h4{font-size:15.5px;margin:1.2em 0 .4em;color:#cfe8f5}
+.markdown-body p{color:var(--text);margin:.7em 0}
+.markdown-body a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-soft)}
+.markdown-body a:hover{text-decoration:underline}
+.markdown-body ul,.markdown-body ol{padding-left:1.6em;margin:.6em 0;color:var(--text)}
+.markdown-body li{margin:.35em 0}
+.markdown-body strong{color:#fff}
+.markdown-body hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.markdown-body blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);
+  background:var(--accent-soft);color:var(--muted);border-radius:0 10px 10px 0}
+.markdown-body code{font-family:'SFMono-Regular',Consolas,monospace;background:rgba(56,189,248,.1);
+  color:#a5e8ff;padding:.15em .4em;border-radius:6px;font-size:.88em}
+.markdown-body pre{background:#0b1424;border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;overflow:auto;margin:1em 0}
+.markdown-body pre code{background:none;color:#cfe3f5;padding:0;font-size:.85em;line-height:1.6}
+.markdown-body table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:14.5px}
+.markdown-body th,.markdown-body td{border:1px solid var(--border);padding:9px 12px;text-align:left;color:var(--text)}
+.markdown-body th{background:var(--accent-soft);color:#fff;font-weight:700}
+.markdown-body tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.markdown-body img{max-width:100%;border-radius:12px;border:1px solid var(--border)}
+@media(max-width:640px){.markdown-body{padding:24px 18px}.wrap{padding:20px 12px 60px}}
+</style></head>
+<body>
+<div class="topbar"><a href="../../index.html">← 返回作品集</a></div>
+<div class="wrap"><div class="markdown-body"><h1 id="delivery">代码交付清单（DELIVERY）</h1>
+<blockquote>
+<p>供应链协同中台与 RAG Agent 原型 · 完整可运行交付包<br />
+本文件是交付包的「总说明」，与 <code>README.md</code>（运行指南）、<code>docs/</code>（业务与架构叙事）配套使用。</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 环境与依赖</h2>
+<ul>
+<li><strong>Python 3.10+</strong>（本机验证 3.13.14 通过）。</li>
+<li><strong>零第三方依赖</strong>：仅用标准库 <code>csv / json / math / statistics / re / argparse</code>。</li>
+<li>生产级升级可选：<code>chromadb / sentence-transformers / fastapi / pydantic</code>（见 <code>requirements.txt</code> 注释，未强制）。</li>
+</ul>
+<hr />
+<h2 id="2">2. 目录结构与文件职责</h2>
+<table>
+<thead>
+<tr>
+<th>路径</th>
+<th>类型</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>docs/06_RAG_Agent评测与BadCase复盘.md</code></td>
+<td>文档</td>
+<td>完整评测与 Bad Case 复盘（方法论叙事，可进作品集/面试）</td>
+</tr>
+<tr>
+<td><code>README.md</code></td>
+<td>文档</td>
+<td>运行指南</td>
+</tr>
+<tr>
+<td><code>DELIVERY.md</code></td>
+<td>文档</td>
+<td>交付清单（结构/职责/运行/评测体系/指标/边界/复盘）</td>
+</tr>
+<tr>
+<td><code>data/real_supply_chain.csv</code></td>
+<td>数据</td>
+<td>公开原始数据集（未改动，含来源说明）</td>
+</tr>
+<tr>
+<td><code>data/clean_supply_chain.csv</code></td>
+<td>数据</td>
+<td>清洗后结构化数据（工具层直接消费）</td>
+</tr>
+<tr>
+<td><code>data/eval_cases.json</code></td>
+<td>评测</td>
+<td>21 条评测集（type/grounding/verify/expected）</td>
+</tr>
+<tr>
+<td><code>data/eval_results.json</code></td>
+<td>评测</td>
+<td>评测结果：指标 + 逐条明细（自动生成）</td>
+</tr>
+<tr>
+<td><code>knowledge_base/business_rules.md</code></td>
+<td>知识</td>
+<td>安全库存 / 再订货点 / 应用说明（带出处）</td>
+</tr>
+<tr>
+<td><code>knowledge_base/algorithm_params.md</code></td>
+<td>知识</td>
+<td>EOQ / ABC 分类 / 应用说明（带出处）</td>
+</tr>
+<tr>
+<td><code>knowledge_base/sop.md</code></td>
+<td>知识</td>
+<td>SOP-1 缺陷率判定 / SOP-2 供应商评分卡</td>
+</tr>
+<tr>
+<td><code>src/chunker.py</code></td>
+<td>代码</td>
+<td>Markdown 切片：按 <code>##</code> 标题切 + <code>section_path</code> 来源元数据</td>
+</tr>
+<tr>
+<td><code>src/mcp_tools.py</code></td>
+<td>代码</td>
+<td>7 个真实数据工具 + <code>tool_manifest()</code> 能力清单</td>
+</tr>
+<tr>
+<td><code>src/intent_router.py</code></td>
+<td>代码</td>
+<td>确定性意图路由：<code>rag / tool / hybrid</code></td>
+</tr>
+<tr>
+<td><code>src/rag_agent.py</code></td>
+<td>代码</td>
+<td><code>LocalRetriever</code>(TF-IDF 关键词) + 工具派发 + 答案组装</td>
+</tr>
+<tr>
+<td><code>src/mcp_server.py</code></td>
+<td>代码</td>
+<td>MCP 风格 JSON-RPC 服务（tools/list + tools/call）</td>
+</tr>
+<tr>
+<td><code>src/demo.py</code></td>
+<td>代码</td>
+<td>演示入口（真实混合问法）</td>
+</tr>
+<tr>
+<td><code>scripts/clean_data.py</code></td>
+<td>代码</td>
+<td>数据清洗（四舍五入 / 去重改名 / 保留城市维度 + 同义列一致性校验）</td>
+</tr>
+<tr>
+<td><code>tests/eval_rag.py</code></td>
+<td>评测</td>
+<td>21 条真实评测 + <strong>独立参考实现</strong> + 指标计算</td>
+</tr>
+<tr>
+<td><code>tests/run_tests.py</code></td>
+<td>测试</td>
+<td>统一入口：冒烟测试 + 评测指标校验</td>
+</tr>
+<tr>
+<td><code>tests/test_rag_agent.py</code></td>
+<td>测试</td>
+<td>Agent 冒烟测试（rag/tool/hybrid 三类）</td>
+</tr>
+<tr>
+<td><code>examples/mcp_generate_strategy_request.json</code></td>
+<td>示例</td>
+<td>MCP <code>tools/call</code> 请求样例</td>
+</tr>
+<tr>
+<td><code>docs/01~06_*.md</code></td>
+<td>文档</td>
+<td>01项目介绍 / 02需求调研与可行性 / 03中台框架 / 04RAG设计 / 05数据字典 / 06评测与BadCase复盘</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-5">3. 如何运行（5 步）</h2>
+<pre class="codehilite"><code class="language-powershell"># 0)（可选）重新清洗数据；clean_supply_chain.csv 已随包提供
+python scripts/clean_data.py
+
+# 1) 演示：跑一条真实混合问法
+python src/demo.py
+#    Windows 一键：.\run_demo.ps1
+
+# 2) 评测：21 条用例，输出三类指标并写回 eval_results.json
+python tests/eval_rag.py
+
+# 3) 测试：冒烟 + 评测校验，全绿即通过
+python tests/run_tests.py
+
+# 4) MCP 风格调用（stdin 或 --request-file）
+echo '{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;id&quot;:1,&quot;method&quot;:&quot;tools/list&quot;,&quot;params&quot;:{}}' | python src/mcp_server.py
+python src/mcp_server.py --request-file examples/mcp_generate_strategy_request.json
+</code></pre>
+
+<blockquote>
+<p>MCP 服务支持两种传输：<code>--request-file</code> 读单条请求；或 stdin 逐行 JSON-RPC（适合管道/服务化）。</p>
+</blockquote>
+<hr />
+<h2 id="4">4. 评测体系（第一性原理）</h2>
+<p><strong>三支柱</strong><br />
+1. <strong>采样</strong>：覆盖 <code>rag(6) / tool(7) / hybrid(8)</code> 三类，避免只测「会的部分」。<br />
+2. <strong>标注</strong>：gold 用「<code>source &gt; 第N节标题</code>」语义锚点解析，不用脆弱的位置编号——<br />
+   曾因 chunker 把 H1+前言切成 <code>-1</code> 导致位置整体错开一位，gold 错位让 Recall 虚假报成 21.4%，修正后真实 92.9%+。<br />
+3. <strong>指标正交</strong>：<code>Recall@3</code> 只测检索器；<code>end2end</code> 测全链路；<code>intent</code> 测路由。三者互不替代。</p>
+<p><strong>四层漏斗拆解 bad case</strong><br />
+现象 → 假设（≥2 个候选根因）→ 验证（跑真实中间产物，控制变量）→ 归类（检索/工具/路由/生成/标注）。</p>
+<p><strong>独立参考实现</strong>（防循环论证）<br />
+评测对 <code>tool/hybrid</code> 的答案用「与 agent 不同代码路径」的参考值校验（如独立 <code>groupby</code>/排序），<br />
+不直接复用 agent 内部函数结果。</p>
+<p><strong>关键教训</strong><br />
+- 标注优先：标注错了，后续所有 bad case 分析都在错误地基上。<br />
+- 中文正则坑：派发用 <code>"最低\D*(\d+)"</code> 容忍「最低的5」里的「的」，避免写死字符串漏匹配。<br />
+- 同义列先校验再合并：<code>lead_times_days</code> 与 <code>lead_time_days</code> 看似重复，实则近乎零相关（r≈-0.003），必须分别保留。</p>
+<hr />
+<h2 id="5">5. 当前评测结果（真实跑出）</h2>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>含义</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>end2end_accuracy</code></td>
+<td>全部 21 条最终答案正确</td>
+<td><strong>100.0%</strong>（21/21）</td>
+</tr>
+<tr>
+<td><code>recall_at_3</code></td>
+<td>rag+hybrid 子集，黄金 chunk 进 top3</td>
+<td><strong>100.0%</strong>（14/14）</td>
+</tr>
+<tr>
+<td><code>intent_accuracy</code></td>
+<td>意图路由分类准确率</td>
+<td><strong>90.5%</strong>（19/21）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6">6. 已知边界（诚实展示，非缺陷）</h2>
+<p>两条<strong>意图边界 case</strong> 端到端答案均正确，仅路由标签与评测集标注存在边界分歧：</p>
+<ul>
+<li><strong>TOOL-01</strong>「SKU0 缺陷率是否超 AQL」：标注为 <code>tool</code>，路由判 <code>hybrid</code>（问法同时含公式词 AQL）。</li>
+<li><strong>HY-08</strong>「C 类 SKU 补货管控」：标注为 <code>hybrid</code>，路由判 <code>rag</code>（「C 类」未被路由的词表识别为具体数据实体）。</li>
+</ul>
+<p>二者 e2e 正确，说明「路由标签」与「最终答案正确性」是两个正交维度；若要 100% 路由准确率，<br />
+只需在 <code>intent_router.py</code> 增加两条词表映射（已在 <code>docs/</code> 复盘中说明），但当前选择把它作为<br />
+「评测边界 vs 业务正确」的诚实例证保留。</p>
+<hr />
+<h2 id="7">7. 可扩展路线（生产级）</h2>
+<ol>
+<li>检索升级：TF-IDF → 向量混合检索 + rerank（注意：先确认是检索缺口还是标注缺口，避免盲目升级）。</li>
+<li>路由升级：确定性规则 → LLM 路由，需新建 held-out 评测防过拟合。</li>
+<li>工具升级：本地 CSV → 数据库/MCP 真实服务，按 <code>docs/03</code> 第 3 节的目标模型差距表补齐订单/仓库实体后，扩展 <code>replenishment_strategy</code>（自动补货）等业务语义工具。</li>
+<li>评测升级：21 条 → 更大规模 + 自动黄金标注抽检 + 回归门禁（CI 跑 <code>run_tests.py</code>）。</li>
+</ol>
+<hr />
+<h2 id="8">8. 验收清单</h2>
+<ul>
+<li>[x] <code>python src/demo.py</code> 跑通，输出真实数据结论</li>
+<li>[x] <code>python tests/eval_rag.py</code> 指标：e2e 100% / Recall@3 100% / intent 90.5%</li>
+<li>[x] <code>python tests/run_tests.py</code> 全绿（ALL TESTS PASSED）</li>
+<li>[x] <code>python src/mcp_server.py --request-file examples/mcp_generate_strategy_request.json</code> 返回完整 JSON-RPC 结果</li>
+<li>[x] 数据全真实、无编造；评测指标非预设、由流水线算出</li>
+</ul></div></div>
+</body></html>

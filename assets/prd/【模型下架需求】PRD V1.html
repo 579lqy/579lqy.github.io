@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>模型下架需求文档（PRD）</title>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&f[]=satoshi@400,500,700&display=swap">
+<style>
+:root{
+  --bg:#0a0f1c; --card:#151c2e; --accent:#38bdf8; --accent-soft:rgba(56,189,248,.14);
+  --text:#e8edf6; --muted:#9ca3af; --border:#1f2a44;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:'Satoshi',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.75;
+  -webkit-font-smoothing:antialiased}
+.topbar{position:sticky;top:0;background:rgba(10,15,28,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:14px 24px;z-index:10}
+.topbar a{color:var(--accent);text-decoration:none;font-weight:700;font-size:14px}
+.topbar a:hover{text-decoration:underline}
+.wrap{max-width:880px;margin:0 auto;padding:36px 24px 80px}
+.markdown-body{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:40px 44px}
+.markdown-body h1{font-family:'Clash Display',sans-serif;font-size:30px;line-height:1.2;margin:.2em 0 .6em;
+  color:#fff;border-bottom:1px solid var(--border);padding-bottom:.4em}
+.markdown-body h2{font-family:'Clash Display',sans-serif;font-size:23px;margin:1.8em 0 .6em;color:#fff;
+  border-bottom:1px solid var(--border);padding-bottom:.3em}
+.markdown-body h3{font-size:18px;margin:1.4em 0 .5em;color:var(--accent)}
+.markdown-body h4{font-size:15.5px;margin:1.2em 0 .4em;color:#cfe8f5}
+.markdown-body p{color:var(--text);margin:.7em 0}
+.markdown-body a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-soft)}
+.markdown-body a:hover{text-decoration:underline}
+.markdown-body ul,.markdown-body ol{padding-left:1.6em;margin:.6em 0;color:var(--text)}
+.markdown-body li{margin:.35em 0}
+.markdown-body strong{color:#fff}
+.markdown-body hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.markdown-body blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);
+  background:var(--accent-soft);color:var(--muted);border-radius:0 10px 10px 0}
+.markdown-body code{font-family:'SFMono-Regular',Consolas,monospace;background:rgba(56,189,248,.1);
+  color:#a5e8ff;padding:.15em .4em;border-radius:6px;font-size:.88em}
+.markdown-body pre{background:#0b1424;border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;overflow:auto;margin:1em 0}
+.markdown-body pre code{background:none;color:#cfe3f5;padding:0;font-size:.85em;line-height:1.6}
+.markdown-body table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:14.5px}
+.markdown-body th,.markdown-body td{border:1px solid var(--border);padding:9px 12px;text-align:left;color:var(--text)}
+.markdown-body th{background:var(--accent-soft);color:#fff;font-weight:700}
+.markdown-body tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.markdown-body img{max-width:100%;border-radius:12px;border:1px solid var(--border)}
+@media(max-width:640px){.markdown-body{padding:24px 18px}.wrap{padding:20px 12px 60px}}
+</style></head>
+<body>
+<div class="topbar"><a href="../../index.html">← 返回作品集</a></div>
+<div class="wrap"><div class="markdown-body"><h1 id="prd">模型下架需求文档（PRD）</h1>
+<blockquote>
+<p><strong>隐私说明</strong>：本文档以"平台"指代承载模型服务的产品主体，以"租户/用户"指代客户，隐去公司实名与品牌。原型中出现的模型供应商、模型名称、账号 ID 均为<strong>演示数据</strong>，仅用于说明字段含义。平台内部代号"Token 工场"按需求方要求保留为内部引用。</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 文档概览与修订记录</h2>
+<h3 id="11">1.1 文档概览</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>文档名称</td>
+<td>模型下架需求文档（PRD）</td>
+</tr>
+<tr>
+<td>所属模块</td>
+<td>平台模型生命周期管理 · 模型下架</td>
+</tr>
+<tr>
+<td>版本</td>
+<td>V1.0</td>
+</tr>
+<tr>
+<td>状态</td>
+<td>技术组评审通过</td>
+</tr>
+<tr>
+<td>创建日期</td>
+<td>2026-07</td>
+</tr>
+<tr>
+<td>作者</td>
+<td>产品经理-李千颖</td>
+</tr>
+<tr>
+<td>适用范围</td>
+<td>运营后台下架操作、用户空间权益补偿、计费停止、通知触达、券发放、API 网关拦截</td>
+</tr>
+</tbody>
+</table>
+<h3 id="12">1.2 修订记录</h3>
+<blockquote>
+<p>本次 PRD 主线为：<strong>设计模型下架的整体展示页面与交互流程</strong>，梳理六阶段业务框架与核心规则（下架确认 / 预告 / 存量保护 / 正式下架 / 权益处理 / 售后），补充运营后台「模型管理 → 下架四步弹窗」、用户空间「Token 包 / Token Plane → 权益补偿」双视图交互与字段。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>版本</th>
+<th>日期</th>
+<th>修改人</th>
+<th>变更类型</th>
+<th>修改内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V1.0</td>
+<td>2026-07-17</td>
+<td>产品经理</td>
+<td>新增</td>
+<td>设计模型下架的整体展示页面与交互流程</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2">2. 需求背景与目标</h2>
+<h3 id="21">2.1 业务背景</h3>
+<p>平台模型供给随<strong>合规要求、性能迭代、运营策略调整、模型能力异常</strong>等原因需要下架。在缺乏标准化下架流程时，存在以下痛点：</p>
+<ul>
+<li>无下架规则设计，下架动作随意，缺乏业务决策与范围确认，易误伤在途订单；</li>
+<li>存量用户权益（已购 Token 包 / 组合套餐）无统一补偿机制，引发客诉与纠纷；</li>
+<li>前端状态、通知触达、API 调用拒绝未统一，用户在下架后仍收到不一致体验；</li>
+<li>计费停止点、历史归档口径不清，财务与审计无法追溯。</li>
+</ul>
+<h3 id="22">2.2 业务价值</h3>
+<ul>
+<li><strong>标准化</strong>：将下架收敛为可审计、可回放、可追责的六阶段流程；</li>
+<li><strong>权益保护</strong>：以「平台通用券 / 额度转移」等非退款形式保障存量用户剩余权益，兼顾合规与体验；</li>
+<li><strong>风险可控</strong>：前端预告 + 站内信 / 邮件 + API 410 错误码三位一体，降低客诉与合规风险；</li>
+<li><strong>可追溯</strong>：保留模型记录与历史归档，不可逆操作留痕。</li>
+</ul>
+<h3 id="23-smart">2.3 产品目标（SMART）</h3>
+<table>
+<thead>
+<tr>
+<th>目标</th>
+<th>量化指标</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>下架流程线上化</td>
+<td>下架单创建到生效通知 100% 线上闭环，无线下人工协调</td>
+</tr>
+<tr>
+<td>存量权益覆盖率</td>
+<td>受影响租户的权益处理触达率 ≥ 99%</td>
+</tr>
+<tr>
+<td>通知时效</td>
+<td>下架单创建后 5 分钟内完成预告通知下发</td>
+</tr>
+<tr>
+<td>调用一致性</td>
+<td>正式下架后 API 调用统一返回 <code>410 MODEL_RETIRED</code>，错误码一致率 100%</td>
+</tr>
+<tr>
+<td>客诉下降</td>
+<td>下架相关客诉较未标准化前下降</td>
+</tr>
+</tbody>
+</table>
+<h3 id="24">2.4 用户角色矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>职责</th>
+<th>关注点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>平台运营管理员</td>
+<td>发起下架、填写下架单、确认影响范围、执行下架</td>
+<td>操作安全、影响范围可视、不可逆确认</td>
+</tr>
+<tr>
+<td>终端用户（个人）</td>
+<td>收到通知、使用存量、发起权益补偿</td>
+<td>剩余权益不受影响、补偿到账、替代模型指引</td>
+</tr>
+<tr>
+<td>企业管理员</td>
+<td>代企业账号接收通知、领取 / 使用补偿券</td>
+<td>组合包能力受损补偿、券使用约束</td>
+</tr>
+<tr>
+<td>系统角色（计费 / 通知 / 券中心 / API 网关）</td>
+<td>执行计费停止、通知、发券、调用拦截</td>
+<td>一致性、幂等、对账</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3">3. 信息架构（页面树）</h2>
+<pre class="codehilite"><code>运营后台
+└─ 模型管理
+   └─ 已上架模型列表（模型名称/ID/供应商/状态/订购用户数/上架时间/操作）
+      └─ 模型下架（弹窗，四步）
+         ├─ Step1 选择下架场景
+         ├─ Step2 填写下架信息（生效日期/内部原因/用户通知）
+         ├─ Step3 预览影响范围 + 二次确认
+         └─ Step4 完成下架 + 通知
+
+用户空间
+├─ 我的 Token 包（模型/包ID/总量/剩余/有效期/状态/权益）
+├─ 我的 Token Plane（组合套餐列表）
+└─ 权益补偿（弹窗）
+   ├─ 选择补偿方案（转移额度 / 发放代金券）
+   └─ 选择目标模型（仅转移额度时，系统推荐同标签可替代模型）
+
+系统侧（无 UI，后台服务）
+├─ 通知服务（站内信 + 邮件）
+├─ 计费服务（停止计费点）
+├─ 券中心（自动发放 / 作废）
+├─ API 网关（模型状态校验 + 410 拦截）
+└─ 审计日志
+</code></pre>
+
+<hr />
+<h2 id="4">4. 功能清单（按优先级）</h2>
+<h3 id="p0">P0（必须有）</h3>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>功能</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F01</td>
+<td>下架单创建</td>
+<td>运营后台对指定模型创建下架单，必填：下架场景、下架生效时间（精确到秒）、优惠券发放时间</td>
+</tr>
+<tr>
+<td>F02</td>
+<td>订单范围拉取与去重</td>
+<td>自动拉取模型 ID 下所有生效 / 未生效订单（单模型订购、组合包内嵌、API 调用）；以（企业 ID, 模型 ID）为唯一键生成影响记录</td>
+</tr>
+<tr>
+<td>F03</td>
+<td>状态锁定</td>
+<td>下架单生成后，该模型禁止新购 / 续订 / 扩容，仅保留存量调用</td>
+</tr>
+<tr>
+<td>F04</td>
+<td>下架预告与通知</td>
+<td>前端卡片置灰 + [即将下架] 标签 + 倒计时；站内信 + 邮件触达（个人→个人，企业→企业管理员）</td>
+</tr>
+<tr>
+<td>F05</td>
+<td>存量保护期</td>
+<td>存量租户按原规则使用至正式下架日，期间再次提醒（"最后机会"）</td>
+</tr>
+<tr>
+<td>F06</td>
+<td>正式下架</td>
+<td>模型停止调用；卡片 [已下架]；API 返回 <code>410 MODEL_RETIRED</code>；数据归档；计费停止点生效</td>
+</tr>
+<tr>
+<td>F07</td>
+<td>单模型包权益补偿</td>
+<td>未消耗权益价值 = 未使用 Token / 总 Token × 订单实付金额；券面额 100% 折算、四舍五入到元</td>
+</tr>
+<tr>
+<td>F08</td>
+<td>组合包影响等级判定</td>
+<td>L0（包内有同能力标签模型→仅通知）/ L1（无同能力模型→核心能力受损→通知 + 发券）</td>
+</tr>
+<tr>
+<td>F09</td>
+<td>补偿券发放与约束</td>
+<td>平台通用券自动打入；有效期 / 作废 / 使用约束按规则执行；免费试用账户不补偿</td>
+</tr>
+</tbody>
+</table>
+<h3 id="p1">P1（应该有）</h3>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>功能</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F10</td>
+<td>用户侧权益补偿交互</td>
+<td>用户空间「处理权益」弹窗：转移额度 / 发放代金券二选一；转移时系统推荐同供应商同标签模型并给出换算比例</td>
+</tr>
+<tr>
+<td>F11</td>
+<td>组合包继续售卖判定</td>
+<td>包内可用模型数 ≥ 原模型数 60% 时继续售卖，不整体退款 / 重算 / 减少总额度</td>
+</tr>
+<tr>
+<td>F12</td>
+<td>组合包 L1 权益计算</td>
+<td>依赖度 r = 周期内该模型消耗标准 Token ÷ 同期总标准 Token；退款补偿 = 套餐实付 × r × 剩余有效期占比（封顶 30%）</td>
+</tr>
+<tr>
+<td>F13</td>
+<td>历史归档</td>
+<td>调用记录、账单、关联政府券核销记录打包归档；模型记录不可物理删除</td>
+</tr>
+<tr>
+<td>F14</td>
+<td>操作审计日志</td>
+<td>下架操作接入统一审计（操作人 / 时间 / IP / 内容）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="p2">P2（可以有）</h3>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>功能</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F15</td>
+<td>撤销下架</td>
+<td>本期不支持；预留 SUSPENDED（已停用，可恢复）状态枚举</td>
+</tr>
+<tr>
+<td>F16</td>
+<td>组合包停止售卖时权益处理</td>
+<td>未消耗权益价值 = 未使用标准 Token / 总 Token × 订单实付金额（独立于继续售卖路径）</td>
+</tr>
+<tr>
+<td>F17</td>
+<td>替代模型 API 文档直链</td>
+<td>补偿弹窗内提供目标模型 API 文档链接与 model_id 替换提示</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5">5. 用户故事</h2>
+<blockquote>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>用户故事</th>
+<th>验收要点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>US01</td>
+<td>作为<strong>运营管理员</strong>，我希望在后台对某个模型发起标准化下架并填写场景 / 生效时间 / 原因，以便下架动作可追溯、范围可确认</td>
+<td>四步弹窗强制必填校验；生成下架单与影响记录</td>
+</tr>
+<tr>
+<td>US02</td>
+<td>作为<strong>运营管理员</strong>，我希望在确认前预览影响范围（受影响用户数、有效 Token 包、缓停期），以便评估下架波及面</td>
+<td>Step3 影响预览三项数据正确</td>
+</tr>
+<tr>
+<td>US03</td>
+<td>作为<strong>个人用户</strong>，我希望在下架生效前收到明确通知（模型 / 时间 / 受影响订单 / 核心规则），以便合理安排剩余额度</td>
+<td>站内信 + 邮件含四要素</td>
+</tr>
+<tr>
+<td>US04</td>
+<td>作为<strong>个人用户</strong>，我希望下架后对剩余权益获得非退款补偿（券 / 转移），以便不损失已付价值</td>
+<td>单模型包按规则折算发券；可主动发起补偿</td>
+</tr>
+<tr>
+<td>US05</td>
+<td>作为<strong>企业管理员</strong>，我希望组合包核心能力受损时获得补偿券，以便套餐价值缺口被覆盖</td>
+<td>L1 判定准确，券面额按依赖度计算</td>
+</tr>
+<tr>
+<td>US06</td>
+<td>作为<strong>开发者（API 调用方）</strong>，我希望下架后调用统一返回 <code>410 MODEL_RETIRED</code>，以便及时切换模型</td>
+<td>错误码与 message 一致</td>
+</tr>
+<tr>
+<td>US07</td>
+<td>作为<strong>运营管理员</strong>，我希望下架单创建后模型禁止新购 / 续订 / 扩容，以便避免存量纠纷扩大</td>
+<td>状态锁定即时生效</td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+<hr />
+<h2 id="6">6. 业务规则与状态机</h2>
+<h3 id="61">6.1 模型生命周期状态机</h3>
+<pre class="codehilite"><code>       创建下架单
+ONLINE ──────────────► SOON_OFFLINE（即将下架 / 预告期）
+   ▲                      │  缓停期（下架操作日 → 生效日期）
+   │                      │
+   │   (本期不支持)       ▼  生效日期 23:59:59 后
+SUSPENDED ◄───────   OFFLINE（已下架，终态，不可恢复）
+(预留，不实现)
+</code></pre>
+
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>枚举</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>已上架</td>
+<td><code>ONLINE</code></td>
+<td>正常可购可调用</td>
+</tr>
+<tr>
+<td>即将下架</td>
+<td><code>SOON_OFFLINE</code></td>
+<td>已创建下架单、预告期内，禁止新购 / 续订 / 扩容</td>
+</tr>
+<tr>
+<td>已下架</td>
+<td><code>OFFLINE</code></td>
+<td>终态，不可恢复，须走完整上架流程重新上线</td>
+</tr>
+<tr>
+<td>已停用</td>
+<td><code>SUSPENDED</code></td>
+<td>预留枚举，本期不实现（设计意图：临时停用后可恢复）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="62">6.2 下架场景与建议缓停期</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>枚举</th>
+<th>说明</th>
+<th>建议缓停期</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S1 合规整改</td>
+<td><code>COMPLIANCE_RECTIFY</code></td>
+<td>监管要求或平台自查发现合规问题</td>
+<td>0–7 天</td>
+</tr>
+<tr>
+<td>S2 性能迭代</td>
+<td><code>PERFORMANCE_ITERATION</code></td>
+<td>性能升级 / 架构调整，旧版汰换</td>
+<td>14–30 天</td>
+</tr>
+<tr>
+<td>S3 平台运营调整</td>
+<td><code>PLATFORM_ADJUST</code></td>
+<td>运营策略变化、模型线优化</td>
+<td>7–14 天</td>
+</tr>
+<tr>
+<td>S4 模型能力异常</td>
+<td><code>MODEL_ANOMALY</code></td>
+<td>输出质量严重下降或功能异常</td>
+<td>0–3 天</td>
+</tr>
+</tbody>
+</table>
+<h3 id="63">6.3 订单范围与去重规则</h3>
+<ul>
+<li>下架单生成时，系统自动拉取该模型 ID 下的<strong>所有生效 / 未生效订单</strong>，来源包含：单模型订购、组合包内嵌、API 调用。</li>
+<li><strong>去重唯一键</strong>：<code>(企业 ID, 模型 ID)</code>。</li>
+<li>通知：每（企业 × 模型）1 次，通知内列出所有关联订单；</li>
+<li>补偿券：每（企业 × 模型）1 张，面额 = 剩余累加额。</li>
+<li><strong>典型去重</strong>：企业同时购买单模型订购包与含该模型的组合包时，仅生成 1 条影响记录、1 次通知、1 张券。</li>
+</ul>
+<h3 id="64">6.4 状态锁定</h3>
+<p>下架单生成后即时生效：禁止新购、续订、扩容；仅保留存量调用与存量保护期内的正常使用。</p>
+<h3 id="65">6.5 通知规则</h3>
+<ul>
+<li>触达对象：个人 → 个人账号；企业 → 企业管理员。</li>
+<li>渠道：站内信 + 邮件。</li>
+<li>邮件四要素（预告期与存量保护期均须包含）：①明确下架模型 ②明确下架时间 ③明确受影响订单 ④核心规则（不提供模型 / 数据迁移，剩余权益折算为平台通用券，自行在新模型中重新调用）。存量保护期提醒额外强调"最后机会"。</li>
+</ul>
+<h3 id="66">6.6 权益补偿规则</h3>
+<h4 id="661">6.6.1 单模型包</h4>
+<ul>
+<li>未消耗权益价值 = 未使用 Token 数 ÷ 总 Token 数 × 订单实付金额。</li>
+<li>券面额 = 未消耗权益 × 100%，<strong>精确到元，四舍五入</strong>。</li>
+<li>券类型：平台通用券（不可提现、不可找零）。</li>
+<li>有效期：发放后 <strong>90 天</strong>有效，过期自动报废，视为放弃权益。</li>
+<li>订单状态改为「下架结算完成」。</li>
+</ul>
+<h4 id="662-token-plane">6.6.2 组合包（Token Plane）</h4>
+<ul>
+<li>下架模型立即停用。</li>
+<li><strong>继续售卖判定</strong>：包内可用模型总数 ≥ 原模型数 × 60% → 继续售卖。</li>
+<li>继续售卖：不整体退款、不整体重算、剩余 Token 总额度不减少、不退款不折算、有效期不变；其他模型不受影响继续计费，订单保持有效继续扣费；<strong>仅当核心能力明显受损时按等级发券</strong>。</li>
+<li>停止售卖：未消耗权益价值 = 未使用标准 Token ÷ 总标准 Token × 订单实付金额。</li>
+<li><strong>影响等级</strong>：</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>等级</th>
+<th>判断标准</th>
+<th>处理方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L0 无补偿</td>
+<td>包内有同能力标签模型可用</td>
+<td>仅通知</td>
+</tr>
+<tr>
+<td>L1 有补偿</td>
+<td>包内无同能力模型（核心能力受损）</td>
+<td>通知 + 发券</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>判定逻辑：<code>IF 下架模型.标签 ∈ 组合包内其他模型的标签列表 → L0；ELSE → L1</code>。</li>
+<li>L1 权益计算：依赖度 <code>r = 该用户套餐当前计费周期内该模型消耗标准 Token ÷ 同期消耗标准 Token 总量</code>；退款补偿 = 套餐实付金额 × r × 套餐剩余有效期占比（<strong>封顶实付金额 30%</strong>）。</li>
+</ul>
+<h4 id="663">6.6.3 券通用约束</h4>
+<ul>
+<li>不可提现、不可找零、不可转赠其他企业或个人；</li>
+<li>不可叠加政府券、不可叠加其他活动；</li>
+<li>平台券使用优先级最高；</li>
+<li>发放时间：模型下架后自动发放；</li>
+<li>过期作废：下架日期 + <strong>120 天</strong>未使用自动作废，不延期、不补发；</li>
+<li>到账通知：站内信；</li>
+<li><strong>免费试用账户不补偿</strong>。</li>
+</ul>
+<h3 id="67">6.7 计费与错误码</h3>
+<ul>
+<li><strong>计费停止点</strong>：以模型正式下架时间为停止计费点；下架后的失败调用不计费。</li>
+<li><strong>后付费</strong>：按下架时刻账单截止金额计算。</li>
+<li><strong>订购</strong>：按实付金额折算，赠送额度不兑现不折现，已过期订单不补偿。</li>
+<li><strong>API 错误码</strong>（正式下架后统一返回）：</li>
+</ul>
+<pre class="codehilite"><code class="language-json">{
+  &quot;code&quot;: 410,
+  &quot;error&quot;: &quot;MODEL_RETIRED&quot;,
+  &quot;message&quot;: &quot;该模型已下架，请在平台自行选择其他模型或 Token Plan。&quot;
+}
+</code></pre>
+
+<h3 id="68">6.8 补偿处理有效期</h3>
+<p>下架生效日期起 <strong>30 天</strong>内，用户可主动发起权益补偿申请；逾期系统自动发放代金券（见用户空间交互）。</p>
+<hr />
+<h2 id="7">7. 详细功能说明</h2>
+<h3 id="71">7.1 阶段一：下架确认（业务决策与范围）</h3>
+<ul>
+<li><strong>前置条件</strong>：操作人为平台运营管理员，目标模型状态为 <code>ONLINE</code>。</li>
+<li><strong>主流程</strong>：<br />
+  1. 在「已上架模型列表」点击目标模型「下架」；<br />
+  2. 弹窗 Step1 选择下架场景（S1–S4）；<br />
+  3. Step2 填写下架生效日期（默认当天，不可早于当天）、内部原因（仅后台可见）、用户通知内容；<br />
+  4. 系统拉取订单范围，按 <code>(企业 ID, 模型 ID)</code> 去重生成影响记录；<br />
+  5. 创建下架单，模型状态置为 <code>SOON_OFFLINE</code>，触发状态锁定。</li>
+<li><strong>异常流程</strong>：未选场景 / 必填项为空 → 禁用「下一步」；生效日期早于当天 → 校验拦截。</li>
+<li><strong>后置条件</strong>：下架单与影响记录落库；模型禁止新购 / 续订 / 扩容。</li>
+</ul>
+<h3 id="72">7.2 阶段二：下架预告（通知与预期管理）</h3>
+<ul>
+<li><strong>前置条件</strong>：下架单已创建，状态 <code>SOON_OFFLINE</code>。</li>
+<li><strong>主流程</strong>：<br />
+  1. 前端模型卡片置灰 + [即将下架] 标签 + 倒计时；<br />
+  2. 触发站内信 + 邮件通知（个人 / 企业管理员），内容含四要素。</li>
+<li><strong>异常流程</strong>：通知渠道失败 → 重试队列 + 监控告警，不影响状态流转。</li>
+<li><strong>后置条件</strong>：预告期内用户可见即将下架标识与倒计时。</li>
+</ul>
+<h3 id="73">7.3 阶段三：存量保护期</h3>
+<ul>
+<li><strong>主流程</strong>：存量租户按原规则使用至正式下架日；保护期内再次发送提醒（强调"最后机会"）。</li>
+<li><strong>边界</strong>：保护期不开放新购 / 续订 / 扩容。</li>
+</ul>
+<h3 id="74">7.4 阶段四：正式下架</h3>
+<ul>
+<li><strong>前置条件</strong>：到达下架生效日期 23:59:59。</li>
+<li><strong>主流程</strong>：<br />
+  1. 模型停止调用，状态置 <code>OFFLINE</code>；<br />
+  2. 前端卡片 [已下架]；<br />
+  3. API 网关对该模型调用统一返回 <code>410 MODEL_RETIRED</code>；<br />
+  4. 数据归档（调用记录、账单、关联政府券核销记录打包），模型记录不可物理删除；<br />
+  5. 计费停止点生效，失败调用不计费。</li>
+<li><strong>异常流程</strong>：网关拦截延迟 → 旧调用仍可能短暂成功，需对账补偿（不计费）。</li>
+<li><strong>后置条件</strong>：模型不可被搜索 / 浏览 / 订购；历史可查。</li>
+</ul>
+<h3 id="75">7.5 阶段五：权益处理（核心）</h3>
+<ul>
+<li><strong>单模型包</strong>：按 6.6.1 计算未消耗权益 → 生成平台通用券（100% 折算、四舍五入、90 天有效）→ 订单标记「下架结算完成」。</li>
+<li><strong>组合包</strong>：先判继续售卖（≥60%）→ 继续售卖走 L0/L1 判定与依赖度补偿；停止售卖走 6.6.2 独立折算。</li>
+<li><strong>异常</strong>：已过期订单 / 免费试用账户 → 不补偿；赠送额度不折现。</li>
+</ul>
+<h3 id="76">7.6 阶段六：售后（券发放与约束）</h3>
+<ul>
+<li><strong>主流程</strong>：下架后自动发放券至券中心；站内信通知到账；用户（企业需手动领取）在券中心使用。</li>
+<li><strong>约束</strong>：见 6.6.3；下架日 +120 天未使用自动作废。</li>
+</ul>
+<h3 id="77-p1">7.7 用户空间权益补偿交互（P1）</h3>
+<ul>
+<li><strong>入口</strong>：Token 包状态为「已停止」或「部分模型已下架」时出现「处理权益」按钮。</li>
+<li><strong>补偿方案</strong>：</li>
+<li>转移额度：将剩余 Token 按换算比例转移至其他有效模型 Token 包；选择目标模型时系统按同供应商 / 同能力标签推荐（标注推荐与换算比例），提供 API 文档链接与 <code>model_id</code> 替换提示；</li>
+<li>发放代金券：按剩余价值折算为平台通用券。</li>
+<li><strong>交互约束</strong>：补偿方案一经确认立即执行，<strong>不可撤销、不可重新选择</strong>。</li>
+</ul>
+<hr />
+<h2 id="8">8. 交互流程</h2>
+<h3 id="81">8.1 主流程（管理员下架）</h3>
+<pre class="codehilite"><code>1. 选择模型（已上架模型列表 → 下架）
+   ↓
+2. 填写下架信息（场景 / 生效日期 / 内部原因 / 用户通知）
+   ↓
+3. 预览影响范围（受影响用户数 / 有效 Token 包 / 缓停期）+ 二次确认
+   ├─ 确认项：永久不可恢复 / 存量可用至生效日 23:59:59 / 生效日后调用拒绝 / 不可撤销
+   ↓
+4. 完成下架 + 通知（状态置 OFFLINE / 发通知 / 归档 / 停止计费）
+</code></pre>
+
+<h3 id="82">8.2 用户权益补偿流程</h3>
+<pre class="codehilite"><code>用户空间（Token 包 / Token Plane）
+   ↓ 状态变为「已停止 / 部分模型已下架」
+点击「处理权益」
+   ↓
+选择补偿方案（转移额度 / 发放代金券）
+   ├─ 转移额度 → 选择目标模型（系统推荐同标签）→ 确认
+   └─ 发放代金券 → 确认
+   ↓
+确认后不可更改 → 执行 → 状态更新为「已补偿」
+</code></pre>
+
+<h3 id="83">8.3 异常流程（关键分支）</h3>
+<ul>
+<li>去重冲突：企业同时单购 + 组合包 → 仅 1 条影响记录 / 1 次通知 / 1 张券；</li>
+<li>通知失败：进入重试队列，状态流转不阻塞；</li>
+<li>网关拦截延迟：下架瞬间旧调用成功 → 不计费，对账兜底。</li>
+</ul>
+<hr />
+<h2 id="9">9. 数据模型（字段语义表）</h2>
+<table>
+<thead>
+<tr>
+<th>实体</th>
+<th>字段</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>模型 Model</td>
+<td>model_id, name, supplier, status(<code>ONLINE</code>/<code>SOON_OFFLINE</code>/<code>OFFLINE</code>/<code>SUSPENDED</code>), ordered_users, online_date</td>
+<td>模型主数据</td>
+</tr>
+<tr>
+<td>下架单 OfflineOrder</td>
+<td>order_id, model_id, scene, effective_time(秒级), reason(内部), notice(用户), operator, create_time</td>
+<td>下架决策记录</td>
+</tr>
+<tr>
+<td>影响记录 Impact</td>
+<td>impact_id, tenant_id, model_id, related_orders[], remaining_amount</td>
+<td>按 (企业,模型) 去重后的影响与补偿基数</td>
+</tr>
+<tr>
+<td>Token 包 TokenPack</td>
+<td>pack_id, model_id, total, remaining, expire, status</td>
+<td>单模型资源包</td>
+</tr>
+<tr>
+<td>Token Plane</td>
+<td>plane_id, name, model_ids[], total_tokens, remaining_tokens, expire, price</td>
+<td>组合套餐（额度共享）</td>
+</tr>
+<tr>
+<td>补偿券 Coupon</td>
+<td>coupon_id, tenant_id, model_id, type(<code>VOUCHER</code>/<code>TRANSFER</code>), amount, expire, src_order</td>
+<td>权益补偿凭证</td>
+</tr>
+<tr>
+<td>通知记录 Notify</td>
+<td>notify_id, tenant_id, channel, content, send_time, status</td>
+<td>站内信 / 邮件触达</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>字段默认值与精度：金额精确到元（四舍五入）；下架生效时间精确到秒；有效期以日期 23:59:59 为边界。</p>
+</blockquote>
+<hr />
+<h2 id="10">10. 边界场景</h2>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>场景</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>异常</td>
+<td>已过期订单</td>
+<td>不补偿</td>
+</tr>
+<tr>
+<td>异常</td>
+<td>免费试用账户</td>
+<td>不补偿</td>
+</tr>
+<tr>
+<td>异常</td>
+<td>赠送额度</td>
+<td>不兑现、不折现</td>
+</tr>
+<tr>
+<td>极限</td>
+<td>组合包可用模型数 = 原模型数 × 60%（临界）</td>
+<td>判为继续售卖</td>
+</tr>
+<tr>
+<td>极限</td>
+<td>组合包无同能力标签模型</td>
+<td>判 L1，发券（依赖度计算，封顶 30%）</td>
+</tr>
+<tr>
+<td>极限</td>
+<td>模型恰好 0 订购用户</td>
+<td>跳过通知发送，仍走归档</td>
+</tr>
+<tr>
+<td>极限</td>
+<td>下架生效日 23:59:59 边界调用</td>
+<td>计入存量；23:59:59 后调用返回 410</td>
+</tr>
+<tr>
+<td>并发</td>
+<td>同一模型重复创建下架单</td>
+<td>状态锁定后拒绝第二次，提示"已存在下架单"</td>
+</tr>
+<tr>
+<td>并发</td>
+<td>去重窗口内企业同时单购 + 组合包</td>
+<td>仅生成 1 条影响记录</td>
+</tr>
+<tr>
+<td>并发</td>
+<td>网关拦截延迟导致下架瞬间旧调用成功</td>
+<td>不计费，对账兜底</td>
+</tr>
+<tr>
+<td>逆向</td>
+<td>撤销下架</td>
+<td>本期不支持；如需恢复须走完整上架流程</td>
+</tr>
+<tr>
+<td>逆向</td>
+<td>用户未在 30 天 / 120 天内处理</td>
+<td>逾期自动发放代金券 / 券自动作废</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="11_1">11. 验收标准（可量化）</h2>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>标准</th>
+<th>通过条件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AC01</td>
+<td>下架单创建</td>
+<td>四步弹窗必填校验 100% 生效；生成下架单与影响记录</td>
+</tr>
+<tr>
+<td>AC02</td>
+<td>状态锁定</td>
+<td>下架单创建后，新购 / 续订 / 扩容接口调用拒绝率 100%</td>
+</tr>
+<tr>
+<td>AC03</td>
+<td>去重正确</td>
+<td>（企业,模型）唯一键下通知 1 次、券 1 张，误差 0</td>
+</tr>
+<tr>
+<td>AC04</td>
+<td>通知时效</td>
+<td>下架单创建后 5 分钟内通知下发成功率 ≥ 99%</td>
+</tr>
+<tr>
+<td>AC05</td>
+<td>预告展示</td>
+<td>前端卡片置灰 + [即将下架] + 倒计时渲染正确</td>
+</tr>
+<tr>
+<td>AC06</td>
+<td>错误码一致</td>
+<td>正式下架后 API 调用返回 <code>410 MODEL_RETIRED</code> 一致率 100%</td>
+</tr>
+<tr>
+<td>AC07</td>
+<td>单模型包折算</td>
+<td>券面额 = round(未使用/总 × 实付)，误差 0</td>
+</tr>
+<tr>
+<td>AC08</td>
+<td>组合包 L0/L1</td>
+<td>标签匹配判定准确率 100%</td>
+</tr>
+<tr>
+<td>AC09</td>
+<td>L1 补偿上限</td>
+<td>退款补偿 ≤ 实付金额 × 30%</td>
+</tr>
+<tr>
+<td>AC10</td>
+<td>券有效期</td>
+<td>90 天有效 / 下架日 +120 天作废规则执行准确</td>
+</tr>
+<tr>
+<td>AC11</td>
+<td>计费停止</td>
+<td>下架后失败调用计费条数 = 0</td>
+</tr>
+<tr>
+<td>AC12</td>
+<td>归档不可删</td>
+<td>模型记录物理删除尝试 100% 拒绝</td>
+</tr>
+<tr>
+<td>AC13</td>
+<td>补偿交互</td>
+<td>方案确认后不可更改，状态更新为「已补偿」</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="12_1">12. 非功能需求</h2>
+<ul>
+<li><strong>性能</strong>：下架单创建至影响预览渲染 P95 ≤ 2s；通知批量下发支持 ≥ 1 万租户 / 批次。</li>
+<li><strong>安全隐私</strong>：内部原因仅运营后台可见，不向用户侧泄露；券发放、用户剩余权益等数据按租户隔离，服务端强鉴权。</li>
+<li><strong>可靠性</strong>：通知失败重试 ≥ 3 次；下架操作为幂等（同一模型重复请求拒绝）；归档异步执行不阻塞主流程。</li>
+<li><strong>兼容性</strong>：运营后台兼容主流浏览器（Chrome / Edge / Safari 近两版本）；用户空间适配移动端 H5。</li>
+<li><strong>可观测</strong>：下架关键节点埋点（见第 13 章）；异常操作接入审计日志与告警。</li>
+</ul>
+<hr />
+<h2 id="13">13. 数据埋点（摘要）</h2>
+<table>
+<thead>
+<tr>
+<th>位置</th>
+<th>事件</th>
+<th>关键字段</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>模型列表</td>
+<td>model_offline_click</td>
+<td>model_id, supplier, ordered_users</td>
+</tr>
+<tr>
+<td>下架弹窗 Step1</td>
+<td>offline_scene_select</td>
+<td>scene(S1–S4)</td>
+</tr>
+<tr>
+<td>下架弹窗 Step2</td>
+<td>offline_info_submit</td>
+<td>effective_date, has_reason</td>
+</tr>
+<tr>
+<td>影响预览</td>
+<td>offline_impact_preview</td>
+<td>affected_users, valid_packs, buffer_days</td>
+</tr>
+<tr>
+<td>确认下架</td>
+<td>offline_confirm</td>
+<td>operator, model_id, effective_time</td>
+</tr>
+<tr>
+<td>用户补偿入口</td>
+<td>user_compensation_open</td>
+<td>product_type(TOKEN_PACKAGE/TOKEN_PLANE)</td>
+</tr>
+<tr>
+<td>补偿方案</td>
+<td>compensation_option_select</td>
+<td>option(VOUCHER/TRANSFER), target_model</td>
+</tr>
+<tr>
+<td>补偿确认</td>
+<td>compensation_confirm</td>
+<td>option, amount, result</td>
+</tr>
+<tr>
+<td>正式下架拦截</td>
+<td>api_model_retired</td>
+<td>model_id, code=410</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="14">14. 风险与依赖</h2>
+<table>
+<thead>
+<tr>
+<th>风险</th>
+<th>概率</th>
+<th>影响</th>
+<th>缓解</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>API 网关下架状态检查时间点未对齐</td>
+<td>中</td>
+<td>高</td>
+<td>与网关团队对齐拦截方案（术语表未尽事项 1）</td>
+</tr>
+<tr>
+<td>通知触达失败 / 延迟</td>
+<td>中</td>
+<td>中</td>
+<td>重试队列 + 监控告警，状态流转不阻塞</td>
+</tr>
+<tr>
+<td>券中心接口 / 使用规则 / 过期策略未就绪</td>
+<td>中</td>
+<td>高</td>
+<td>提前确认代金券中心对接（术语表未尽事项 3）</td>
+</tr>
+<tr>
+<td>操作无审计留痕</td>
+<td>低</td>
+<td>高</td>
+<td>下架操作接入统一审计日志（术语表未尽事项 2）</td>
+</tr>
+<tr>
+<td>网关拦截延迟致旧调用成功</td>
+<td>低</td>
+<td>中</td>
+<td>不计费 + 对账兜底</td>
+</tr>
+<tr>
+<td>组合包 L0/L1 标签匹配错误</td>
+<td>中</td>
+<td>中</td>
+<td>标签标准化录入，判定逻辑单测覆盖</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="a">附录 A：术语表索引</h2>
+<p>本文档术语（模型下架、下架生效日期、缓停期、永久下架、存量 Token 包、Token Plane、权益补偿、核心能力受损 L1、额度转移等）以独立《模型下架术语表》为准，变更需同步更新术语表。</p>
+<p><em>文档结束 / V1.0.0 定稿于 2026-08-12（对应规则 V1、原型 V1）</em></p></div></div>
+</body></html>

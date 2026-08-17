@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI 评测体系与 Bad Case 拆解 · 完整方法论与真实案例</title>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&f[]=satoshi@400,500,700&display=swap">
+<style>
+:root{
+  --bg:#0a0f1c; --card:#151c2e; --accent:#38bdf8; --accent-soft:rgba(56,189,248,.14);
+  --text:#e8edf6; --muted:#9ca3af; --border:#1f2a44;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:'Satoshi',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.75;
+  -webkit-font-smoothing:antialiased}
+.topbar{position:sticky;top:0;background:rgba(10,15,28,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:14px 24px;z-index:10}
+.topbar a{color:var(--accent);text-decoration:none;font-weight:700;font-size:14px}
+.topbar a:hover{text-decoration:underline}
+.wrap{max-width:880px;margin:0 auto;padding:36px 24px 80px}
+.markdown-body{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:40px 44px}
+.markdown-body h1{font-family:'Clash Display',sans-serif;font-size:30px;line-height:1.2;margin:.2em 0 .6em;
+  color:#fff;border-bottom:1px solid var(--border);padding-bottom:.4em}
+.markdown-body h2{font-family:'Clash Display',sans-serif;font-size:23px;margin:1.8em 0 .6em;color:#fff;
+  border-bottom:1px solid var(--border);padding-bottom:.3em}
+.markdown-body h3{font-size:18px;margin:1.4em 0 .5em;color:var(--accent)}
+.markdown-body h4{font-size:15.5px;margin:1.2em 0 .4em;color:#cfe8f5}
+.markdown-body p{color:var(--text);margin:.7em 0}
+.markdown-body a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-soft)}
+.markdown-body a:hover{text-decoration:underline}
+.markdown-body ul,.markdown-body ol{padding-left:1.6em;margin:.6em 0;color:var(--text)}
+.markdown-body li{margin:.35em 0}
+.markdown-body strong{color:#fff}
+.markdown-body hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.markdown-body blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);
+  background:var(--accent-soft);color:var(--muted);border-radius:0 10px 10px 0}
+.markdown-body code{font-family:'SFMono-Regular',Consolas,monospace;background:rgba(56,189,248,.1);
+  color:#a5e8ff;padding:.15em .4em;border-radius:6px;font-size:.88em}
+.markdown-body pre{background:#0b1424;border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;overflow:auto;margin:1em 0}
+.markdown-body pre code{background:none;color:#cfe3f5;padding:0;font-size:.85em;line-height:1.6}
+.markdown-body table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:14.5px}
+.markdown-body th,.markdown-body td{border:1px solid var(--border);padding:9px 12px;text-align:left;color:var(--text)}
+.markdown-body th{background:var(--accent-soft);color:#fff;font-weight:700}
+.markdown-body tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.markdown-body img{max-width:100%;border-radius:12px;border:1px solid var(--border)}
+@media(max-width:640px){.markdown-body{padding:24px 18px}.wrap{padding:20px 12px 60px}}
+</style></head>
+<body>
+<div class="topbar"><a href="../../../../index.html">← 返回作品集</a></div>
+<div class="wrap"><div class="markdown-body"><h1 id="ai-bad-case">AI 评测体系与 Bad Case 拆解 · 完整方法论与真实案例</h1>
+<blockquote>
+<p>配套 skill <code>ai-eval-badcase-method</code>。本文档给 SKILL.md 补上推导链、可复现的真实案例、与陷阱目录。</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、第一性原理：为什么必须有"评测体系"</h2>
+<p><strong>AI 系统 vs 传统软件的本质差异</strong>决定了评测不是可选项，而是唯一能证明"它能用"的手段：</p>
+<ul>
+<li>传统软件：<code>if A then B</code>，输出可枚举、可穷举单测；</li>
+<li>AI 系统：输出<strong>概率性、不可枚举</strong>（同一 prompt 可能变、没见过的问法会崩）。</li>
+</ul>
+<p><strong>推论</strong>：永远无法靠"代码写对了"证明"系统答得对"，只能靠<strong>在代表性样本上的客观测量</strong>去<em>推断</em>整体能力（统计推断思想：样本烂必然整体烂，样本好才能说大概率好）。</p>
+<p>所以一个评测体系 = <strong>采样 + 标注 + 指标</strong>三件套。缺任一都会翻车：</p>
+<ul>
+<li>不抽样 → 指标虚高；</li>
+<li>不标注 → 无法判定对错；</li>
+<li>指标不分解 → 不知道坏在哪。</li>
+</ul>
+<pre class="codehilite"><code>AI 输出概率性、不可枚举
+        │
+        ▼
+必须用&quot;代表性样本上的客观测量&quot;推断整体能力（统计推断）
+        │
+        ▼
+评测体系 = 采样(评什么) + 标注(怎么判) + 指标(报什么·正交分解)
+        │
+        ├─ 采样错 → 指标虚高（只放简单题 Recall 必虚高）
+        ├─ 标注错 → 整个 bad case 归因是空中楼阁（最致命）
+        └─ 指标混报 → 不知道坏在检索还是工具
+</code></pre>
+
+<hr />
+<h2 id="ai">二、三支柱详解（可迁移到任何 AI 产品）</h2>
+<h3 id="1">① 采样 = 定义"系统真实会被怎么用"</h3>
+<ul>
+<li>先枚举用户意图/查询类型分布（例：rag 知识问答 / tool 数值 / hybrid 公式套真实数据）；</li>
+<li>按分布<strong>分层抽样</strong>构造用例，必须含 happy / edge / adversarial 三类；</li>
+<li>hybrid 占比应与其差异化价值匹配（它才是 Agent 真正的壁垒，不能当少数）。</li>
+</ul>
+<h3 id="2-ground-truth">② 标注 = ground truth 的权威来源</h3>
+<ul>
+<li>rag：标 <code>gold chunk id</code>（检索是否命中正确块）；</li>
+<li>tool：<strong>用独立参考实现算数值当标准</strong>（绝不能用系统自己输出当标准，否则循环论证）；</li>
+<li>hybrid：公式 + 数值都正确；</li>
+<li>再配 <code>rubric</code>（判定细则，如"数值误差&lt;1% 算对"）。</li>
+</ul>
+<h3 id="3">③ 指标 = 每个指标测不同东西，必须正交分解</h3>
+<ul>
+<li><code>Recall@K</code> → 只测<strong>检索器</strong>（只看 rag+hybrid 子集）；</li>
+<li><code>端到端准确率</code> → 测<strong>整体</strong>能否答对用户（全部用例）；</li>
+<li><code>意图准确率</code> → 测<strong>路由</strong>分类对不对（独立维度）。</li>
+<li><strong>绝不混报</strong>：混在一起，永远不知道坏在检索还是工具。</li>
+</ul>
+<hr />
+<h2 id="bad-case">三、四层漏斗（Bad Case 拆解固定流程）</h2>
+<pre class="codehilite"><code>现象层 → 假设层 → 验证层 → 归类层
+   │         │         │         │
+   │         │         │         └ 落到根因树(检索/工具/路由/生成/标注)
+   │         │         └ 跑真实中间产物证伪，不靠直觉
+   │         └ ≥2 候选根因，皆当假设非结论
+   └ 打开结果文件，看 recall/e2e/intent 三列，定位哪根线挂了
+</code></pre>
+
+<h3 id="_2">每层操作动作（以真实案例示范）</h3>
+<ul>
+<li><strong>现象层</strong>：打开 <code>eval_results.json</code>，看 <code>recall3 / e2e / intent_ok</code> 三列，先定位"哪根线挂了"。如 RAG-02：<code>recall3=✗</code>、<code>e2e=✗</code>、<code>gold=business_rules.md-2</code> 且 top3 无 <code>-2</code> → 现象=<strong>检索未命中正确块</strong>。</li>
+<li><strong>假设层</strong>：至少列 <strong>2 个候选根因</strong>，绝不急于定论。</li>
+<li><strong>验证层</strong>：跑 <code>LocalRetriever.score(query, chunk)</code> 看 <code>-2</code> 真实打分、看 chunker 输出确认切片是否完整——<strong>用中间产物证伪，不靠直觉</strong>。</li>
+<li><strong>归类层</strong>：把验证结论落到根因树某一类，写进迭代 backlog。</li>
+</ul>
+<h3 id="hy-05">归因的"控制变量"威力（以 HY-05 为例）</h3>
+<p>它 <code>recall3=✓</code>（检索对了）却 <code>e2e=✗</code> → 检索层输出是对的，根因必在检索层<strong>之后</strong>（工具算数 / 生成格式 / 标注口径）。一步就排除了"检索"这个最大嫌疑，不用猜。</p>
+<hr />
+<h2 id="_3">四、根因分类树</h2>
+<p>按系统模块切，最稳：</p>
+<ul>
+<li><strong>检索根因</strong>：检索器没把正确块送进来（召回低 / 切片错 / 嵌入差）</li>
+<li><strong>工具根因</strong>：数值算错 / 字段取错 / 返回条数或口径偏差</li>
+<li><strong>路由根因</strong>：意图分类误判，派发错了模块</li>
+<li><strong>生成根因</strong>：检索和工具都对，但 LLM 拼答案/prompt/格式错了</li>
+<li><strong>标注根因</strong>：gold 本身口径有歧义（最容易漏，却会冤枉系统）</li>
+</ul>
+<hr />
+<h2 id="rag-agent">五、真实案例库（来自供应链 RAG Agent 评测实战）</h2>
+<h3 id="a">案例 A · 标注错位制造假指标</h3>
+<p><strong>背景</strong>：21 条评测初跑，Recall\@3 报 <strong>21.4%</strong>，于是推断"TF-IDF 单字中文切分太弱，必须升级向量混合检索+rerank"。</p>
+<p><strong>验证层翻盘</strong>：</p>
+<ul>
+<li>实时跑 <code>LocalRetriever.search("再订货点 ROP 的公式是什么？")</code>，gold chunk 的真实分数排第 1（31.66），明明进了 top3；</li>
+<li>但 <code>eval_results.json</code> 却写它 <code>recall3=false</code>、top3 是别的块——两个证据源对不上。</li>
+<li>控制变量排查：读 <code>chunker.py</code> 发现它把 H1+前言切成 <code>business_rules.md-1</code>，于是"1. 安全库存"实际是 <code>-2</code>、"2. 再订货点"实际是 <code>-3</code>……而 <code>eval_rag.py</code> 的 GOLD 映射<strong>按"第 N 节=-N"写死</strong>，整体错开一位；hybrid 的 grounding 还带 <code>+ ...</code> 脏后缀、个别缺 <code>&gt;</code>。</li>
+<li>用"按 grounding 语义锚点解析"替代脆弱编号、归一化 grounding 后重跑：<strong>真实 Recall\@3 = 92.9%（13/14）</strong>，端到端 85.7%，意图 90.5%。</li>
+</ul>
+<p><strong>结论 / 可迁移教训</strong>：</p>
+<ul>
+<li>一个指标的可信度 ≤ 它标注的可信度。<strong>标注错位能让整个评测翻盘</strong>。</li>
+<li>若当时没做验证层，直接照 21.4% 去"升级向量检索"，代价有三：① 92.9% 的检索器被改出 embedding/rerank 新 bug，召回反降；② 真问题（工具派发 bug）一直没动，e2e 原地不动。</li>
+<li><strong>修复模式</strong>：gold 从"脆弱的位置编号"改为"按 grounding 语义锚点解析"（不依赖编号偏移），并在评测脚本里断言"每个 gold 都能在 chunks 里解析到"。</li>
+</ul>
+<h3 id="b-bug">案例 B · 工具派发 bug（沉默失败）</h3>
+<p><strong>TOOL-02</strong>：query=<code>Mumbai 库存最低的 5 个 SKU 是哪些？</code> → 派发 <code>low_stock_skus(top_n=3)</code>，<strong>只回 3 条，标准是 5 条</strong>。</p>
+<ul>
+<li>现象层：intent_ok=True（路由没问题），e2e=✗。</li>
+<li>假设层：①意图错？②路由纯问答不调工具？③"的"把"最低5"拆开 → 进了 top_n=3 分支？</li>
+<li>验证层：跑 <code>route(q)</code>='tool'（假设①②错）；<code>'最低 5' in q = False</code>（中间隔着"的"），实际 top_n=3（假设③对）。</li>
+<li>归类层：<strong>工具派发根因 / 派发参数错配</strong>——硬写字符串 <code>"最低 5"</code> 不匹配带"的"的自然语言。</li>
+</ul>
+<p><strong>TOOL-05</strong>：query=<code>哪些 SKU 的库存低于 10？</code> → 派发返回 <code>{}</code>（空）。</p>
+<ul>
+<li>验证层：<code>_extract_threshold</code> <strong>其实抽到了 10</strong>，但 <code>dispatch_tool</code> 里既没有"库存+低于+阈值"的分支，也没把 <code>threshold</code> 传进 <code>low_stock_skus(threshold=...)</code> → 落入兜底空。</li>
+<li>归类层：<strong>工具派发根因 / 派发分支缺失</strong>（抽取层与派发层失同步）。</li>
+</ul>
+<p><strong>元认知（易错配）</strong>：常有人把"返回条数不对"误归到"意图/路由/分词"，但 <code>intent_ok</code> 早提示路由没问题，且派发器用的是<strong>原始字符串</strong> <strong><code>in</code></strong> <strong>匹配</strong>，根本没调 tokenizer。"分词"服务于<strong>检索器</strong>，派发器是<strong>字符串/正则匹配</strong>。</p>
+<p><strong>沉默失败警告</strong>：TOOL-02 返回 3 条 SKU 看起来完全正常，肉眼测代码永远发现不了，只有独立参考实现能发现。</p>
+<hr />
+<h2 id="pitfall-catalog">六、陷阱目录（pitfall catalog）</h2>
+<table>
+<thead>
+<tr>
+<th>陷阱</th>
+<th>表现</th>
+<th>后果</th>
+<th>防御</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>标注错位</strong></td>
+<td>gold 用脆弱编号/脏格式，与真实 chunk 偏移</td>
+<td>整个评测翻盘（Recall 假低）</td>
+<td>gold 用语义锚点解析 + 断言可解析</td>
+</tr>
+<tr>
+<td><strong>循环论证</strong></td>
+<td>用系统自身输出当 ground truth</td>
+<td>指标永远 100%，毫无意义</td>
+<td>tool/numeric 用独立参考实现</td>
+</tr>
+<tr>
+<td><strong>样本失真</strong></td>
+<td>评测题与知识出自同一份手写材料</td>
+<td>Recall 虚高（自证预言）</td>
+<td>换真实/公开数据，或标注"示例性"</td>
+</tr>
+<tr>
+<td><strong>指标混报</strong></td>
+<td>Recall/端到端/意图混成一个数</td>
+<td>不知坏在哪</td>
+<td>正交分解，各测各的子系统</td>
+</tr>
+<tr>
+<td><strong>沉默失败</strong></td>
+<td>返回"少几条/空"但不报错</td>
+<td>肉眼发现不了</td>
+<td>独立参考实现逐条比对</td>
+</tr>
+<tr>
+<td><strong>抽取-派发失同步</strong></td>
+<td>阈值抽到了但无人消费</td>
+<td>落入兜底空</td>
+<td>派发层显式消费抽取结果</td>
+</tr>
+<tr>
+<td><strong>跳层定结论</strong></td>
+<td>看到现象直接改代码</td>
+<td>修错地方、埋新 bug</td>
+<td>强制四层漏斗，验证层用证据</td>
+</tr>
+<tr>
+<td><strong>基于假基线迭代</strong></td>
+<td>先改代码再验测量</td>
+<td>白费工程</td>
+<td>任何修复前先重验测量本身</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_4">七、给用户的自测清单（迁移练习）</h2>
+<p>对任何 AI 产品的失败点，填四格发回，逐层验证：</p>
+<pre class="codehilite"><code>1. 现象层：recall3=__ e2e=__ intent_ok=__ gold=__ top3=[__]
+2. 假设层（≥2 候选）：A ______   B ______
+3. 验证层（打算看什么中间产物）：______
+4. 归类层（预判根因类）：______
+</code></pre></div></div>
+</body></html>

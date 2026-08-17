@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>租户账单导出 产品需求文档（PRD）</title>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&f[]=satoshi@400,500,700&display=swap">
+<style>
+:root{
+  --bg:#0a0f1c; --card:#151c2e; --accent:#38bdf8; --accent-soft:rgba(56,189,248,.14);
+  --text:#e8edf6; --muted:#9ca3af; --border:#1f2a44;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:'Satoshi',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.75;
+  -webkit-font-smoothing:antialiased}
+.topbar{position:sticky;top:0;background:rgba(10,15,28,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:14px 24px;z-index:10}
+.topbar a{color:var(--accent);text-decoration:none;font-weight:700;font-size:14px}
+.topbar a:hover{text-decoration:underline}
+.wrap{max-width:880px;margin:0 auto;padding:36px 24px 80px}
+.markdown-body{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:40px 44px}
+.markdown-body h1{font-family:'Clash Display',sans-serif;font-size:30px;line-height:1.2;margin:.2em 0 .6em;
+  color:#fff;border-bottom:1px solid var(--border);padding-bottom:.4em}
+.markdown-body h2{font-family:'Clash Display',sans-serif;font-size:23px;margin:1.8em 0 .6em;color:#fff;
+  border-bottom:1px solid var(--border);padding-bottom:.3em}
+.markdown-body h3{font-size:18px;margin:1.4em 0 .5em;color:var(--accent)}
+.markdown-body h4{font-size:15.5px;margin:1.2em 0 .4em;color:#cfe8f5}
+.markdown-body p{color:var(--text);margin:.7em 0}
+.markdown-body a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-soft)}
+.markdown-body a:hover{text-decoration:underline}
+.markdown-body ul,.markdown-body ol{padding-left:1.6em;margin:.6em 0;color:var(--text)}
+.markdown-body li{margin:.35em 0}
+.markdown-body strong{color:#fff}
+.markdown-body hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.markdown-body blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);
+  background:var(--accent-soft);color:var(--muted);border-radius:0 10px 10px 0}
+.markdown-body code{font-family:'SFMono-Regular',Consolas,monospace;background:rgba(56,189,248,.1);
+  color:#a5e8ff;padding:.15em .4em;border-radius:6px;font-size:.88em}
+.markdown-body pre{background:#0b1424;border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;overflow:auto;margin:1em 0}
+.markdown-body pre code{background:none;color:#cfe3f5;padding:0;font-size:.85em;line-height:1.6}
+.markdown-body table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:14.5px}
+.markdown-body th,.markdown-body td{border:1px solid var(--border);padding:9px 12px;text-align:left;color:var(--text)}
+.markdown-body th{background:var(--accent-soft);color:#fff;font-weight:700}
+.markdown-body tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.markdown-body img{max-width:100%;border-radius:12px;border:1px solid var(--border)}
+@media(max-width:640px){.markdown-body{padding:24px 18px}.wrap{padding:20px 12px 60px}}
+</style></head>
+<body>
+<div class="topbar"><a href="../../../../index.html">← 返回作品集</a></div>
+<div class="wrap"><div class="markdown-body"><h1 id="prd">租户账单导出 产品需求文档（PRD）</h1>
+<blockquote>
+<p>本文档为 <code>pm-prd-standard</code> skill 的<strong>标杆范例</strong>，展示一份"标准版"PRD 的质量水位。新模块 PRD 可直接参考本结构。<br />
+隐私说明：以"平台/租户"代称，隐去公司实名与品牌；示例数据已脱敏。</p>
+</blockquote>
+<h2 id="1">1. 文档概览与修订记录</h2>
+<table>
+<thead>
+<tr>
+<th>版本</th>
+<th>日期</th>
+<th>修改人</th>
+<th>审批人</th>
+<th>状态</th>
+<th>变更类型</th>
+<th>修改内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V0.1</td>
+<td>2026-07-14</td>
+<td>产品经理</td>
+<td>—</td>
+<td>草稿</td>
+<td>新增</td>
+<td>初稿</td>
+</tr>
+<tr>
+<td>V0.5</td>
+<td>2026-07-18</td>
+<td>产品经理</td>
+<td>—</td>
+<td>评审中</td>
+<td>修订</td>
+<td>补充 RBAC 与接口契约</td>
+</tr>
+<tr>
+<td>V1.0</td>
+<td>2026-07-20</td>
+<td>产品经理</td>
+<td>产品总监</td>
+<td>定稿</td>
+<td>定稿</td>
+<td>评审通过，进入开发</td>
+</tr>
+</tbody>
+</table>
+<h2 id="2">2. 术语表与缩写</h2>
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>英文/缩写</th>
+<th>定义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>账单</td>
+<td>Bill</td>
+<td>按账期向租户出具的应收明细集合</td>
+</tr>
+<tr>
+<td>出账</td>
+<td>Billing</td>
+<td>系统按规则生成账单的过程</td>
+</tr>
+<tr>
+<td>账期</td>
+<td>Billing Period</td>
+<td>账单对应的自然月，如 2026-08</td>
+</tr>
+<tr>
+<td>勾稽</td>
+<td>Reconciliation</td>
+<td>待还 = 应付 − 已还 的金额核对关系</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3">3. 需求背景与目标</h2>
+<ul>
+<li><strong>业务背景（痛点）</strong>：财务每月手动从后台导出账单并拼装 Excel，平均耗时 4 人时/月，跨 sheet 复制错误率约 3%，且无法按产品下钻。</li>
+<li><strong>业务价值</strong>：自助导出将财务人力降至 0.5 人时/月，错误率趋零，支持审计留痕。</li>
+<li><strong>SMART 目标</strong>：2026-Q4 前上线，导出任务 P99 ≤ 3s 返回链接，导出内容准确率 100%（差异 = 0）。</li>
+<li><strong>用户角色矩阵</strong>：租户财务（导出本租户账单）、租户管理员（查看）、平台运营（排查异常）。</li>
+</ul>
+<h2 id="4-inout-of-scope">4. 范围说明（In/Out of Scope）</h2>
+<ul>
+<li><strong>本期做</strong>：按账期/产品维度导出 PDF + CSV；多币种展示；导出记录留痕。</li>
+<li><strong>本期不做</strong>：跨租户合并导出、自动定时邮件推送、导出后在线编辑。</li>
+</ul>
+<h2 id="5">5. 信息架构（页面树）</h2>
+<pre class="codehilite"><code>账单中心
+├─ 账单列表（月维度）
+│  ├─ 账单详情
+│  └─ 导出（PDF / CSV）
+└─ 导出记录
+</code></pre>
+
+<h2 id="6-p0p1p2">6. 功能清单（P0/P1/P2）</h2>
+<ul>
+<li><strong>P0</strong>：账单列表查看、单账期导出 PDF/CSV、导出记录留痕、权限校验。</li>
+<li><strong>P1</strong>：按产品下钻导出、多币种展示、导出进度提示。</li>
+<li><strong>P2</strong>：导出模板自定义、批量账期导出。</li>
+</ul>
+<h2 id="7">7. 用户故事</h2>
+<ul>
+<li>作为租户财务，我希望按账期导出账单 PDF，以便归档审计。</li>
+<li>作为租户财务，我希望导出 CSV 含逐笔明细，以便对账。</li>
+<li>作为租户管理员，我希望仅看到本租户数据，以便隔离。</li>
+</ul>
+<h2 id="8-rbac">8. 角色与权限矩阵（RBAC）</h2>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>功能权限</th>
+<th>数据范围</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>平台运营</td>
+<td>查看所有租户、排查导出异常</td>
+<td>跨租户</td>
+<td>敏感操作二次确认</td>
+</tr>
+<tr>
+<td>租户管理员</td>
+<td>查看本租户账单</td>
+<td>本租户</td>
+<td>—</td>
+</tr>
+<tr>
+<td>租户财务</td>
+<td>查看 + 导出本租户账单</td>
+<td>本租户</td>
+<td>不可改配置</td>
+</tr>
+</tbody>
+</table>
+<h2 id="9">9. 业务规则与状态机</h2>
+<pre class="codehilite"><code class="language-mermaid">stateDiagram-v2
+    [*] --&gt; 待导出
+    待导出 --&gt; 导出中: 用户点击导出
+    导出中 --&gt; 成功: 文件生成完成
+    导出中 --&gt; 失败: 数据源超时
+    失败 --&gt; 待导出: 重试
+    成功 --&gt; [*]
+</code></pre>
+
+<ul>
+<li>出账时间规则：每月 1 日 02:00 出上月账单。</li>
+<li>数据延迟：账单数据 T+1 对齐，导出取快照。</li>
+<li>查询窗口：支持近 24 个月。</li>
+</ul>
+<h2 id="10">10. 详细功能说明（以"导出"为例）</h2>
+<ul>
+<li><strong>前置条件</strong>：用户已登录且拥有本租户导出权限；目标账期账单已出账。</li>
+<li><strong>主流程</strong>：进入账单详情 → 选格式（PDF/CSV）→ 点导出 → 生成任务 → 返回下载链接。</li>
+<li><strong>异常流程</strong>：数据源超时 → 提示"稍后重试"并保留任务记录；无权限 → 拦截并提示。</li>
+<li><strong>后置条件</strong>：导出记录写入审计表。</li>
+</ul>
+<h2 id="11">11. 交互流程</h2>
+<ol>
+<li>用户进入账单列表，选 2026-08。</li>
+<li>点"导出"，弹窗选格式与维度（全部/按产品）。</li>
+<li>系统调用导出服务，返回下载链接（≤ 3s）。</li>
+<li>用户下载，记录留痕。</li>
+</ol>
+<h2 id="12">12. 数据模型（字段语义表）</h2>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bill_id</td>
+<td>string</td>
+<td>账单唯一 ID</td>
+</tr>
+<tr>
+<td>tenant_id</td>
+<td>string</td>
+<td>租户 ID</td>
+</tr>
+<tr>
+<td>period</td>
+<td>ym</td>
+<td>账期，如 202608</td>
+</tr>
+<tr>
+<td>currency</td>
+<td>string</td>
+<td>币种，如 CNY</td>
+</tr>
+<tr>
+<td>payable</td>
+<td>decimal</td>
+<td>应付总额</td>
+</tr>
+<tr>
+<td>paid</td>
+<td>decimal</td>
+<td>已还</td>
+</tr>
+<tr>
+<td>outstanding</td>
+<td>decimal</td>
+<td>待还 = payable − paid</td>
+</tr>
+</tbody>
+</table>
+<h2 id="13-api-contract">13. 接口/数据契约（API Contract）</h2>
+<table>
+<thead>
+<tr>
+<th>接口</th>
+<th>方法</th>
+<th>路径</th>
+<th>幂等键</th>
+<th>关键字段</th>
+<th>错误码</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>导出账单</td>
+<td>POST</td>
+<td>/v1/bills/export</td>
+<td>req_id</td>
+<td>bill_id, format, dimension</td>
+<td>4040 无权限 / 4090 账期不存在</td>
+</tr>
+</tbody>
+</table>
+<h2 id="14">14. 存量数据迁移与兼容方案</h2>
+<ul>
+<li>存量已出账单（2026-08 前）：提供只读归档，结构不变。</li>
+<li>新导出服务：独立链路，不影响老账单查询。</li>
+<li>导出记录表：新建，历史不回迁。</li>
+</ul>
+<h2 id="15">15. 边界场景</h2>
+<ul>
+<li><strong>异常</strong>：数据源超时、无权限、账期不存在。</li>
+<li><strong>极限</strong>：单租户单账期明细 100 万行 → 异步导出 + 分片下载。</li>
+<li><strong>并发</strong>：同一租户 10 人同时导出 → 队列限流，每人独立任务。</li>
+</ul>
+<h2 id="16-givenwhenthen">16. 验收标准（Given/When/Then）</h2>
+<table>
+<thead>
+<tr>
+<th>AC ID</th>
+<th>来源故事</th>
+<th>前置</th>
+<th>操作</th>
+<th>期望</th>
+<th>量化阈值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AC-01</td>
+<td>财务导出 PDF</td>
+<td>已登录有账单</td>
+<td>点导出 PDF</td>
+<td>返回链接</td>
+<td>≤ 3s</td>
+</tr>
+<tr>
+<td>AC-02</td>
+<td>财务导出 CSV</td>
+<td>已登录有账单</td>
+<td>点导出 CSV</td>
+<td>含逐笔明细</td>
+<td>行数 = 明细数，差异 0</td>
+</tr>
+<tr>
+<td>AC-03</td>
+<td>权限隔离</td>
+<td>非本租户</td>
+<td>调接口</td>
+<td>拦截</td>
+<td>返回 4040</td>
+</tr>
+</tbody>
+</table>
+<h2 id="17">17. 非功能需求</h2>
+<ul>
+<li>性能：导出 P99 ≤ 3s（≤ 1 万行）；大数据异步 ≤ 2min。</li>
+<li>可靠：导出服务可用性 99.9%。</li>
+<li>安全：租户间行级隔离；下载链接有效期 15 分钟、签名防篡改。</li>
+<li>可观测：导出耗时/成功率埋点 100%。</li>
+</ul>
+<h2 id="18">18. 数据埋点</h2>
+<table>
+<thead>
+<tr>
+<th>埋点ID</th>
+<th>位置</th>
+<th>事件</th>
+<th>触发</th>
+<th>关键字段</th>
+<th>方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BE01</td>
+<td>账单详情</td>
+<td>bill_view</td>
+<td>曝光</td>
+<td>tenant_id, period</td>
+<td>实时</td>
+</tr>
+<tr>
+<td>BE02</td>
+<td>导出按钮</td>
+<td>bill_export</td>
+<td>点击</td>
+<td>tenant_id, format</td>
+<td>实时</td>
+</tr>
+<tr>
+<td>BE03</td>
+<td>下载</td>
+<td>bill_download</td>
+<td>点击</td>
+<td>tenant_id, cost_ms</td>
+<td>实时</td>
+</tr>
+</tbody>
+</table>
+<h2 id="19">19. 灰度发布与回滚计划</h2>
+<ul>
+<li>放量：内部租户 → 10% → 50% → 100%（每阶段 ≥ 1 日）。</li>
+<li>熔断：导出失败率 &gt; 2% 自动暂停。</li>
+<li>回滚：开关切回老后台导出，无需发版。</li>
+</ul>
+<h2 id="20">20. 国际化/多币种/税务</h2>
+<ul>
+<li>多币种：金额 + 币种 + 汇率快照 + 基准币种 CNY。</li>
+<li>税务：PDF 含税额与不含税额，按租户地区税率。</li>
+<li>时区：账期以租户时区为准。</li>
+</ul>
+<h2 id="21">21. 风险与依赖</h2>
+<table>
+<thead>
+<tr>
+<th>风险</th>
+<th>概率</th>
+<th>影响</th>
+<th>缓解</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>导出服务超时</td>
+<td>中</td>
+<td>高</td>
+<td>异步化 + 重试 + 熔断</td>
+</tr>
+<tr>
+<td>大数据 OOM</td>
+<td>低</td>
+<td>高</td>
+<td>分片流式导出</td>
+</tr>
+<tr>
+<td>依赖账单服务不稳定</td>
+<td>中</td>
+<td>中</td>
+<td>取快照解耦</td>
+</tr>
+</tbody>
+</table></div></div>
+</body></html>

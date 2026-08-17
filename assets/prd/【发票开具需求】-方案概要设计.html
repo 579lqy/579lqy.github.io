@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>发票开具功能 · 概要设计</title>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&f[]=satoshi@400,500,700&display=swap">
+<style>
+:root{
+  --bg:#0a0f1c; --card:#151c2e; --accent:#38bdf8; --accent-soft:rgba(56,189,248,.14);
+  --text:#e8edf6; --muted:#9ca3af; --border:#1f2a44;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:'Satoshi',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.75;
+  -webkit-font-smoothing:antialiased}
+.topbar{position:sticky;top:0;background:rgba(10,15,28,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:14px 24px;z-index:10}
+.topbar a{color:var(--accent);text-decoration:none;font-weight:700;font-size:14px}
+.topbar a:hover{text-decoration:underline}
+.wrap{max-width:880px;margin:0 auto;padding:36px 24px 80px}
+.markdown-body{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:40px 44px}
+.markdown-body h1{font-family:'Clash Display',sans-serif;font-size:30px;line-height:1.2;margin:.2em 0 .6em;
+  color:#fff;border-bottom:1px solid var(--border);padding-bottom:.4em}
+.markdown-body h2{font-family:'Clash Display',sans-serif;font-size:23px;margin:1.8em 0 .6em;color:#fff;
+  border-bottom:1px solid var(--border);padding-bottom:.3em}
+.markdown-body h3{font-size:18px;margin:1.4em 0 .5em;color:var(--accent)}
+.markdown-body h4{font-size:15.5px;margin:1.2em 0 .4em;color:#cfe8f5}
+.markdown-body p{color:var(--text);margin:.7em 0}
+.markdown-body a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-soft)}
+.markdown-body a:hover{text-decoration:underline}
+.markdown-body ul,.markdown-body ol{padding-left:1.6em;margin:.6em 0;color:var(--text)}
+.markdown-body li{margin:.35em 0}
+.markdown-body strong{color:#fff}
+.markdown-body hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.markdown-body blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);
+  background:var(--accent-soft);color:var(--muted);border-radius:0 10px 10px 0}
+.markdown-body code{font-family:'SFMono-Regular',Consolas,monospace;background:rgba(56,189,248,.1);
+  color:#a5e8ff;padding:.15em .4em;border-radius:6px;font-size:.88em}
+.markdown-body pre{background:#0b1424;border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;overflow:auto;margin:1em 0}
+.markdown-body pre code{background:none;color:#cfe3f5;padding:0;font-size:.85em;line-height:1.6}
+.markdown-body table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:14.5px}
+.markdown-body th,.markdown-body td{border:1px solid var(--border);padding:9px 12px;text-align:left;color:var(--text)}
+.markdown-body th{background:var(--accent-soft);color:#fff;font-weight:700}
+.markdown-body tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.markdown-body img{max-width:100%;border-radius:12px;border:1px solid var(--border)}
+@media(max-width:640px){.markdown-body{padding:24px 18px}.wrap{padding:20px 12px 60px}}
+</style></head>
+<body>
+<div class="topbar"><a href="../../index.html">← 返回作品集</a></div>
+<div class="wrap"><div class="markdown-body"><h1 id="_1">发票开具功能 · 概要设计</h1>
+<h2 id="v2html">&gt; 基于原型 <code>发票需求优化V2.html</code> ，字段名/函数名与原型代码保持一致。</h2>
+<h2 id="1">1. 功能描述</h2>
+<h3 id="11">1.1 功能定位</h3>
+<p>用户（ToC 个人 / ToB 企业管理员）在同一入口下，选择一批可开票的消费记录，一次提交生成发票申请。核心解决两个问题：<br />
+- 按量付费一个月产生几十条账单，不能逐条勾选 → 提供"按月周期"汇总开票<br />
+- 企业下有主账户和子账户，管理员需要跨账户统一开票，还要能拆分 → 提供"账户范围 + 合并/拆分"</p>
+<h3 id="12">1.2 功能清单</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>子功能</th>
+<th>适用空间</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>空间切换</td>
+<td>个人空间 / 企业空间 tab 切换</td>
+<td>全部</td>
+</tr>
+<tr>
+<td>账户范围选择</td>
+<td>搜索、全选/清空、多选账户</td>
+<td>仅企业空间</td>
+</tr>
+<tr>
+<td>发票拆分模式</td>
+<td>合并为一张 / 按账户分别开票</td>
+<td>仅企业空间</td>
+</tr>
+<tr>
+<td>开票方式切换</td>
+<td>按订单开票 / 按月周期开票</td>
+<td>全部</td>
+</tr>
+<tr>
+<td>周期选择器</td>
+<td>当前月锁定、近3月快捷、更早月份下拉</td>
+<td>仅"按周期"模式</td>
+</tr>
+<tr>
+<td>周期汇总</td>
+<td>可开票金额、订单数/可开票笔数、查看计算明细</td>
+<td>仅"按周期"模式</td>
+</tr>
+<tr>
+<td>计算明细弹窗</td>
+<td>公式三项拆解 + 说明气泡 + 下钻 + 按账户拆分明细</td>
+<td>全部（按账户拆分仅企业）</td>
+</tr>
+<tr>
+<td>订单筛选与列表</td>
+<td>关键字/状态/日期区间筛选，批量全选/清空</td>
+<td>全部</td>
+</tr>
+<tr>
+<td>订单详情页</td>
+<td>账单级明细分页展示</td>
+<td>全部</td>
+</tr>
+<tr>
+<td>公式下钻页</td>
+<td>已开票 / 不可开票 账单明细跨订单汇总展示</td>
+<td>全部</td>
+</tr>
+<tr>
+<td>超限提示</td>
+<td>已选金额超专票核定限额时警示</td>
+<td>仅企业+合并模式</td>
+</tr>
+<tr>
+<td>底部汇总与提交</td>
+<td>已选账户数/订单数/金额，提交开票申请</td>
+<td>全部</td>
+</tr>
+</tbody>
+</table>
+<h3 id="13">1.3 功能边界</h3>
+<h2 id="_2">不包含：已开具列表、发票信息（抬头）管理、真实开票网关对接、发票文件生成、发票冲红。</h2>
+<h2 id="2">2. 界面设计</h2>
+<h3 id="21">2.1 页面整体结构（自上而下）</h3>
+<pre class="codehilite"><code>顶部栏：空间切换 tab（个人空间 / 企业空间）+ 用户信息
+页面标题（随空间变化：&quot;发票管理&quot; / &quot;企业发票管理&quot;）
+二级 tab：开具发票（当前） / 已开具列表 / 发票信息（抬头）
+规则提示条（notice）：4 条开票规则说明
+──────────────────────────
+[企业空间独有] 账户范围卡片
+  - 拆分模式单选：合并为一张发票 / 按账户分别开票
+  - 账户下拉选择器（默认收起）
+──────────────────────────
+开票方式卡片
+  - 两张并列卡片：按订单开票 / 按月周期开票（含各自适用场景说明文案）
+──────────────────────────
+[按周期模式独有] 开票周期卡片
+  - 当前月 chip（禁用态，灰色，文案含&quot;本月未出账&quot;）
+  - 近3月 chip（可点击）
+  - 更早月份下拉（第4~12月）
+[按周期模式独有] 本周期汇总卡片
+  - 大字金额 + &quot;共X笔订单，X笔可开票&quot;
+  - &quot;查看计算明细 ›&quot; 链接
+  - 超限警示条（条件展示）
+──────────────────────────
+订单列表卡片
+  - 筛选行（按模式切换表单：周期模式=关键字+状态；订单模式=关键字+开始日期+结束日期+状态）
+  - 结果提示 + 批量操作（全选筛选结果 / 清空本次选择）
+  - 订单表格：复选框 | 订单信息 | [所属账户]* | [账期]** | 计费方式 | 订单总额 | 可开票金额 | 状态标签 | 详情
+    * 仅企业空间展示　** 仅周期模式展示
+──────────────────────────
+底部悬浮汇总栏
+  - [企业]已选账户数 / 已选订单数 / 已选开票金额 / 拆分提示文案
+  - 提交按钮（&quot;申请开票&quot; 或 &quot;提交拆分开票申请&quot;）
+</code></pre>
+
+<h3 id="22">2.2 弹窗与二级页面</h3>
+<p><strong>计算明细弹窗</strong>（居中模态）</p>
+<pre class="codehilite"><code>标题：可开票金额
+可开票金额（大字橙色）
+  = 总计消费可开票金额（? 说明气泡）
+  − 历史已开票金额（? 说明气泡，&quot;查看明细&quot;链接）
+  − 本月不可开票金额（? 说明气泡，&quot;查看明细&quot;链接）
+[企业空间] 按账户拆分明细（可折叠展开）
+关闭按钮
+</code></pre>
+
+<p><strong>订单详情页</strong>（替换主内容区，非弹窗，带返回按钮）</p>
+<pre class="codehilite"><code>‹ 返回　订单详情 · {订单号}
+账单明细表格（账单编号/账单月/账本类型/账户类型/实付金额/开票状态）
+分页条：上一页 | 第X/Y页，共Z条 | 下一页
+（一次性订单：显示&quot;该订单为一次性结算，无逐笔账单明细&quot;）
+</code></pre>
+
+<p><strong>公式下钻页</strong>（替换主内容区，带返回按钮）</p>
+<pre class="codehilite"><code>‹ 返回　历史已开票金额 · 关联账单 / 本月不可开票金额 · 关联账单
+跨订单汇总账单表（账单编号/账单月/账本类型/账户类型/实付金额/开票状态/订单号）
+</code></pre>
+
+<h3 id="23">2.3 状态标签色系（视觉规范）</h3>
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>颜色</th>
+<th>文案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ok</td>
+<td>绿</td>
+<td>可开票</td>
+</tr>
+<tr>
+<td>partial</td>
+<td>橙</td>
+<td>部分可开票</td>
+</tr>
+<tr>
+<td>invoiced</td>
+<td>蓝</td>
+<td>已开票</td>
+</tr>
+<tr>
+<td>no</td>
+<td>红</td>
+<td>不可开票</td>
+</tr>
+<tr>
+<td>pending（订单级）</td>
+<td>灰</td>
+<td>未出账</td>
+</tr>
+</tbody>
+</table>
+<p>主题色：<code>--blue: #1677d6</code>（操作/强调），<code>--orange: #ff7a1a</code>（金额强调）。</p>
+<hr />
+<h2 id="3">3. 处理流程</h2>
+<h3 id="31">3.1 页面初始化流程</h3>
+<pre class="codehilite"><code>加载页面
+ → 初始化账户列表（企业：默认全选全部账户）
+ → 初始化周期选择器（计算近3月 chip + 4~12月下拉，默认选中最近已完结月）
+ → 计算当前范围（空间 × 账户范围）内的订单可开票金额、状态
+ → 渲染周期汇总 / 订单列表（默认全选 invoiceable&gt;0 的订单）
+ → 渲染底部汇总栏
+</code></pre>
+
+<h3 id="32">3.2 订单状态计算流程（核心处理逻辑）</h3>
+<pre class="codehilite"><code>输入：订单 { amount, invoicedAmt, excludedAmt, recurring, period }
+Step1: invoiceable = MAX(0, amount − invoicedAmt − excludedAmt)
+Step2: 判定状态
+  IF recurring=true AND period=当前自然月 → status=pending（未出账，锁定不可选）
+  ELSE IF invoiceable=amount → status=ok
+  ELSE IF invoiceable&gt;0 → status=partial
+  ELSE IF invoicedAmt&gt;0 → status=invoiced
+  ELSE → status=no
+Step3: 渲染对应标签与复选框可用性（invoiceable=0 时复选框禁用）
+</code></pre>
+
+<h3 id="33">3.3 筛选与选择联动流程</h3>
+<pre class="codehilite"><code>用户操作（切空间 / 切模式 / 切周期 / 变更账户范围）
+ → 清空 selected（已选订单集合归零，避免跨维度脏数据）
+ → 重新计算当前范围内订单
+ → 重新渲染列表（invoiceable&gt;0 的订单默认自动勾选）
+ → 重新渲染底部汇总栏
+</code></pre>
+
+<pre class="codehilite"><code>用户操作（筛选表单查询）
+ → 在当前范围订单基础上按 关键字/状态/日期 过滤
+ → 更新 lastList（供&quot;全选筛选结果/清空本次选择&quot;使用）
+ → 渲染结果提示文案 + 列表
+</code></pre>
+
+<h3 id="34">3.4 提交开票流程</h3>
+<pre class="codehilite"><code>用户点击&quot;申请开票&quot; / &quot;提交拆分开票申请&quot;
+ → 汇总 selected 中的订单：已选订单数、已选金额、涉及账户数
+ → IF 企业+合并模式 AND 已选金额&gt;核定限额 → 已在页面持续展示警示，不阻断提交
+ → IF 企业+拆分模式 → 按账户分组，逐账户生成一张发票申请
+ → 提交（原型为 mock alert，实际应调用开票申请接口）
+ → 成功后应清空已选、提示结果（原型未实现，需在详设阶段补齐）
+</code></pre>
+
+<h3 id="35">3.5 计算明细弹窗数据流程</h3>
+<pre class="codehilite"><code>点击&quot;查看计算明细&quot;
+ → 取当前范围（空间×账户×周期）内全部订单
+ → 汇总：总额 / 已开票 / 不可开票 / 可开票 四个数字
+ → [企业] 按已选账户分别求和可开票金额，过滤掉为0的账户
+ → 渲染弹窗
+</code></pre>
+
+<hr />
+<h2 id="4">4. 交互描述</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>交互点</th>
+<th>触发方式</th>
+<th>反馈</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>空间切换</td>
+<td>点击顶部 tab</td>
+<td>立即切换页面标题、显示/隐藏企业专属卡片，已选订单清空</td>
+</tr>
+<tr>
+<td>2</td>
+<td>拆分模式切换</td>
+<td>点击"合并/按账户"文字</td>
+<td>单选态切换（radio 高亮），底部提交按钮文案联动</td>
+</tr>
+<tr>
+<td>3</td>
+<td>账户下拉展开/收起</td>
+<td>点击触发器 / 点击页面空白处</td>
+<td>展开显示搜索框+列表；点击外部区域自动收起</td>
+</tr>
+<tr>
+<td>4</td>
+<td>账户搜索</td>
+<td>输入框实时输入</td>
+<td>列表实时过滤（无节流/防抖，原型为同步过滤）</td>
+</tr>
+<tr>
+<td>5</td>
+<td>账户勾选</td>
+<td>点击整行</td>
+<td>复选框切换态，触发器文案更新（"XX等N个账户" 规则见2.2）</td>
+</tr>
+<tr>
+<td>6</td>
+<td>账户全选/清空</td>
+<td>点击"全选"/"清空"按钮</td>
+<td>批量勾选或取消全部账户</td>
+</tr>
+<tr>
+<td>7</td>
+<td>开票方式切换</td>
+<td>点击卡片</td>
+<td>卡片高亮态切换，下方筛选表单和列表列结构联动切换</td>
+</tr>
+<tr>
+<td>8</td>
+<td>周期 chip 点击</td>
+<td>点击 chip / 下拉选择"更早月份"</td>
+<td>高亮切换到目标周期，已选订单清空，列表和汇总重新渲染</td>
+</tr>
+<tr>
+<td>9</td>
+<td>当前月 chip</td>
+<td>不可点击（disabled 样式）</td>
+<td>无响应，仅作说明用途</td>
+</tr>
+<tr>
+<td>10</td>
+<td>查看计算明细</td>
+<td>点击文字链接</td>
+<td>打开居中弹窗，点击遮罩层或"关闭"按钮/×关闭</td>
+</tr>
+<tr>
+<td>11</td>
+<td>说明气泡（?图标）</td>
+<td>点击</td>
+<td>展开黑底提示条，同一时刻仅一个气泡展开，再点其他?自动收起当前</td>
+</tr>
+<tr>
+<td>12</td>
+<td>查看明细（历史已开票/不可开票）</td>
+<td>点击文字链接</td>
+<td>关闭弹窗，跳转到下钻明细页（非新开弹窗，是页面替换）</td>
+</tr>
+<tr>
+<td>13</td>
+<td>按账户拆分明细</td>
+<td>点击折叠标题</td>
+<td>展开/收起子列表，箭头图标随之翻转</td>
+</tr>
+<tr>
+<td>14</td>
+<td>筛选查询/重置</td>
+<td>点击按钮</td>
+<td>查询：按当前表单条件重新过滤列表；重置：表单恢复默认值并重新查询</td>
+</tr>
+<tr>
+<td>15</td>
+<td>全选筛选结果</td>
+<td>点击</td>
+<td>对当前筛选结果中 invoiceable&gt;0 的订单全部勾选（不影响列表外的其他订单选择态）</td>
+</tr>
+<tr>
+<td>16</td>
+<td>清空本次选择</td>
+<td>点击</td>
+<td>仅清空当前筛选结果范围内的已选订单</td>
+</tr>
+<tr>
+<td>17</td>
+<td>订单行复选框</td>
+<td>点击</td>
+<td>invoiceable&gt;0 时可切换选中态；=0 时禁用态，点击无响应</td>
+</tr>
+<tr>
+<td>18</td>
+<td>订单"详情"</td>
+<td>点击</td>
+<td>页面整体替换为订单详情页（非弹窗），返回按钮回到列表并保留原选择态</td>
+</tr>
+<tr>
+<td>19</td>
+<td>详情页分页</td>
+<td>点击上一页/下一页</td>
+<td>页码±1并重渲染表格；首页禁用"上一页"，末页禁用"下一页"</td>
+</tr>
+<tr>
+<td>20</td>
+<td>提交开票</td>
+<td>点击底部按钮</td>
+<td>触发提交流程（原型为 alert 提示，正式版需替换为真实提交+loading+结果反馈）</td>
+</tr>
+<tr>
+<td>21</td>
+<td>超限警示</td>
+<td>已选金额超限时自动出现，无需用户操作</td>
+<td>橙色提示条，不阻断提交按钮可点性</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5">5. 测试用例</h2>
+<h3 id="51">5.1 状态计算与金额</h3>
+<table>
+<thead>
+<tr>
+<th>用例ID</th>
+<th>场景</th>
+<th>前置条件</th>
+<th>操作</th>
+<th>预期结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-01</td>
+<td>持续计费订单落在当前自然月</td>
+<td>recurring=true, period=当前月</td>
+<td>打开订单列表</td>
+<td>状态="未出账"（灰），复选框禁用，无论金额是否为0</td>
+</tr>
+<tr>
+<td>TC-02</td>
+<td>一次性订单落在当前自然月</td>
+<td>recurring=false, period=当前月, invoiceable&gt;0</td>
+<td>打开订单列表</td>
+<td>状态非"未出账"，按金额正常判定 ok/partial，复选框可勾选（验证"当月锁定"规则不误伤一次性订单）</td>
+</tr>
+<tr>
+<td>TC-03</td>
+<td>订单全额可开票</td>
+<td>invoiceable = amount</td>
+<td>查看状态标签</td>
+<td>显示"可开票"（绿）</td>
+</tr>
+<tr>
+<td>TC-04</td>
+<td>订单部分可开票</td>
+<td>0 &lt; invoiceable &lt; amount</td>
+<td>查看状态标签</td>
+<td>显示"部分可开票"（橙）</td>
+</tr>
+<tr>
+<td>TC-05</td>
+<td>订单已全部开票</td>
+<td>invoiceable=0, invoicedAmt&gt;0</td>
+<td>查看状态标签</td>
+<td>显示"已开票"（蓝）</td>
+</tr>
+<tr>
+<td>TC-06</td>
+<td>订单不可开票（如全额体验金）</td>
+<td>invoiceable=0, invoicedAmt=0</td>
+<td>查看状态标签</td>
+<td>显示"不可开票"（红）</td>
+</tr>
+<tr>
+<td>TC-07</td>
+<td>可开票金额计算</td>
+<td>amount=560, invoicedAmt=20, excludedAmt=60</td>
+<td>查看订单行"可开票金额"</td>
+<td>480.00（560-20-60），且不出现负数</td>
+</tr>
+<tr>
+<td>TC-08</td>
+<td>可开票金额下限保护</td>
+<td>invoicedAmt+excludedAmt &gt; amount（异常脏数据）</td>
+<td>查看计算结果</td>
+<td>显示 0.00，不出现负数</td>
+</tr>
+<tr>
+<td>TC-09</td>
+<td>金额截断（分以下舍去）</td>
+<td>存在带3位以上小数的原始金额（后端场景）</td>
+<td>查看展示与汇总</td>
+<td>应向下截断到分，而非四舍五入</td>
+</tr>
+</tbody>
+</table>
+<h3 id="52">5.2 周期选择器</h3>
+<table>
+<thead>
+<tr>
+<th>用例ID</th>
+<th>场景</th>
+<th>操作</th>
+<th>预期结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-10</td>
+<td>当前月锁定</td>
+<td>打开周期选择器</td>
+<td>当前月 chip 为禁用态，文案含"本月未出账"，点击无响应</td>
+</tr>
+<tr>
+<td>TC-11</td>
+<td>近3月快捷入口</td>
+<td>打开周期选择器</td>
+<td>展示最近3个已完结自然月的可点击 chip</td>
+</tr>
+<tr>
+<td>TC-12</td>
+<td>第4~12月收进下拉</td>
+<td>打开"更早月份"下拉</td>
+<td>下拉选项包含第4~12个已完结月，选中后同步高亮，且不重复出现在常驻chip中</td>
+</tr>
+<tr>
+<td>TC-13</td>
+<td>默认选中周期</td>
+<td>首次进入页面</td>
+<td>默认选中最近一个已完结自然月，非当前月</td>
+</tr>
+<tr>
+<td>TC-14</td>
+<td>切换周期清空选择</td>
+<td>已勾选若干订单后切换周期</td>
+<td>已选订单清空，底部汇总归零</td>
+</tr>
+</tbody>
+</table>
+<h3 id="53">5.3 账户范围（企业空间）</h3>
+<table>
+<thead>
+<tr>
+<th>用例ID</th>
+<th>场景</th>
+<th>操作</th>
+<th>预期结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-15</td>
+<td>默认全选账户</td>
+<td>首次进入企业空间</td>
+<td>全部账户默认勾选，触发器文案显示"全部账户（N个）"</td>
+</tr>
+<tr>
+<td>TC-16</td>
+<td>账户搜索</td>
+<td>输入不存在的关键字</td>
+<td>列表显示"没有匹配的账户"</td>
+</tr>
+<tr>
+<td>TC-17</td>
+<td>单选/取消单个账户</td>
+<td>点击某账户行</td>
+<td>该账户勾选态切换，触发器文案实时更新</td>
+</tr>
+<tr>
+<td>TC-18</td>
+<td>全选/清空按钮</td>
+<td>点击"全选"/"清空"</td>
+<td>全部账户批量勾选/取消，联动触发订单列表重新过滤</td>
+</tr>
+<tr>
+<td>TC-19</td>
+<td>变更账户范围清空选择</td>
+<td>已勾选订单后变更账户勾选状态</td>
+<td>已选订单清空，列表按新范围重新渲染</td>
+</tr>
+<tr>
+<td>TC-20</td>
+<td>个人空间不展示账户范围卡片</td>
+<td>切换到个人空间</td>
+<td>"账户范围"卡片、"按账户拆分"选项、列表"所属账户"列均隐藏</td>
+</tr>
+</tbody>
+</table>
+<h3 id="54">5.4 拆分开票与限额</h3>
+<table>
+<thead>
+<tr>
+<th>用例ID</th>
+<th>场景</th>
+<th>操作</th>
+<th>预期结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-21</td>
+<td>合并模式超限提示</td>
+<td>企业+合并模式，已选金额&gt;核定限额（示例¥5000）</td>
+<td>查看页面</td>
+</tr>
+<tr>
+<td>TC-22</td>
+<td>合并模式未超限</td>
+<td>已选金额≤限额</td>
+<td>查看页面</td>
+</tr>
+<tr>
+<td>TC-23</td>
+<td>切换拆分模式隐藏警示</td>
+<td>在TC-21基础上切换为"按账户拆分"</td>
+<td>查看页面</td>
+</tr>
+<tr>
+<td>TC-24</td>
+<td>拆分模式提交文案</td>
+<td>拆分模式下已选订单覆盖2个账户</td>
+<td>查看底部</td>
+</tr>
+<tr>
+<td>TC-25</td>
+<td>拆分模式覆盖账户数为0</td>
+<td>拆分模式但未勾选任何订单</td>
+<td>查看底部</td>
+</tr>
+</tbody>
+</table>
+<h3 id="55">5.5 筛选与批量操作</h3>
+<table>
+<thead>
+<tr>
+<th>用例ID</th>
+<th>场景</th>
+<th>操作</th>
+<th>预期结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-26</td>
+<td>周期模式关键字筛选</td>
+<td>输入订单号片段查询</td>
+<td>列表仅展示匹配订单，结果提示笔数正确</td>
+</tr>
+<tr>
+<td>TC-27</td>
+<td>周期模式状态筛选</td>
+<td>选择"可开票"</td>
+<td>仅展示 status=ok 的订单</td>
+</tr>
+<tr>
+<td>TC-28</td>
+<td>订单模式日期区间筛选</td>
+<td>设置开始/结束日期</td>
+<td>仅展示 date 落在区间内的订单，含边界值（等于开始/结束日期均应包含）</td>
+</tr>
+<tr>
+<td>TC-29</td>
+<td>订单模式状态含"未出账"</td>
+<td>选择"未出账"</td>
+<td>展示 status=pending 的订单（订单模式筛选项比周期模式多一个"未出账"选项，需核对）</td>
+</tr>
+<tr>
+<td>TC-30</td>
+<td>重置筛选</td>
+<td>点击"重置"</td>
+<td>表单恢复默认值（订单模式恢复默认日期区间），重新查询</td>
+</tr>
+<tr>
+<td>TC-31</td>
+<td>全选筛选结果</td>
+<td>筛选出5笔，其中1笔 invoiceable=0</td>
+<td>点击"全选筛选结果"</td>
+</tr>
+<tr>
+<td>TC-32</td>
+<td>清空本次选择</td>
+<td>已勾选若干订单</td>
+<td>点击"清空本次选择"</td>
+</tr>
+<tr>
+<td>TC-33</td>
+<td>列表空状态</td>
+<td>筛选条件下无匹配订单</td>
+<td>查看列表区域</td>
+</tr>
+</tbody>
+</table>
+<h3 id="56">5.6 计算明细与下钻</h3>
+<table>
+<thead>
+<tr>
+<th>用例ID</th>
+<th>场景</th>
+<th>操作</th>
+<th>预期结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-34</td>
+<td>打开计算明细弹窗</td>
+<td>点击"查看计算明细"</td>
+<td>弹窗展示四个金额，且 可开票=总额-已开票-不可开票 恒等式成立</td>
+</tr>
+<tr>
+<td>TC-35</td>
+<td>说明气泡</td>
+<td>点击任一"?"图标</td>
+<td>展开对应说明文字；再点另一个"?"，前一个自动收起</td>
+</tr>
+<tr>
+<td>TC-36</td>
+<td>下钻"历史已开票"明细</td>
+<td>点击该项"查看明细"</td>
+<td>弹窗关闭，跳转到下钻页，展示相关账单行，含订单号列</td>
+</tr>
+<tr>
+<td>TC-37</td>
+<td>下钻"本月不可开票"明细</td>
+<td>点击该项"查看明细"</td>
+<td>同上，展示体验金/未结算相关账单行</td>
+</tr>
+<tr>
+<td>TC-38</td>
+<td>按账户拆分明细（企业）</td>
+<td>展开该折叠区</td>
+<td>展示已选账户各自可开票金额，金额为0的账户不展示；全为0时显示提示文案</td>
+</tr>
+<tr>
+<td>TC-39</td>
+<td>账单明细 tag 语义</td>
+<td>后端返回账单 tag='pending'</td>
+<td>界面应展示"已开票"（真实货币），而非误读为"未出账"</td>
+</tr>
+<tr>
+<td>TC-40</td>
+<td>关闭弹窗</td>
+<td>点击遮罩层/×/关闭按钮</td>
+<td>弹窗关闭，同时收起所有展开的说明气泡与按账户拆分明细</td>
+</tr>
+</tbody>
+</table>
+<h3 id="57">5.7 订单详情与分页</h3>
+<table>
+<thead>
+<tr>
+<th>用例ID</th>
+<th>场景</th>
+<th>操作</th>
+<th>预期结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-41</td>
+<td>一次性订单详情</td>
+<td>点击一次性订单"详情"</td>
+<td>显示"该订单为一次性结算，无逐笔账单明细"，无分页条</td>
+</tr>
+<tr>
+<td>TC-42</td>
+<td>持续计费订单详情</td>
+<td>点击有多条账单的订单"详情"</td>
+<td>展示账单表格，含分页条</td>
+</tr>
+<tr>
+<td>TC-43</td>
+<td>分页首页</td>
+<td>详情页默认第1页</td>
+<td>"上一页"按钮禁用</td>
+</tr>
+<tr>
+<td>TC-44</td>
+<td>分页末页</td>
+<td>翻到最后一页</td>
+<td>"下一页"按钮禁用</td>
+</tr>
+<tr>
+<td>TC-45</td>
+<td>分页条目数超过10条</td>
+<td>某订单有15条账单明细</td>
+<td>每页展示10条，共2页，页码指示"第1/2页，共15条"</td>
+</tr>
+<tr>
+<td>TC-46</td>
+<td>返回列表</td>
+<td>点击"‹返回"</td>
+<td>回到订单列表，之前的已选订单状态保留不变</td>
+</tr>
+</tbody>
+</table>
+<h3 id="58">5.8 提交流程</h3>
+<table>
+<thead>
+<tr>
+<th>用例ID</th>
+<th>场景</th>
+<th>操作</th>
+<th>预期结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-47</td>
+<td>未选任何订单提交</td>
+<td>已选订单数=0</td>
+<td>点击提交</td>
+</tr>
+<tr>
+<td>TC-48</td>
+<td>正常提交（合并）</td>
+<td>已选N笔订单，合并模式</td>
+<td>点击"申请开票"</td>
+</tr>
+<tr>
+<td>TC-49</td>
+<td>正常提交（拆分）</td>
+<td>已选订单覆盖多账户，拆分模式</td>
+<td>点击"提交拆分开票申请"</td>
+</tr>
+<tr>
+<td>TC-50</td>
+<td>重复点击提交</td>
+<td>网络较慢时连续点击提交按钮</td>
+<td>点击两次</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_3">附注（与开发对齐用）</h2>
+<ul>
+<li>本文档的用例 TC-23、TC-39、TC-47、TC-50 对应上一版 PRD 中列出的未闭环风险项，属于"原型未覆盖但正式开发必须补齐"的用例，测试阶段需单独标记。</li>
+<li>数据结构、字段定义、状态机公式均以《【发票优化需求】PRD_V2》为准，本文档只做界面/流程/交互/用例层面的补充，不重复定义字段。</li>
+</ul></div></div>
+</body></html>

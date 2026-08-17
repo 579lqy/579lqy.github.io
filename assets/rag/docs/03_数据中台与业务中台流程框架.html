@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>数据中台与业务中台流程框架</title>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&f[]=satoshi@400,500,700&display=swap">
+<style>
+:root{
+  --bg:#0a0f1c; --card:#151c2e; --accent:#38bdf8; --accent-soft:rgba(56,189,248,.14);
+  --text:#e8edf6; --muted:#9ca3af; --border:#1f2a44;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:'Satoshi',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.75;
+  -webkit-font-smoothing:antialiased}
+.topbar{position:sticky;top:0;background:rgba(10,15,28,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:14px 24px;z-index:10}
+.topbar a{color:var(--accent);text-decoration:none;font-weight:700;font-size:14px}
+.topbar a:hover{text-decoration:underline}
+.wrap{max-width:880px;margin:0 auto;padding:36px 24px 80px}
+.markdown-body{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:40px 44px}
+.markdown-body h1{font-family:'Clash Display',sans-serif;font-size:30px;line-height:1.2;margin:.2em 0 .6em;
+  color:#fff;border-bottom:1px solid var(--border);padding-bottom:.4em}
+.markdown-body h2{font-family:'Clash Display',sans-serif;font-size:23px;margin:1.8em 0 .6em;color:#fff;
+  border-bottom:1px solid var(--border);padding-bottom:.3em}
+.markdown-body h3{font-size:18px;margin:1.4em 0 .5em;color:var(--accent)}
+.markdown-body h4{font-size:15.5px;margin:1.2em 0 .4em;color:#cfe8f5}
+.markdown-body p{color:var(--text);margin:.7em 0}
+.markdown-body a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-soft)}
+.markdown-body a:hover{text-decoration:underline}
+.markdown-body ul,.markdown-body ol{padding-left:1.6em;margin:.6em 0;color:var(--text)}
+.markdown-body li{margin:.35em 0}
+.markdown-body strong{color:#fff}
+.markdown-body hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.markdown-body blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);
+  background:var(--accent-soft);color:var(--muted);border-radius:0 10px 10px 0}
+.markdown-body code{font-family:'SFMono-Regular',Consolas,monospace;background:rgba(56,189,248,.1);
+  color:#a5e8ff;padding:.15em .4em;border-radius:6px;font-size:.88em}
+.markdown-body pre{background:#0b1424;border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;overflow:auto;margin:1em 0}
+.markdown-body pre code{background:none;color:#cfe3f5;padding:0;font-size:.85em;line-height:1.6}
+.markdown-body table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:14.5px}
+.markdown-body th,.markdown-body td{border:1px solid var(--border);padding:9px 12px;text-align:left;color:var(--text)}
+.markdown-body th{background:var(--accent-soft);color:#fff;font-weight:700}
+.markdown-body tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.markdown-body img{max-width:100%;border-radius:12px;border:1px solid var(--border)}
+@media(max-width:640px){.markdown-body{padding:24px 18px}.wrap{padding:20px 12px 60px}}
+</style></head>
+<body>
+<div class="topbar"><a href="../../../index.html">← 返回作品集</a></div>
+<div class="wrap"><div class="markdown-body"><h1 id="_1">数据中台与业务中台流程框架</h1>
+<h2 id="1">1. 总体架构（目标态）</h2>
+<pre class="codehilite"><code class="language-mermaid">flowchart LR
+  A[&quot;ERP 订单&quot;] --&gt; D[&quot;数据采集层&quot;]
+  B[&quot;WMS 库存&quot;] --&gt; D
+  C[&quot;TMS 物流&quot;] --&gt; D
+  S[&quot;供应商协同表&quot;] --&gt; D
+  D --&gt; E[&quot;数据清洗与标准化&quot;]
+  E --&gt; F[&quot;供应链主题模型&quot;]
+  F --&gt; G[&quot;指标与标签服务&quot;]
+  G --&gt; H[&quot;业务中台能力&quot;]
+  H --&gt; I[&quot;RAG Agent 策略输出&quot;]
+</code></pre>
+
+<p>v1 已验证的是 E→F→G→H→I 这条链路在真实 SKU 级数据上跑得通（用 <code>clean_supply_chain.csv</code> 替代了 A/B/C/S 四个系统源）；A/B/C/S 的多系统采集尚未接入，是 v2 的工作。</p>
+<h2 id="2-v1">2. 数据中台流程（标注 v1 状态）</h2>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>输入</th>
+<th>处理</th>
+<th>输出</th>
+<th>v1 状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据采集</td>
+<td>订单、库存、供应商、物流数据</td>
+<td>批量导入/API/消息订阅</td>
+<td>原始数据区</td>
+<td>v1 为批量 CSV 导入（真实公开数据集），API/消息订阅接入是 v2 工作</td>
+</tr>
+<tr>
+<td>数据清洗</td>
+<td>原始表</td>
+<td>字段映射、去重、缺失值处理</td>
+<td>标准明细层</td>
+<td><strong>已验证</strong>，见 <code>scripts/clean_data.py</code></td>
+</tr>
+<tr>
+<td>主数据建模</td>
+<td>SKU、仓库、供应商、客户</td>
+<td>编码统一、维表维护</td>
+<td>主数据层</td>
+<td><strong>部分验证</strong>：SKU/供应商/城市已建模，仓库/客户实体推迟至 v2</td>
+</tr>
+<tr>
+<td>主题建模</td>
+<td>履约、库存、采购、物流</td>
+<td>宽表与事实表建设</td>
+<td>供应链主题层</td>
+<td><strong>部分验证</strong>：库存/质量/物流主题已验证，履约（订单）主题推迟至 v2</td>
+</tr>
+<tr>
+<td>指标计算</td>
+<td>明细与主题数据</td>
+<td>履约率、周转天数、缺货风险</td>
+<td>指标服务层</td>
+<td><strong>部分验证</strong>，见第 6 节指标口径对照</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-v1">3. 核心数据对象：目标模型 → v1 真实数据映射</h2>
+<table>
+<thead>
+<tr>
+<th>目标实体</th>
+<th>目标主键</th>
+<th>目标关键字段</th>
+<th>v1 真实数据对应</th>
+<th>差距说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SKU</td>
+<td>sku_id</td>
+<td>品类、单位、保质期、默认安全库存</td>
+<td><code>sku</code> / <code>product_type</code>（<code>clean_supply_chain.csv</code>）</td>
+<td>已覆盖品类；保质期、默认安全库存字段暂无，安全库存改为按公式实时计算，而非存储字段</td>
+</tr>
+<tr>
+<td>仓库</td>
+<td>warehouse_id</td>
+<td>区域、容量、服务范围</td>
+<td><code>location</code>（城市维度，覆盖 Mumbai/Kolkata/Chennai/Bangalore/Delhi）</td>
+<td>v1 只有城市颗粒度，无独立仓库实体和容量字段</td>
+</tr>
+<tr>
+<td>订单</td>
+<td>order_id</td>
+<td>客户、SKU、需求数量、承诺交期、优先级</td>
+<td>无对应</td>
+<td>v1 数据集不含订单实体，推迟至 v2 接入企业系统</td>
+</tr>
+<tr>
+<td>库存</td>
+<td>sku_id + warehouse_id</td>
+<td>可用库存、锁定库存、在途库存</td>
+<td><code>stock_level</code>（单一库存快照）</td>
+<td>v1 只有现存库存，无锁定/在途库存的拆分</td>
+</tr>
+<tr>
+<td>供应商</td>
+<td>supplier_id</td>
+<td>交期、MOQ、准时率、质量评分</td>
+<td><code>supplier_name</code> / <code>lead_time_days</code> / <code>defect_rate</code></td>
+<td>已覆盖交期与质量（缺陷率代理质量评分）；MOQ、显式准时率（OTIF）字段暂无，v1 用"交期是否超过均值+2σ"作为交付达标的代理指标（见 <code>knowledge_base/sop.md</code>）</td>
+</tr>
+<tr>
+<td>物流</td>
+<td>shipment_id</td>
+<td>起点、终点、承运商、状态、预计到达</td>
+<td><code>shipping_carrier</code> / <code>shipping_time_days</code> / <code>transport_mode</code> / <code>route</code></td>
+<td>已覆盖承运商、时效、运输方式、路线；无实时状态与预计到达（数据集是快照，不是流式状态）</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4-v1-vs-v2">4. 业务中台能力：v1 已实现 vs v2 规划</h2>
+<table>
+<thead>
+<tr>
+<th>能力</th>
+<th>目标功能</th>
+<th>v1 状态</th>
+<th>v1 对应实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>库存分析服务</td>
+<td>低库存筛选、库存分布</td>
+<td><strong>已实现</strong></td>
+<td><code>low_stock_skus</code> 工具</td>
+</tr>
+<tr>
+<td>供应商质量评估服务</td>
+<td>缺陷率排名、供应商评分卡</td>
+<td><strong>已实现</strong></td>
+<td><code>supplier_defect_ranking</code> / <code>supplier_scorecard</code> 工具</td>
+</tr>
+<tr>
+<td>物流时效分析服务</td>
+<td>分城市/供应商提前期统计</td>
+<td><strong>已实现</strong></td>
+<td><code>avg_lead_time_by_location</code> / <code>lead_time_stats</code> 工具</td>
+</tr>
+<tr>
+<td>营收分类服务</td>
+<td>ABC 分类与营收占比</td>
+<td><strong>已实现</strong></td>
+<td><code>abc_classification</code> 工具</td>
+</tr>
+<tr>
+<td>SOP 知识服务</td>
+<td>安全库存/ROP/EOQ/AQL/评分卡方法论检索</td>
+<td><strong>已实现</strong></td>
+<td>RAG 本地知识库（3 篇，见 <code>knowledge_base/</code>）</td>
+</tr>
+<tr>
+<td>策略解释服务</td>
+<td>输出规则依据、参数来源、风险提示</td>
+<td><strong>已实现</strong></td>
+<td>RAG Agent 统一输出 scenario/findings/strategy/risks/evidence 结构</td>
+</tr>
+<tr>
+<td>补货策略服务（自动触发）</td>
+<td>安全库存/再订货点自动计算并触发补货单</td>
+<td><strong>规划中（v2）</strong></td>
+<td>公式已在知识库中可查，但 v1 未接入订单实体，无法自动生成补货单，需先补齐第 3 节的"订单"实体</td>
+</tr>
+<tr>
+<td>供应商协同服务（替代推荐）</td>
+<td>高风险供应商自动推荐替代方案</td>
+<td><strong>规划中（v2）</strong></td>
+<td><code>knowledge_base/sop.md</code> 的 SOP-3 已定义处理流程，但替代供应商匹配逻辑未实现，需要供应商主数据扩展 MOQ/产能字段</td>
+</tr>
+<tr>
+<td>履约预警服务</td>
+<td>订单缺口、交付延迟、在途异常</td>
+<td><strong>规划中（v2）</strong></td>
+<td>依赖"订单"实体，v1 无订单数据</td>
+</tr>
+</tbody>
+</table>
+<h2 id="5">5. 数据流规范（目标态）</h2>
+<table>
+<thead>
+<tr>
+<th>数据流</th>
+<th>触发条件</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>需求流</td>
+<td>新订单或预测更新</td>
+<td>更新需求池和优先级</td>
+</tr>
+<tr>
+<td>库存流</td>
+<td>入库、出库、锁定、盘点</td>
+<td>更新可用库存</td>
+</tr>
+<tr>
+<td>供应流</td>
+<td>采购订单确认、交期变更</td>
+<td>更新供应承诺</td>
+</tr>
+<tr>
+<td>物流流</td>
+<td>发运、到站、签收、异常</td>
+<td>更新在途状态</td>
+</tr>
+<tr>
+<td>策略流</td>
+<td>缺货/延期/积压风险触发</td>
+<td>输出补货、调拨、升级建议</td>
+</tr>
+</tbody>
+</table>
+<h2 id="6">6. 指标口径：与知识库公式对齐</h2>
+<p>v1 的原则是<strong>指标口径只在一个地方定义</strong>——<code>knowledge_base/</code> 下带引用来源的方法论文档，本表只做导航，不重复定义，避免两处口径打架。</p>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>单一事实来源</th>
+<th>v1 落地方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>安全库存 SS</td>
+<td><code>knowledge_base/business_rules.md &gt; 1</code></td>
+<td>公式 <code>SS = Z × σ_d × √L</code>，由 RAG 检索获取定义；数值由查询时代入真实 <code>units_sold</code> 标准差与 <code>lead_time_days</code> 计算，非存储字段</td>
+</tr>
+<tr>
+<td>再订货点 ROP</td>
+<td><code>knowledge_base/business_rules.md &gt; 2</code></td>
+<td><code>ROP = d̄ × L + SS</code></td>
+</tr>
+<tr>
+<td>经济订货批量 EOQ</td>
+<td><code>knowledge_base/algorithm_params.md &gt; 1</code></td>
+<td><code>EOQ = √(2DS/H)</code></td>
+</tr>
+<tr>
+<td>ABC 分类</td>
+<td><code>knowledge_base/algorithm_params.md &gt; 2</code></td>
+<td>按 <code>revenue</code> 降序累计占比分层，由 <code>abc_classification</code> 工具实时计算</td>
+</tr>
+<tr>
+<td>质量达标判定（AQL）</td>
+<td><code>knowledge_base/sop.md &gt; SOP-1</code></td>
+<td><code>defect_rate &gt; 2.5%</code> 判不达标（ANSI/ASQ Z1.4 标准）</td>
+</tr>
+<tr>
+<td>供应商综合评分卡</td>
+<td><code>knowledge_base/sop.md &gt; SOP-2</code></td>
+<td>质量 40% + 交付（OTIF 代理）35% + 成本 25% 加权，由 <code>supplier_scorecard</code> 工具计算</td>
+</tr>
+</tbody>
+</table></div></div>
+</body></html>

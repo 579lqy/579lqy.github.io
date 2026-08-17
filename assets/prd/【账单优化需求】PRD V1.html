@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>「我的账单 · 月账单概览」产品需求文档（PRD）</title>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&f[]=satoshi@400,500,700&display=swap">
+<style>
+:root{
+  --bg:#0a0f1c; --card:#151c2e; --accent:#38bdf8; --accent-soft:rgba(56,189,248,.14);
+  --text:#e8edf6; --muted:#9ca3af; --border:#1f2a44;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:'Satoshi',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.75;
+  -webkit-font-smoothing:antialiased}
+.topbar{position:sticky;top:0;background:rgba(10,15,28,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:14px 24px;z-index:10}
+.topbar a{color:var(--accent);text-decoration:none;font-weight:700;font-size:14px}
+.topbar a:hover{text-decoration:underline}
+.wrap{max-width:880px;margin:0 auto;padding:36px 24px 80px}
+.markdown-body{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:40px 44px}
+.markdown-body h1{font-family:'Clash Display',sans-serif;font-size:30px;line-height:1.2;margin:.2em 0 .6em;
+  color:#fff;border-bottom:1px solid var(--border);padding-bottom:.4em}
+.markdown-body h2{font-family:'Clash Display',sans-serif;font-size:23px;margin:1.8em 0 .6em;color:#fff;
+  border-bottom:1px solid var(--border);padding-bottom:.3em}
+.markdown-body h3{font-size:18px;margin:1.4em 0 .5em;color:var(--accent)}
+.markdown-body h4{font-size:15.5px;margin:1.2em 0 .4em;color:#cfe8f5}
+.markdown-body p{color:var(--text);margin:.7em 0}
+.markdown-body a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-soft)}
+.markdown-body a:hover{text-decoration:underline}
+.markdown-body ul,.markdown-body ol{padding-left:1.6em;margin:.6em 0;color:var(--text)}
+.markdown-body li{margin:.35em 0}
+.markdown-body strong{color:#fff}
+.markdown-body hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.markdown-body blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);
+  background:var(--accent-soft);color:var(--muted);border-radius:0 10px 10px 0}
+.markdown-body code{font-family:'SFMono-Regular',Consolas,monospace;background:rgba(56,189,248,.1);
+  color:#a5e8ff;padding:.15em .4em;border-radius:6px;font-size:.88em}
+.markdown-body pre{background:#0b1424;border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;overflow:auto;margin:1em 0}
+.markdown-body pre code{background:none;color:#cfe3f5;padding:0;font-size:.85em;line-height:1.6}
+.markdown-body table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:14.5px}
+.markdown-body th,.markdown-body td{border:1px solid var(--border);padding:9px 12px;text-align:left;color:var(--text)}
+.markdown-body th{background:var(--accent-soft);color:#fff;font-weight:700}
+.markdown-body tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.markdown-body img{max-width:100%;border-radius:12px;border:1px solid var(--border)}
+@media(max-width:640px){.markdown-body{padding:24px 18px}.wrap{padding:20px 12px 60px}}
+</style></head>
+<body>
+<div class="topbar"><a href="../../index.html">← 返回作品集</a></div>
+<div class="wrap"><div class="markdown-body"><h1 id="prd">「我的账单 · 月账单概览」产品需求文档（PRD）</h1>
+<blockquote>
+<p>隐私说明：为保护商业隐私，本文档以"<strong>平台</strong>"代指产品主体、"<strong>租户</strong>"代指客户方；原型中的示例租户名（如测试账号）已在本文档中统一脱敏为"示例租户 / 账户 A/B…"，不出现任何公司实名与品牌标识。</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 文档概览与修订记录</h2>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>文档名称</td>
+<td>我的账单 · 月账单概览 需求文档</td>
+</tr>
+<tr>
+<td>版本号</td>
+<td>V1.0.0</td>
+</tr>
+<tr>
+<td>文档状态</td>
+<td>已评审定稿（对应原型 V1）</td>
+</tr>
+<tr>
+<td>创建日期</td>
+<td>2026-07</td>
+</tr>
+<tr>
+<td>作者</td>
+<td>产品经理-李千颖</td>
+</tr>
+<tr>
+<td>关联原型</td>
+<td>【账单优化需求】原型图 V1</td>
+</tr>
+<tr>
+<td>关联系统</td>
+<td>计费系统、账户中心、账本系统、还款/支付系统、消息中心</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_1">修订记录</h3>
+<table>
+<thead>
+<tr>
+<th>版本</th>
+<th>日期</th>
+<th>修改人</th>
+<th>变更类型</th>
+<th>修改内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V1.0</td>
+<td>2026-07-15</td>
+<td>产品经理</td>
+<td>新增</td>
+<td>重排信息架构（空间切换 → 月账单概览 → 消费明细 → 账单详情/还款详情 → 导出），并定义核心业务规则（出账时间、状态机、5h 延迟、12 月窗口）与数据模型。</td>
+</tr>
+<tr>
+<td>---</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="2">2. 需求背景与目标</h2>
+<h3 id="21">2.1 业务背景</h3>
+<p>租户在平台产生的消费分散于多个产品/资源包（智能体服务、视频生成、各厂商 Token 量包、按量使用等），且企业客户存在<strong>多成员账号</strong>结构。原账单仅提供粗放汇总，租户面临三大痛点：<br />
+1. <strong>看不懂</strong>：无法按产品/账号归因成本，对账困难。<br />
+2. <strong>看不全</strong>：缺乏账本级（体验金/现金）与出账流水级下钻，争议时无从举证。<br />
+3. <strong>对不清</strong>：还款、代金券抵扣、账户余额、现金支付的构成不透明，财务核算受阻。</p>
+<h3 id="22-smart">2.2 产品目标（SMART）</h3>
+<ul>
+<li>租户可自助查询并导出<strong>近 12 个月</strong>账单，线上化率 100%。</li>
+<li>企业管理员对多账号账单的可见性与状态判定准确率 100%。</li>
+</ul>
+<h3 id="23">2.3 用户角色矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>核心诉求</th>
+<th>典型痛点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>个人租户</td>
+<td>看清本月花了多少、还欠多少</td>
+<td>费用构成不透明</td>
+</tr>
+<tr>
+<td>企业管理员</td>
+<td>按成员账号查看/汇总账单</td>
+<td>多账号散落、状态不一</td>
+</tr>
+<tr>
+<td>企业财务</td>
+<td>导出对账、查看还款与账本构成</td>
+<td>缺明细、难审计</td>
+</tr>
+<tr>
+<td>平台运营</td>
+<td>保障出账按时、状态准确</td>
+<td>出账延迟引发客诉</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3">3. 信息架构（来自原型）</h2>
+<pre class="codehilite"><code>我的账单
+├── 顶部空间切换：个人空间 | 企业空间
+└── 月账单概览（主页面）
+    ├── 公告区（3 条说明）
+    ├── 筛选区：账单月份（近12月） + [企业空间] 账户筛选
+    ├── 汇总卡
+    │   ├── 周期标题 + 周期范围 + 总状态标签（悬停说明）
+    │   ├── 应付金额 / 已还款金额（→还款详情）/ 待还款金额（=应付−已还）
+    │   └── [导出账单] 按钮
+    ├── 消费明细（按产品）
+    │   ├── 表格：账单编号/账户标识(企)/产品名称/计费方式/账单月份/
+    │   │        目录总价/优惠金额/优惠后金额/支付状态/操作
+    │   ├── 行展开 → 账本明细（账单编号/账单月/账本类型/账户类型/实付金额）
+    │   └── 操作&quot;详情&quot; → 账单详情页
+    ├── 账单详情页（下钻）
+    │   ├── 头部：账单编号/服务名称/账户标识(企)/账单时间/支付状态
+    │   └── 出账流水表：出账流水号/出账时间/服务名称/账单金额/实付/待付
+    └── 还款详情页（从&quot;已还款金额&quot;进入）
+        ├── 账单月份 + 已还款金额汇总
+        └── 还款明细：资源购买账号/应付/代金券抵扣/账户余额支付/现金支付/还款账户名称
+</code></pre>
+
+<p>导出弹窗（全局）：导出范围（企业筛选态可选"全部账号"）、账单月份（区间，必填）、导出类型（月账单 PDF / 产品消费汇总 CSV，必填）、商品筛选（默认全部 / 包含所选 / 排除所选）。</p>
+<hr />
+<h2 id="4">4. 功能清单（按优先级）</h2>
+<table>
+<thead>
+<tr>
+<th>优先级</th>
+<th>功能点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>P0</strong></td>
+<td>空间切换</td>
+<td>个人空间 / 企业空间切换，数据隔离与口径不同</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>账单月份筛选</td>
+<td>日历控件，限定近 12 个月可查</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>汇总卡（三金额 + 总状态）</td>
+<td>应付/已还/待还，含状态悬停说明</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>消费明细（按产品）</td>
+<td>列表含计费方式、各金额列、支付状态</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>行展开账本</td>
+<td>查看该账单的账本构成（体验金/现金）</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>账单详情下钻</td>
+<td>出账流水级明细</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>还款详情</td>
+<td>还款构成（代金券/余额/现金）</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>账单导出</td>
+<td>PDF 月账单 + CSV 产品汇总，支持月份区间与商品筛选</td>
+</tr>
+<tr>
+<td><strong>P1</strong></td>
+<td>企业多账号筛选</td>
+<td>账户搜索 + 单选，支持"全部账户"</td>
+</tr>
+<tr>
+<td><strong>P1</strong></td>
+<td>企业总状态综合判定</td>
+<td>多成员账号状态下，管理员视图综合判定</td>
+</tr>
+<tr>
+<td><strong>P1</strong></td>
+<td>分页与空态</td>
+<td>各表格分页（每页 3 条示例），空数据友好提示</td>
+</tr>
+<tr>
+<td><strong>P2</strong></td>
+<td>导出范围切换</td>
+<td>企业筛选态可"改为导出全部账号"</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5">5. 用户故事</h2>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>角色</th>
+<th>用户故事</th>
+<th>价值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>US-1</td>
+<td>个人租户</td>
+<td>作为个人租户，我希望在"月账单概览"一眼看到本月应付、已还、待还，以便掌握欠款</td>
+<td>成本透明</td>
+</tr>
+<tr>
+<td>US-2</td>
+<td>企业管理员</td>
+<td>作为企业管理员，我希望按成员账号筛选并查看账单，以便分账管理</td>
+<td>多账号可管</td>
+</tr>
+<tr>
+<td>US-3</td>
+<td>企业财务</td>
+<td>作为企业财务，我希望展开账本看到体验金/现金构成、并查看还款明细，以便审计核算</td>
+<td>可审计</td>
+</tr>
+<tr>
+<td>US-4</td>
+<td>开发者</td>
+<td>作为开发者，我希望点开产品行查看账本与出账流水，以便定位某一笔费用来源</td>
+<td>可举证</td>
+</tr>
+<tr>
+<td>US-5</td>
+<td>任意租户</td>
+<td>作为租户，我希望导出 PDF 月账单与 CSV 汇总，以便内部对账留档</td>
+<td>自助对账</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6">6. 业务规则与状态机（关键，来自原型逻辑）</h2>
+<h3 id="61">6.1 出账时间规则</h3>
+<ul>
+<li><strong>按月出账</strong>：当月账单在<strong>次月 2 日 12:00</strong> 完成出账。</li>
+<li>当月 12:00 前查询到的数据视为"未出账"，仅供参考、不可作为对账依据（公告第 1 条）。</li>
+</ul>
+<h3 id="62">6.2 数据延迟</h3>
+<ul>
+<li>月账单概览数据相对实际消耗<strong>延迟 5 小时</strong>更新（公告第 2 条）。</li>
+</ul>
+<h3 id="63">6.3 查询/导出窗口</h3>
+<ul>
+<li>仅支持查询与导出<strong>近 12 个月</strong>账单（公告第 3 条 + 日历控件 <code>MIN_IDX = CUR_IDX − 11</code>）。</li>
+<li>日历控件：超出窗口的月份置灰不可选。</li>
+</ul>
+<h3 id="64">6.4 账单总状态机</h3>
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>触发条件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>出账中</strong></td>
+<td>账单月份为当前月（尚未到次月 2 日 12:00 出账）</td>
+</tr>
+<tr>
+<td><strong>未结清</strong></td>
+<td>已出账且 <code>待还款金额 &gt; 0</code></td>
+</tr>
+<tr>
+<td><strong>已结清</strong></td>
+<td>所有欠款已还清（<code>待还款金额 = 0</code>）</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>企业多账号综合判定</strong>：管理员查看"全部账户"时，总状态依据所有成员账号账单状态综合判定（如有任一未结清则整体趋向未结清口径，具体以结算口径为准）。</li>
+<li><strong>状态更新时间</strong>：</li>
+<li>历史月份：还款成功后约 <strong>5 小时</strong>内自动更新为"已结清"。</li>
+<li>当前月份：当月"未结清"账单还款后，系统于<strong>次月 2 日 12:00</strong> 统一结算并更新为"已结清"。</li>
+</ul>
+<h3 id="65">6.5 金额勾稽关系</h3>
+<ul>
+<li><code>优惠后金额 = 目录总价 − 优惠金额</code></li>
+<li><code>待还款金额 = 应付金额（优惠后合计） − 已还款金额</code></li>
+<li>账本级：<code>实付金额</code> 按账本类型（体验金 / 现金）拆分，合计 = 该账单已支付额。</li>
+<li>还款级：<code>应付金额 = 代金券抵扣 + 账户余额支付 + 现金支付</code>。</li>
+</ul>
+<h3 id="66">6.6 计费方式枚举（来自数据）</h3>
+<p>包年包月、按量计费、Token 资源包、Token Plane、Token 按量使用。</p>
+<hr />
+<h2 id="7">7. 详细功能说明</h2>
+<h3 id="71">7.1 月账单概览（主页面）</h3>
+<ul>
+<li><strong>前置条件</strong>：租户已登录，且拥有该空间/账号的账单查看权限。</li>
+<li><strong>公告区</strong>：固定展示 3 条说明（出账时间、5 小时延迟、12 月窗口），不可关闭但可收起。</li>
+<li><strong>筛选区</strong>：</li>
+<li>账单月份：点击打开日历，仅近 12 月可选。</li>
+<li>账户（仅企业空间）：点击打开展开下拉，支持名称/标识搜索、单选、"全部账户"。</li>
+<li><strong>汇总卡</strong>：展示周期标题（"X 月概览"）、账单周期范围、<code>总状态标签</code>（悬停展示状态说明与更新时间）、三金额、导出按钮。</li>
+<li><strong>后置条件</strong>：筛选/切换后表格与汇总联动刷新。</li>
+</ul>
+<h3 id="72">7.2 消费明细（按产品）</h3>
+<ul>
+<li><strong>列</strong>：展开箭头、账单编号、账户标识（仅企业且未指定单账号时显示）、产品名称、计费方式、账单月份、目录总价、优惠金额、优惠后金额、支付状态、操作（详情）。</li>
+<li><strong>行展开（账本）</strong>：点击箭头展开嵌套表，列：账单编号、账单月（YYYYMM）、账本类型、账户类型、实付金额。</li>
+<li><strong>详情操作</strong>：跳转账单详情页。</li>
+</ul>
+<h3 id="73">7.3 账单详情页（下钻）</h3>
+<ul>
+<li><strong>头部</strong>：账单编号、服务名称、账户标识（企业才显示）、账单时间（该月 1 日–月末）、支付状态。</li>
+<li><strong>出账流水表</strong>：出账流水号、出账时间、服务名称、账单金额、实付金额、待支付金额。</li>
+<li>顶部面包屑"返回账单列表"。</li>
+</ul>
+<h3 id="74">7.4 还款详情页</h3>
+<ul>
+<li>入口：汇总卡"已还款金额 → 查看详情"。</li>
+<li>头部：账单月份、已还款金额（汇总）。</li>
+<li>还款明细表：资源购买账号、应付金额、代金券抵扣金额、账户余额支付、现金支付金额、还款账户名称。</li>
+<li>顶部面包屑"返回月账单概览"。</li>
+</ul>
+<h3 id="75">7.5 导出账单（弹窗）</h3>
+<ul>
+<li><strong>导出范围</strong>（仅企业且已筛选单账号时）：默认跟随当前筛选；可勾选"改为导出全部账号"。</li>
+<li><strong>账单月份</strong>：必填，支持起止月份区间。</li>
+<li><strong>导出类型</strong>：必填，可多选：月账单 PDF、产品消费汇总 CSV。</li>
+<li><strong>商品筛选</strong>：下拉选产品 + 包含/排除所选（默认包含全部）。</li>
+<li>确认后后台生成文件并通知下载。</li>
+</ul>
+<hr />
+<h2 id="8">8. 交互流程</h2>
+<p><strong>主流程（查看月账单）</strong><br />
+1. 租户进入"我的账单"，默认个人空间 / 当前月。<br />
+2. 查看公告、汇总卡三金额与总状态。<br />
+3. 按需切换账单月份（日历）/ 切换企业空间并筛选账户。<br />
+4. 浏览消费明细（按产品），必要时展开行查看账本。<br />
+5. 点击"详情"下钻到出账流水；或点击"已还款金额"查看还款构成。<br />
+6. 点击"导出账单"，在弹窗配置范围/月份/类型/商品，确认导出。</p>
+<p><strong>异常流程</strong><br />
+- 当前月未出账：金额与状态以"出账中"呈现，并提示"数据仅供参考"。<br />
+- 筛选无数据：表格显示"暂无内容"空态。<br />
+- 导出生成中：弹窗关闭后，站内信/消息通知文件就绪。</p>
+<hr />
+<h2 id="9">9. 数据模型（字段语义，源自原型数据结构）</h2>
+<p><strong>消费明细行（按产品）</strong><br />
+| 字段 | 含义 | 示例 |<br />
+|------|------|------|<br />
+| billNo | 账单编号 | 100000000000041001 |<br />
+| product | 产品名称 | 智能体服务 / Doubao-Seed-2.0-pro-token… |<br />
+| sku | 规格 | 智能体服务-标准版-月度 / Token量包 / 视频生成-次卡 |<br />
+| feeType | 计费方式 | 包年包月 / 按量计费 / Token资源包 / Token Plane / Token按量使用 |<br />
+| month | 账单月份 | 2026-07 |<br />
+| list | 目录总价 | 数值（元） |<br />
+| discount | 优惠金额 | 数值（元） |<br />
+| afterDiscount | 优惠后金额 | 数值（元） |<br />
+| paidAmt | 已支付金额 | 数值（元） |<br />
+| dueAmt | 待支付金额 | 数值（元） |<br />
+| payStatus | 支付状态 | 已销账 / 待还款 |<br />
+| org | 账户标识 | 个人空间 / 企业账号标识 |</p>
+<p><strong>账本（行展开）</strong><br />
+| 字段 | 含义 |<br />
+|------|------|<br />
+| ledgerType | 账本类型：体验金 / 现金 |<br />
+| acctType | 账户类型：支付账户(个人/企业默认) |<br />
+| paid | 该账本实付金额 |</p>
+<p><strong>账单详情（出账流水）</strong><br />
+| 字段 | 含义 |<br />
+|------|------|<br />
+| id | 出账流水号 |<br />
+| time | 出账时间 |<br />
+| amt | 账单金额 |<br />
+| paid | 实付金额 |<br />
+| due | 待支付金额 |</p>
+<p><strong>还款明细</strong><br />
+| 字段 | 含义 |<br />
+|------|------|<br />
+| account | 资源购买账号 |<br />
+| payable | 应付金额 |<br />
+| coupon | 代金券抵扣金额 |<br />
+| card | 账户余额支付 |<br />
+| cash | 现金支付金额 |<br />
+| payer | 还款账户名称 |</p>
+<p><strong>账户（企业筛选）</strong><br />
+| 字段 | 含义 |<br />
+|------|------|<br />
+| acctId | 账户标识 |<br />
+| acctName | 账户名称（文档内已脱敏为"示例租户"） |<br />
+| customerName | 客户名称 |<br />
+| billCount | 账单数 |<br />
+| billTotal | 账单合计 |<br />
+| billStatus | 账单状态 |</p>
+<hr />
+<h2 id="10">10. 边界场景</h2>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>处理策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>当前月（出账中）查询</td>
+<td>金额/状态以"出账中"呈现，公告提示"仅供参考、不可对账"</td>
+</tr>
+<tr>
+<td>跨月出账临界点（次月 2 日 12:00 前后）</td>
+<td>12:00 前按"出账中"，之后按实际状态；避免状态抖动，以结算任务完成时刻为准</td>
+</tr>
+<tr>
+<td>企业多账号混合状态</td>
+<td>总状态综合判定；单个成员未结清时整体展示"未结清"口径</td>
+</tr>
+<tr>
+<td>历史月份还款后状态未即时变"已结清"</td>
+<td>允许最长 5 小时延迟窗口，期内展示旧状态并提示"更新中"</td>
+</tr>
+<tr>
+<td>查询月份超出近 12 月</td>
+<td>日历控件置灰禁选，接口返回空并提示超范围</td>
+</tr>
+<tr>
+<td>账本/流水为空</td>
+<td>行展开或详情页展示"暂无内容"空态，不下钻报错</td>
+</tr>
+<tr>
+<td>导出数据量极大</td>
+<td>后台异步生成，完成后通知；CSV 按产品聚合，PDF 按账期生成</td>
+</tr>
+<tr>
+<td>企业单账号筛选态导出</td>
+<td>默认跟随筛选；用户可勾选"改为导出全部账号"</td>
+</tr>
+<tr>
+<td>优惠后金额出现小数（如 31.1885）</td>
+<td>展示保留两位小数（¥31.19），勾稽对账以系统精度为准</td>
+</tr>
+<tr>
+<td>无权限查看某成员账号</td>
+<td>企业空间仅展示当前管理员有权限的账号，越权请求返回空</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="11">11. 验收标准</h2>
+<ol>
+<li><strong>出账准时性</strong>：每月 2 日 12:00 前完成上月账单出账，出账后状态由"出账中"正确切换。</li>
+<li><strong>状态准确性</strong>：历史月份还款后 5 小时内状态更新为"已结清"；当月还款于次月 2 日 12:00 统一结算更新；准确率 ≥ 99.9%。</li>
+<li><strong>金额勾稽</strong>：<code>待还款 = 应付 − 已还</code>、<code>优惠后 = 目录 − 优惠</code>、账本实付合计 = 已支付、还款四项合计 = 应付，四组等式全局成立，误差 0。</li>
+<li><strong>查询窗口</strong>：日历仅放开近 12 个月，超范围月份不可选，接口与 UI 一致。</li>
+<li><strong>企业多账号</strong>：管理员在"全部账户"视图下，总状态与各成员状态逻辑一致；单账号筛选后表格仅显示该账号数据。</li>
+<li><strong>下钻完整</strong>：消费明细行可展开账本、可进入账单详情（出账流水）、可进入还款详情，三者数据同源一致。</li>
+<li><strong>导出正确</strong>：PDF 月账单与 CSV 汇总字段完整、金额精度至分，月份区间与商品筛选生效；企业筛选态"导出全部账号"开关生效。</li>
+<li><strong>性能</strong>：概览页首屏 P95 ≤ 2s，明细查询 ≤ 1s；每页 3 条分页在示例数据下无错位。</li>
+<li><strong>空态与权限</strong>：无数据展示"暂无内容"；越权账号返回空且不泄漏他人数据。</li>
+</ol>
+<hr />
+<h2 id="12">12. 非功能需求</h2>
+<ul>
+<li><strong>性能</strong>：见验收标准第 8 条。</li>
+<li><strong>安全与隐私</strong>：账单含企业敏感财务信息，传输加密（TLS1.2+），按租户/账号鉴权隔离；审计日志记录查看与导出行为；文档与系统中不留存客户实名以外的冗余个人信息（示例租户名已脱敏）。</li>
+<li><strong>可靠</strong>：出账任务具备重试与对账兜底，避免漏出账/重复出账。</li>
+<li><strong>兼容</strong>：Web 控制台兼容主流浏览器最新两大版本；响应式适配。</li>
+<li><strong>可观测</strong>：关键操作（筛选、下钻、导出）埋点，支持异常告警。</li>
+</ul>
+<h2 id="13">13. 数据埋点（摘要）</h2>
+<table>
+<thead>
+<tr>
+<th>位置</th>
+<th>事件</th>
+<th>关键字段</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>概览页</td>
+<td>bill_overview_view</td>
+<td>space, billMonth, orgFilter</td>
+</tr>
+<tr>
+<td>消费明细</td>
+<td>bill_product_click</td>
+<td>billNo, product, feeType</td>
+</tr>
+<tr>
+<td>账本展开</td>
+<td>bill_ledger_expand</td>
+<td>billNo</td>
+</tr>
+<tr>
+<td>账单详情</td>
+<td>bill_detail_view</td>
+<td>billNo</td>
+</tr>
+<tr>
+<td>还款详情</td>
+<td>repay_detail_view</td>
+<td>billMonth</td>
+</tr>
+<tr>
+<td>导出</td>
+<td>bill_export</td>
+<td>type(pdf/csv), monthRange, scope</td>
+</tr>
+</tbody>
+</table>
+<h2 id="14">14. 风险与依赖</h2>
+<table>
+<thead>
+<tr>
+<th>风险</th>
+<th>概率</th>
+<th>影响</th>
+<th>缓解</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>出账任务延迟超 12:00</td>
+<td>低</td>
+<td>高</td>
+<td>提前调度 + 监控告警 + 手动补出账</td>
+</tr>
+<tr>
+<td>5 小时延迟窗口内状态不一致引发客诉</td>
+<td>中</td>
+<td>中</td>
+<td>明确公告与悬停说明，状态旁标注"更新中"</td>
+</tr>
+<tr>
+<td>企业多账号权限越界</td>
+<td>低</td>
+<td>高</td>
+<td>服务端强鉴权，按账号过滤</td>
+</tr>
+<tr>
+<td>导出大数据量阻塞</td>
+<td>中</td>
+<td>中</td>
+<td>异步生成 + 消息通知</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="a-csv">附录 A 产品消费汇总样例（CSV 导出）</h2>
+<p><strong>用途说明</strong>：本样例对应导出弹窗中「导出类型 = 产品消费汇总 CSV」的产物（见第 7.5 节）。数据以<strong>产品</strong>为最小聚合维度，字段与第 9 章「消费明细行」数据模型对齐；金额单位人民币（元），精度至分。</p>
+<h2 id="b-pdf">附录 B 月账单导出样例（PDF 月账单）</h2>
+<p><strong>用途说明</strong>：本样例对应导出弹窗中「导出类型 = 月账单 PDF」的产物（见第 7.5 节）。呈现「月账单概览」主页面的静态快照，含汇总卡三金额、总状态与消费明细，适用于租户内部留档与财务对账。</p>
+<p><em>文档结束 / V1.0.0 定稿于 2026-08-12（对应原型 V1）</em></p></div></div>
+</body></html>

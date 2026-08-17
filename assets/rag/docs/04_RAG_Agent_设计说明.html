@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MCP 风格 RAG Agent 设计说明</title>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&f[]=satoshi@400,500,700&display=swap">
+<style>
+:root{
+  --bg:#0a0f1c; --card:#151c2e; --accent:#38bdf8; --accent-soft:rgba(56,189,248,.14);
+  --text:#e8edf6; --muted:#9ca3af; --border:#1f2a44;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:'Satoshi',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.75;
+  -webkit-font-smoothing:antialiased}
+.topbar{position:sticky;top:0;background:rgba(10,15,28,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:14px 24px;z-index:10}
+.topbar a{color:var(--accent);text-decoration:none;font-weight:700;font-size:14px}
+.topbar a:hover{text-decoration:underline}
+.wrap{max-width:880px;margin:0 auto;padding:36px 24px 80px}
+.markdown-body{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:40px 44px}
+.markdown-body h1{font-family:'Clash Display',sans-serif;font-size:30px;line-height:1.2;margin:.2em 0 .6em;
+  color:#fff;border-bottom:1px solid var(--border);padding-bottom:.4em}
+.markdown-body h2{font-family:'Clash Display',sans-serif;font-size:23px;margin:1.8em 0 .6em;color:#fff;
+  border-bottom:1px solid var(--border);padding-bottom:.3em}
+.markdown-body h3{font-size:18px;margin:1.4em 0 .5em;color:var(--accent)}
+.markdown-body h4{font-size:15.5px;margin:1.2em 0 .4em;color:#cfe8f5}
+.markdown-body p{color:var(--text);margin:.7em 0}
+.markdown-body a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-soft)}
+.markdown-body a:hover{text-decoration:underline}
+.markdown-body ul,.markdown-body ol{padding-left:1.6em;margin:.6em 0;color:var(--text)}
+.markdown-body li{margin:.35em 0}
+.markdown-body strong{color:#fff}
+.markdown-body hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.markdown-body blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);
+  background:var(--accent-soft);color:var(--muted);border-radius:0 10px 10px 0}
+.markdown-body code{font-family:'SFMono-Regular',Consolas,monospace;background:rgba(56,189,248,.1);
+  color:#a5e8ff;padding:.15em .4em;border-radius:6px;font-size:.88em}
+.markdown-body pre{background:#0b1424;border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;overflow:auto;margin:1em 0}
+.markdown-body pre code{background:none;color:#cfe3f5;padding:0;font-size:.85em;line-height:1.6}
+.markdown-body table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:14.5px}
+.markdown-body th,.markdown-body td{border:1px solid var(--border);padding:9px 12px;text-align:left;color:var(--text)}
+.markdown-body th{background:var(--accent-soft);color:#fff;font-weight:700}
+.markdown-body tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.markdown-body img{max-width:100%;border-radius:12px;border:1px solid var(--border)}
+@media(max-width:640px){.markdown-body{padding:24px 18px}.wrap{padding:20px 12px 60px}}
+</style></head>
+<body>
+<div class="topbar"><a href="../../../index.html">← 返回作品集</a></div>
+<div class="wrap"><div class="markdown-body"><h1 id="mcp-rag-agent">MCP 风格 RAG Agent 设计说明</h1>
+<h2 id="0">0. 与其他文档的关系</h2>
+<p>02 定义了"为什么做"和"v1 范围"，03 定义了"数据和能力怎么分层"，本文档定义"Agent 内部怎么跑"，06 记录了"跑起来之后发现了什么问题、怎么修的"。</p>
+<h2 id="1">1. 设计目标</h2>
+<p>Agent 需要完成四件事：</p>
+<ol>
+<li>判断用户输入的问题该用什么方式回答（意图路由）。</li>
+<li>如果涉及方法论/公式/SOP，从本地知识库检索（RAG）。</li>
+<li>如果涉及具体数值，调用数据工具直接查真实数据，而不是让模型生成或臆测。</li>
+<li>输出结构化、可解释、带依据来源的策略建议。</li>
+</ol>
+<p>这四件事分别对应代码里的四个模块：<code>intent_router.py</code> / <code>rag_agent.py::LocalRetriever</code> / <code>mcp_tools.py</code> / <code>rag_agent.py::SupplyChainRagAgent</code>。</p>
+<h2 id="2">2. 整体架构</h2>
+<pre class="codehilite"><code class="language-mermaid">flowchart TD
+  U[用户输入] --&gt; R[&quot;intent_router.route()&lt;br/&gt;确定性关键词路由&quot;]
+  R --&gt;|rag| K[&quot;LocalRetriever&lt;br/&gt;TF-IDF检索knowledge_base&quot;]
+  R --&gt;|tool| T[&quot;dispatch_tool()&lt;br/&gt;正则/关键词参数抽取 + 7个数据工具&quot;]
+  R --&gt;|hybrid| K
+  R --&gt;|hybrid| T
+  K --&gt; Ag[SupplyChainRagAgent&lt;br/&gt;答案组装]
+  T --&gt; Ag
+  Ag --&gt; O[&quot;结构化输出&lt;br/&gt;scenario / findings / strategy / risks / evidence&quot;]
+</code></pre>
+
+<h2 id="3">3. 意图路由：三张关键词表决定走哪条路</h2>
+<p>路由逻辑是纯规则、可解释、零外部依赖（<code>intent_router.py</code>），依据三张关键词表：</p>
+<table>
+<thead>
+<tr>
+<th>关键词表</th>
+<th>内容示例</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FORMULA_TERMS</td>
+<td>安全库存 / 再订货点 / rop / eoq / abc / aql / 评分卡 / 公式 / 服务水平</td>
+<td>问的是方法论/公式定义</td>
+</tr>
+<tr>
+<td>CONCRETE_DATA_TERMS</td>
+<td>sku0-sku5 / mumbai / kolkata / 最低 / 最高 / 低于 / 平均 / 各城市 / 均值</td>
+<td>问的是具体数据实体或量化请求</td>
+</tr>
+<tr>
+<td>SOP_TERMS</td>
+<td>风险 / sop / 管控 / 预警 / 策略 / 达标 / 是否触发 / 判为 / 应采用</td>
+<td>问的是判定/决策类场景</td>
+</tr>
+</tbody>
+</table>
+<p>判定规则（与源码逻辑一致）：</p>
+<pre class="codehilite"><code>has_f, has_cd, has_s = 命中上述三张表
+if has_f and has_cd:  return &quot;hybrid&quot;   # 公式套到具体数据
+if has_s and has_cd:  return &quot;hybrid&quot;   # 判定套到具体数据
+if has_f:  return &quot;rag&quot;                 # 纯定义/释义类
+if has_cd: return &quot;tool&quot;                # 纯数值查询类
+return &quot;rag&quot;                            # 默认兜底
+</code></pre>
+
+<p><strong>设计取舍</strong>：为什么不直接上 LLM 路由？——因为 v1 的目标是先验证"规则路由能不能达到可用水平"，而不是先假设"规则不够用"。21 条评测集上，确定性路由达到 90.5% 准确率，且两条未命中的 case 端到端答案仍然正确（详见 06）。要升级 LLM 路由，需要先建立 held-out 评测集防止过拟合，不能凭感觉换。</p>
+<h2 id="4-rag">4. RAG 检索层：知识怎么切、怎么查</h2>
+<h3 id="41-chunkerpy">4.1 切片（<code>chunker.py</code>）</h3>
+<p>按 Markdown 标题（<code>##</code>）切片，而不是固定字符窗口——因为人类作者已经用标题划好了"一个自洽的作答单元"的边界。每个 chunk 携带 <code>section_path</code> 来源路径（如 <code>business_rules.md &gt; 2. 再订货点</code>），即使 chunk 被单独召回，模型也知道它属于哪篇文档的哪一节。超长节回退滑动窗口（800 字符 / 80 重叠）做护栏，避免单块撑爆上下文。</p>
+<h3 id="42-localretrievertf-idf">4.2 检索（<code>LocalRetriever</code>，TF-IDF）</h3>
+<p>零外部依赖的关键词检索，对中文按字符、英数按词混合分词。针对"补货优先级"这类综合决策问法容易漏检的问题，加了轻量同义词扩展（<code>QUERY_SYNONYMS</code>，如"补货→库存/风险/缺陷率"），但<strong>只在 query 命中特定触发词时生效</strong>，不影响其他已正确的检索——这是"精准打补丁"而不是"盲目上向量检索"的设计选择，具体案例见 06 第 3.3 节。</p>
+<h2 id="5-7-mcp_toolspy-mcp_serverpy">5. 工具层：7 个真实数据工具（<code>mcp_tools.py</code> / <code>mcp_server.py</code>）</h2>
+<p>所有数值/统计类回答直接查询 <code>clean_supply_chain.csv</code> 的真实行，不经过文本生成——这是"RAG 管知识、MCP 管数据"架构分工在代码里的落地。</p>
+<table>
+<thead>
+<tr>
+<th>工具名</th>
+<th>输入</th>
+<th>输出</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>find_sku</td>
+<td>sku</td>
+<td>该 SKU 全部真实字段（价格/库存/交期/成本/供应商等）</td>
+<td>单 SKU 明细查询</td>
+</tr>
+<tr>
+<td>low_stock_skus</td>
+<td>location?, threshold?, top_n?</td>
+<td>低库存 SKU 列表</td>
+<td>缺货风险筛查</td>
+</tr>
+<tr>
+<td>supplier_defect_ranking</td>
+<td>无</td>
+<td>按供应商聚合的平均缺陷率排名</td>
+<td>供应商质量对比</td>
+</tr>
+<tr>
+<td>avg_lead_time_by_location</td>
+<td>无</td>
+<td>按城市聚合的平均实际提前期</td>
+<td>物流时效对比</td>
+</tr>
+<tr>
+<td>lead_time_stats</td>
+<td>无</td>
+<td>全数据集提前期均值/标准差/均值+2σ</td>
+<td>异常提前期判定基线</td>
+</tr>
+<tr>
+<td>abc_classification</td>
+<td>无</td>
+<td>按营收 ABC 分类 + top20% 营收占比</td>
+<td>营收结构分析</td>
+</tr>
+<tr>
+<td>supplier_scorecard</td>
+<td>sku</td>
+<td>质量/交付达标判定 + 评分</td>
+<td>供应商综合评估</td>
+</tr>
+</tbody>
+</table>
+<p>以上 7 个工具加一个编排入口 <code>generate_strategy</code>（内部调用 <code>SupplyChainRagAgent</code>，走完整的路由+检索+工具+组装链路），通过 <code>mcp_server.py</code> 以 JSON-RPC 协议对外暴露（<code>tools/list</code> + <code>tools/call</code>）——这是"MCP 风格"的具体含义：工具协议化，而不是把 7 个函数堆在一起给调用方猜。</p>
+<h2 id="6-dispatch_tool">6. 参数抽取与工具派发（<code>dispatch_tool</code>）</h2>
+<p>用正则从 query 里抽取 SKU 编号（<code>sku\d+</code>）、城市名（枚举匹配 5 城市）、数值阈值（<code>低于\s*(\d+)</code>），再按关键词派发到对应工具。这一层曾经暴露过两个真实 bug（字符串写死匹配漏掉"的"字、参数抽到了但没有对应分支消费），完整拆解过程见 06 第 3.1-3.2 节——本文档只记录<strong>修复后</strong>的设计原则：数量类抽取统一用 <code>\D*(\d+)</code> 容忍中文虚词穿插；阈值抽取后必须有对应分支消费，不允许"抽到但不用"的哑变量。</p>
+<h2 id="7">7. 输出契约：统一的可解释结构</h2>
+<p>无论走 rag / tool / hybrid 哪条路，Agent 输出统一包含五段：</p>
+<ul>
+<li><strong>scenario</strong>：场景判断（这是什么类型的问题）</li>
+<li><strong>findings</strong>：关键发现（检索到什么/查到什么数值）</li>
+<li><strong>strategy</strong>：推荐策略</li>
+<li><strong>risks</strong>：风险提示（适用前提、口径确认项）</li>
+<li><strong>evidence</strong>：依据来源（RAG 命中的 chunk 来源、section_path、相关度分数）</li>
+</ul>
+<p>这个契约的设计原则是"沉默失败比响亮失败更危险"（06 第 3.1 节的教训）——所以即使是 tool 类回答，也强制带 risks 字段提醒"数值随数据集更新而变化"，不让用户误以为这是一个一成不变的结论。</p>
+<h2 id="8-adr">8. 设计决策记录（ADR 摘要）</h2>
+<table>
+<thead>
+<tr>
+<th>决策</th>
+<th>选择</th>
+<th>备选方案</th>
+<th>为什么不选备选方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>检索方式</td>
+<td>TF-IDF 关键词检索</td>
+<td>向量检索 + rerank</td>
+<td>21 条评测集上 TF-IDF 召回率已达 100%，无证据支撑升级收益；先证伪"检索不够用"这个假设，再决定要不要花成本升级（详见 06 第 2 节）</td>
+</tr>
+<tr>
+<td>意图路由</td>
+<td>确定性关键词规则</td>
+<td>LLM 路由</td>
+<td>规则路由 90.5% 准确率且可解释、零延迟成本、零外部依赖；两条未命中 case 端到端答案仍正确，说明当前瓶颈不在路由</td>
+</tr>
+<tr>
+<td>标注方式（评测）</td>
+<td>语义锚点（来源 &gt; 标题）</td>
+<td>位置编号（第 N 块）</td>
+<td>位置编号曾导致 Recall 虚报 21.4%（chunker 实际编号与人工标注编号错位），语义锚点不受 chunk 顺序变化影响</td>
+</tr>
+<tr>
+<td>数据源</td>
+<td>真实公开数据集</td>
+<td>手工编造的示例数据</td>
+<td>编造数据无法暴露真实数据质量问题（如 <code>lead_times_days</code> 与 <code>lead_time_days</code> 零相关这类真实陷阱），评测结果也难以获得可信度</td>
+</tr>
+</tbody>
+</table>
+<h2 id="9-v2-v1">9. 扩展方向（v2，已用 v1 结果校准过）</h2>
+<ul>
+<li>检索升级：先确认是真实检索缺口（而非标注缺口）再考虑向量混合检索 + rerank——当前证据不支持，升级前需先扩大评测集，看是否出现 TF-IDF 召回不足的 case。</li>
+<li>路由升级：确定性规则 → LLM 路由，需先建立 held-out 评测集，防止过拟合于当前 21 条 case。</li>
+<li>工具升级：本地 CSV → 数据库/MCP 真实服务，按 03 第 3 节的差距表补齐订单/仓库实体后，再扩展 <code>replenishment_strategy</code> 等业务语义工具。</li>
+<li>评测升级：21 条 → 更大规模 + 自动化黄金标注抽检 + CI 回归门禁。</li>
+</ul></div></div>
+</body></html>

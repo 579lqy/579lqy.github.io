@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>数据字典</title>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&f[]=satoshi@400,500,700&display=swap">
+<style>
+:root{
+  --bg:#0a0f1c; --card:#151c2e; --accent:#38bdf8; --accent-soft:rgba(56,189,248,.14);
+  --text:#e8edf6; --muted:#9ca3af; --border:#1f2a44;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:'Satoshi',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.75;
+  -webkit-font-smoothing:antialiased}
+.topbar{position:sticky;top:0;background:rgba(10,15,28,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:14px 24px;z-index:10}
+.topbar a{color:var(--accent);text-decoration:none;font-weight:700;font-size:14px}
+.topbar a:hover{text-decoration:underline}
+.wrap{max-width:880px;margin:0 auto;padding:36px 24px 80px}
+.markdown-body{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:40px 44px}
+.markdown-body h1{font-family:'Clash Display',sans-serif;font-size:30px;line-height:1.2;margin:.2em 0 .6em;
+  color:#fff;border-bottom:1px solid var(--border);padding-bottom:.4em}
+.markdown-body h2{font-family:'Clash Display',sans-serif;font-size:23px;margin:1.8em 0 .6em;color:#fff;
+  border-bottom:1px solid var(--border);padding-bottom:.3em}
+.markdown-body h3{font-size:18px;margin:1.4em 0 .5em;color:var(--accent)}
+.markdown-body h4{font-size:15.5px;margin:1.2em 0 .4em;color:#cfe8f5}
+.markdown-body p{color:var(--text);margin:.7em 0}
+.markdown-body a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-soft)}
+.markdown-body a:hover{text-decoration:underline}
+.markdown-body ul,.markdown-body ol{padding-left:1.6em;margin:.6em 0;color:var(--text)}
+.markdown-body li{margin:.35em 0}
+.markdown-body strong{color:#fff}
+.markdown-body hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.markdown-body blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);
+  background:var(--accent-soft);color:var(--muted);border-radius:0 10px 10px 0}
+.markdown-body code{font-family:'SFMono-Regular',Consolas,monospace;background:rgba(56,189,248,.1);
+  color:#a5e8ff;padding:.15em .4em;border-radius:6px;font-size:.88em}
+.markdown-body pre{background:#0b1424;border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;overflow:auto;margin:1em 0}
+.markdown-body pre code{background:none;color:#cfe3f5;padding:0;font-size:.85em;line-height:1.6}
+.markdown-body table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:14.5px}
+.markdown-body th,.markdown-body td{border:1px solid var(--border);padding:9px 12px;text-align:left;color:var(--text)}
+.markdown-body th{background:var(--accent-soft);color:#fff;font-weight:700}
+.markdown-body tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.markdown-body img{max-width:100%;border-radius:12px;border:1px solid var(--border)}
+@media(max-width:640px){.markdown-body{padding:24px 18px}.wrap{padding:20px 12px 60px}}
+</style></head>
+<body>
+<div class="topbar"><a href="../../../index.html">← 返回作品集</a></div>
+<div class="wrap"><div class="markdown-body"><h1 id="_1">数据字典</h1>
+<h2 id="0">0. 本篇结构说明</h2>
+<p>v1 真实运行的系统只依赖两类数据：① <code>clean_supply_chain.csv</code>（业务数值数据，供工具层查询）② <code>knowledge_base/*.md</code>（方法论知识，供 RAG 检索）。本篇先给出这两类 v1 真实数据的完整字段字典，再给出评测数据的字段字典，最后在附录列出 02/03 文档中提到的"目标态概念模型"字段字典（供 v2 参考，当前未落地）。</p>
+<h2 id="1-v1-clean_supply_chaincsv100-24">1. v1 业务数据：<code>clean_supply_chain.csv</code>（100 行 × 24 列）</h2>
+<p>来源：真实公开供应链数据集（快消/美妆行业，100 个 SKU 样本），经 <code>scripts/clean_data.py</code> 清洗规范化，原始文件见 <code>data/real_supply_chain.csv</code>。</p>
+<table>
+<thead>
+<tr>
+<th>字段（snake_case）</th>
+<th>原始列名</th>
+<th>含义</th>
+<th>类型/精度</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>sku</td>
+<td>SKU</td>
+<td>SKU 编号</td>
+<td>文本</td>
+<td>SKU0</td>
+</tr>
+<tr>
+<td>product_type</td>
+<td>Product type</td>
+<td>品类（haircare/skincare/cosmetics）</td>
+<td>文本</td>
+<td>haircare</td>
+</tr>
+<tr>
+<td>price</td>
+<td>Price</td>
+<td>单价</td>
+<td>数值，2 位小数</td>
+<td>69.81</td>
+</tr>
+<tr>
+<td>availability</td>
+<td>Availability</td>
+<td>可得性（原始数据集自带的可用性指标）</td>
+<td>整数</td>
+<td>55</td>
+</tr>
+<tr>
+<td>units_sold</td>
+<td>Number of products sold</td>
+<td>已售数量</td>
+<td>整数</td>
+<td>802</td>
+</tr>
+<tr>
+<td>revenue</td>
+<td>Revenue generated</td>
+<td>产生营收</td>
+<td>数值，2 位小数</td>
+<td>8661.99</td>
+</tr>
+<tr>
+<td>customer_demographics</td>
+<td>Customer demographics</td>
+<td>客群画像</td>
+<td>文本</td>
+<td>Non-binary</td>
+</tr>
+<tr>
+<td>stock_level</td>
+<td>Stock levels</td>
+<td>当前库存水平</td>
+<td>整数</td>
+<td>58</td>
+</tr>
+<tr>
+<td>lead_times_days</td>
+<td>Lead times</td>
+<td>报价提前期 ⚠️与 lead_time_days 不同，见下方数据质量说明</td>
+<td>数值，1 位小数</td>
+<td>7.0</td>
+</tr>
+<tr>
+<td>order_qty</td>
+<td>Order quantities</td>
+<td>订货量</td>
+<td>整数</td>
+<td>96</td>
+</tr>
+<tr>
+<td>shipping_time_days</td>
+<td>Shipping times</td>
+<td>运输时长</td>
+<td>数值，1 位小数</td>
+<td>4.0</td>
+</tr>
+<tr>
+<td>shipping_carrier</td>
+<td>Shipping carriers</td>
+<td>承运商</td>
+<td>文本</td>
+<td>Carrier B</td>
+</tr>
+<tr>
+<td>shipping_cost</td>
+<td>Shipping costs</td>
+<td>运费</td>
+<td>数值，2 位小数</td>
+<td>2.96</td>
+</tr>
+<tr>
+<td>supplier_name</td>
+<td>Supplier name</td>
+<td>供应商名称</td>
+<td>文本</td>
+<td>Supplier 3</td>
+</tr>
+<tr>
+<td>location</td>
+<td>Location</td>
+<td>所在城市（Mumbai/Kolkata/Chennai/Bangalore/Delhi）</td>
+<td>文本</td>
+<td>Mumbai</td>
+</tr>
+<tr>
+<td>lead_time_days</td>
+<td>Lead time</td>
+<td>实际提前期 ⚠️与 lead_times_days 不同</td>
+<td>数值，1 位小数</td>
+<td>29.0</td>
+</tr>
+<tr>
+<td>production_volume</td>
+<td>Production volumes</td>
+<td>生产量</td>
+<td>整数</td>
+<td>215</td>
+</tr>
+<tr>
+<td>mfg_lead_time_days</td>
+<td>Manufacturing lead time</td>
+<td>制造提前期</td>
+<td>数值，1 位小数</td>
+<td>29.0</td>
+</tr>
+<tr>
+<td>mfg_cost</td>
+<td>Manufacturing costs</td>
+<td>制造成本</td>
+<td>数值，2 位小数</td>
+<td>46.28</td>
+</tr>
+<tr>
+<td>inspection_result</td>
+<td>Inspection results</td>
+<td>检验结果（Pass/Fail/Pending）</td>
+<td>文本</td>
+<td>Pending</td>
+</tr>
+<tr>
+<td>defect_rate</td>
+<td>Defect rates</td>
+<td>缺陷率（0-1）</td>
+<td>数值，4 位小数</td>
+<td>0.2264</td>
+</tr>
+<tr>
+<td>transport_mode</td>
+<td>Transportation modes</td>
+<td>运输方式</td>
+<td>文本</td>
+<td>Road</td>
+</tr>
+<tr>
+<td>route</td>
+<td>Routes</td>
+<td>运输路线</td>
+<td>文本</td>
+<td>Route B</td>
+</tr>
+<tr>
+<td>total_cost</td>
+<td>Costs</td>
+<td>总成本</td>
+<td>数值，2 位小数</td>
+<td>187.75</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_2">⚠️ 数据质量说明：两个"提前期"字段不能合并</h3>
+<p><code>lead_times_days</code>（报价提前期）与 <code>lead_time_days</code>（实际提前期）字段名高度相似，容易被误认为同义重复列，但清洗脚本做了逐行一致性校验后发现<strong>两者近乎零相关（r≈-0.003）</strong>，必须分别保留，不能静默合并成一列。这是本项目在真实数据清洗中发现的典型陷阱；<code>clean_data.py</code> 对所有同义候选列都采用"先断言一致，不一致就报错阻断"的方式，而不是"直接合并"，防止同类问题再次静默发生。</p>
+<h2 id="2-v1-knowledge_base-chunk-rag">2. v1 知识数据：<code>knowledge_base</code> chunk 字段（RAG 检索单元）</h2>
+<p>每篇 <code>knowledge_base/*.md</code> 被 <code>chunker.py</code> 按 <code>##</code> 标题切成 chunk，字段如下：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>chunk 唯一编号（<code>来源文件-序号</code>）</td>
+<td>business_rules.md-2</td>
+</tr>
+<tr>
+<td>source</td>
+<td>来源文件名</td>
+<td>business_rules.md</td>
+</tr>
+<tr>
+<td>doc_title</td>
+<td>文档标题（H1）</td>
+<td>库存策略与补货规则</td>
+</tr>
+<tr>
+<td>section_path</td>
+<td>完整来源路径（文档标题 &gt; 小节标题）</td>
+<td>库存策略与补货规则 &gt; 1. 安全库存</td>
+</tr>
+<tr>
+<td>title</td>
+<td>小节标题</td>
+<td>1. 安全库存</td>
+</tr>
+<tr>
+<td>content</td>
+<td>切片正文（含 <code>[来源: ...]</code> 前缀）</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3">3. 评测数据字典</h2>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>字段</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>data/eval_cases.json</code></td>
+<td>id / type / query / grounding / verify / expected</td>
+<td>评测用例：编号 / 类型（rag,tool,hybrid） / 问题 / 标注依据（语义锚点） / 验证方法 / 期望结果</td>
+</tr>
+<tr>
+<td><code>data/eval_results.json</code></td>
+<td>intent_pred / intent_ok / gold / recall3 / e2e / top3</td>
+<td>评测结果：预测意图 / 路由是否正确 / 标注 gold chunk id / 是否召回进 top3 / 端到端是否正确 / 实际召回的 top3 列表</td>
+</tr>
+</tbody>
+</table>
+<h2 id="v2">附录：目标态概念数据模型（v2 参考，当前未落地）</h2>
+<p>以下三张表是 02/03 文档中"目标态"部分引用的概念模型，面向未来接入企业订单/仓库系统时使用。<strong>当前 v1 代码不消费这些字段</strong>，收录于此仅作 v2 设计输入，不代表已实现。</p>
+<h3 id="v2_1">订单需求（v2）</h3>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>order_id</td>
+<td>订单编号</td>
+<td>SO-1001</td>
+</tr>
+<tr>
+<td>region</td>
+<td>区域</td>
+<td>华东</td>
+</tr>
+<tr>
+<td>customer_priority</td>
+<td>客户优先级</td>
+<td>A</td>
+</tr>
+<tr>
+<td>sku_id</td>
+<td>SKU 编号</td>
+<td>SKU-A100</td>
+</tr>
+<tr>
+<td>demand_qty</td>
+<td>需求数量</td>
+<td>1200</td>
+</tr>
+<tr>
+<td>due_date</td>
+<td>承诺交期</td>
+<td>2026-08-18</td>
+</tr>
+<tr>
+<td>daily_forecast</td>
+<td>日均预测需求</td>
+<td>180</td>
+</tr>
+</tbody>
+</table>
+<h3 id="v2_2">库存快照（v2）</h3>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>warehouse_id</td>
+<td>仓库编号</td>
+<td>WH-EAST</td>
+</tr>
+<tr>
+<td>region</td>
+<td>区域</td>
+<td>华东</td>
+</tr>
+<tr>
+<td>sku_id</td>
+<td>SKU 编号</td>
+<td>SKU-A100</td>
+</tr>
+<tr>
+<td>on_hand_qty</td>
+<td>现存库存</td>
+<td>650</td>
+</tr>
+<tr>
+<td>locked_qty</td>
+<td>锁定库存</td>
+<td>120</td>
+</tr>
+<tr>
+<td>inbound_qty</td>
+<td>在途库存</td>
+<td>300</td>
+</tr>
+<tr>
+<td>safety_stock</td>
+<td>安全库存</td>
+<td>500</td>
+</tr>
+</tbody>
+</table>
+<h3 id="v2_3">供应商绩效（v2）</h3>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>supplier_id</td>
+<td>供应商编号</td>
+<td>SUP-01</td>
+</tr>
+<tr>
+<td>sku_id</td>
+<td>SKU 编号</td>
+<td>SKU-A100</td>
+</tr>
+<tr>
+<td>lead_time_days</td>
+<td>标准提前期</td>
+<td>7</td>
+</tr>
+<tr>
+<td>on_time_rate</td>
+<td>准时率</td>
+<td>0.92</td>
+</tr>
+<tr>
+<td>quality_score</td>
+<td>质量评分</td>
+<td>95</td>
+</tr>
+<tr>
+<td>moq</td>
+<td>最小起订量</td>
+<td>500</td>
+</tr>
+<tr>
+<td>status</td>
+<td>当前状态</td>
+<td>正常</td>
+</tr>
+</tbody>
+</table></div></div>
+</body></html>

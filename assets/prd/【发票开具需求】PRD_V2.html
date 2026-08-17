@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>发票开具需求文档（PRD V2 · 评审定稿）</title>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&f[]=satoshi@400,500,700&display=swap">
+<style>
+:root{
+  --bg:#0a0f1c; --card:#151c2e; --accent:#38bdf8; --accent-soft:rgba(56,189,248,.14);
+  --text:#e8edf6; --muted:#9ca3af; --border:#1f2a44;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:'Satoshi',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.75;
+  -webkit-font-smoothing:antialiased}
+.topbar{position:sticky;top:0;background:rgba(10,15,28,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:14px 24px;z-index:10}
+.topbar a{color:var(--accent);text-decoration:none;font-weight:700;font-size:14px}
+.topbar a:hover{text-decoration:underline}
+.wrap{max-width:880px;margin:0 auto;padding:36px 24px 80px}
+.markdown-body{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:40px 44px}
+.markdown-body h1{font-family:'Clash Display',sans-serif;font-size:30px;line-height:1.2;margin:.2em 0 .6em;
+  color:#fff;border-bottom:1px solid var(--border);padding-bottom:.4em}
+.markdown-body h2{font-family:'Clash Display',sans-serif;font-size:23px;margin:1.8em 0 .6em;color:#fff;
+  border-bottom:1px solid var(--border);padding-bottom:.3em}
+.markdown-body h3{font-size:18px;margin:1.4em 0 .5em;color:var(--accent)}
+.markdown-body h4{font-size:15.5px;margin:1.2em 0 .4em;color:#cfe8f5}
+.markdown-body p{color:var(--text);margin:.7em 0}
+.markdown-body a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-soft)}
+.markdown-body a:hover{text-decoration:underline}
+.markdown-body ul,.markdown-body ol{padding-left:1.6em;margin:.6em 0;color:var(--text)}
+.markdown-body li{margin:.35em 0}
+.markdown-body strong{color:#fff}
+.markdown-body hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.markdown-body blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);
+  background:var(--accent-soft);color:var(--muted);border-radius:0 10px 10px 0}
+.markdown-body code{font-family:'SFMono-Regular',Consolas,monospace;background:rgba(56,189,248,.1);
+  color:#a5e8ff;padding:.15em .4em;border-radius:6px;font-size:.88em}
+.markdown-body pre{background:#0b1424;border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;overflow:auto;margin:1em 0}
+.markdown-body pre code{background:none;color:#cfe3f5;padding:0;font-size:.85em;line-height:1.6}
+.markdown-body table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:14.5px}
+.markdown-body th,.markdown-body td{border:1px solid var(--border);padding:9px 12px;text-align:left;color:var(--text)}
+.markdown-body th{background:var(--accent-soft);color:#fff;font-weight:700}
+.markdown-body tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.markdown-body img{max-width:100%;border-radius:12px;border:1px solid var(--border)}
+@media(max-width:640px){.markdown-body{padding:24px 18px}.wrap{padding:20px 12px 60px}}
+</style></head>
+<body>
+<div class="topbar"><a href="../../index.html">← 返回作品集</a></div>
+<div class="wrap"><div class="markdown-body"><h1 id="prd-v2">发票开具需求文档（PRD V2 · 评审定稿）</h1>
+<blockquote>
+<p>隐私说明：本文以「平台 / 租户」代称产品主体与客户，隐去公司实名与品牌；示例企业、模型品牌、账号 ID 统一标注为演示数据。内部确认人/对接人统一表述为「业务负责人」，不出现个人实名。</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 文档概览与修订记录</h2>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>文档名称</td>
+<td>发票开具需求文档（PRD）</td>
+</tr>
+<tr>
+<td>版本号</td>
+<td>V2.0.0</td>
+</tr>
+<tr>
+<td>文档状态</td>
+<td>已评审定稿</td>
+</tr>
+<tr>
+<td>创建日期</td>
+<td>2026-07</td>
+</tr>
+<tr>
+<td>定稿日期</td>
+<td>2026-07</td>
+</tr>
+<tr>
+<td>作者</td>
+<td>产品经理-李千颖</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_1">修订记录</h3>
+<table>
+<thead>
+<tr>
+<th>版本</th>
+<th>日期</th>
+<th>修改人</th>
+<th>变更类型</th>
+<th>修改内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V1.0</td>
+<td>2026-07-20</td>
+<td>产品经理</td>
+<td>定稿</td>
+<td>基于原型 V1/V2 产出初版 PRD（双空间、可开票金额公式、订单列表、企业账户拆分、子账户无权限提示、基本验收标准）</td>
+</tr>
+<tr>
+<td>V2.0</td>
+<td>2026-08-12</td>
+<td>产品经理</td>
+<td>修订</td>
+<td>依据《评审会问题总结》 6 项评审结论（状态名词边界、多订单合并开票、详情页跳转、十二月周期展示等），细化优先级与验收标准</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2">2. 需求背景与目标</h2>
+<h3 id="21">2.1 业务背景（痛点 + 价值）</h3>
+<ul>
+<li><strong>痛点 1 · 逐条勾选不可行</strong>：按量付费产品按天出账单，单月可达数十条，逐条勾选开票成本高、易错。</li>
+<li><strong>痛点 2 · 企业多账户开票割裂</strong>：企业存在主账户与多个子账户，管理员需跨账户统一开票，且需按账户拆分，原有能力缺失。</li>
+<li><strong>痛点 3 · 开票资格与状态边界不清</strong>：充值未消费、体验金/虚拟货币抵扣部分能否开票、已开票部分是否重复计入等规则无统一口径，易引发客诉。</li>
+<li><strong>痛点 4 · 金额计算不透明</strong>：用户无法理解「可开票金额」为何小于「订单总额」，缺乏可下钻的计算明细。</li>
+<li><strong>业务价值</strong>：降低开票操作成本、透明金额计算口径、支撑企业多账户合规开票、减少开票类客诉。</li>
+</ul>
+<h3 id="22-smart">2.2 产品目标（SMART）</h3>
+<ol>
+<li>一次性支付订单「买完即可开票」，按量付费订单「次月 X 号后」可发起开票。</li>
+<li>跨账期按量付费订单按账期独立开票，互不影响。</li>
+<li>企业空间支持跨账户「合并为一发票 / 按账户分别开票」。</li>
+<li>可开票金额计算精度到「分」，分以下舍弃，<strong>金额勾稽误差为 0</strong>。</li>
+<li>订单/账单状态判定由统一函数计算（零手填），<strong>判定准确率 100%</strong>。</li>
+<li>支持多个订单合并开一张发票。</li>
+</ol>
+<h3 id="23">2.3 用户角色矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>空间</th>
+<th>核心诉求</th>
+<th>权限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ToC 个人用户</td>
+<td>个人空间</td>
+<td>按月汇总一次性提交开票</td>
+<td>仅本人消费记录</td>
+</tr>
+<tr>
+<td>ToB 企业管理员</td>
+<td>企业空间</td>
+<td>跨账户合并/拆分开票、查账期结算明细</td>
+<td>全部子账户消费记录</td>
+</tr>
+<tr>
+<td>子账户（企业成员）</td>
+<td>企业空间</td>
+<td>查看本人账单</td>
+<td>只读，无独立开票权限</td>
+</tr>
+</tbody>
+</table>
+<h3 id="24">2.4 评审结论与决策依据（来源：评审会问题总结）</h3>
+<blockquote>
+<p>下表逐条记录评审会提出的 6 项问题、结论与文档落点，作为本版决策追溯。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>评审问题</th>
+<th>结论</th>
+<th>状态</th>
+<th>文档落点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>问题1</td>
+<td>订单是否能够合并开发票？</td>
+<td>经与业务负责人确认，<strong>允许多个订单合并开一张发票</strong></td>
+<td>评审记录标注「未修正」（指原文档未同步）；<strong>本版已落实该能力</strong></td>
+<td>6.9、4、11</td>
+</tr>
+<tr>
+<td>问题2</td>
+<td>公共信息需合并展示？</td>
+<td>合并展示</td>
+<td>已修正</td>
+<td>7.1 顶部公共信息区</td>
+</tr>
+<tr>
+<td>问题3</td>
+<td>发票状态名词边界界定？</td>
+<td>固化开票资格 5 条 + 订单级状态 5 值 + 账单级状态 3 值</td>
+<td>已修正</td>
+<td>6.5 / 6.6 / 6.7</td>
+</tr>
+<tr>
+<td>问题4</td>
+<td>订单详情是否跳转页面展示账单明细？</td>
+<td>点击详情<strong>跳转独立页面</strong>，不可选中/不可操作，仅查看</td>
+<td>已修正</td>
+<td>7.4 / 8 / 11</td>
+</tr>
+<tr>
+<td>问题5</td>
+<td>月账单订单详情是否跳转页面展示？</td>
+<td>点击查看详情，<strong>展示该状态下全部账单</strong>，仅展示</td>
+<td>已修正</td>
+<td>7.4 / 8 / 11</td>
+</tr>
+<tr>
+<td>问题6</td>
+<td>十二月周期应如何展示？</td>
+<td>显性展示近 3 月；本月灰显且不可点击（提示未出账），其余月份用下拉框选择</td>
+<td>已修正</td>
+<td>3 / 6.4 / 7.3 / 10</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3">3. 信息架构（页面树）</h2>
+<pre class="codehilite"><code>发票管理（个人）/ 企业发票管理（企业）
+└─ 顶部栏：空间切换（个人 / 企业）+ 用户信息
+└─ 页面标题（随空间变化）
+└─ 二级 Tab：开具发票（当前）｜ 已开具列表 ｜ 发票信息（抬头）
+└─ 规则提示条（notice）：4 条开票规则
+└─ [企业空间独有] 账户范围卡片
+│     ├─ 拆分模式单选：合并为一张发票 / 按账户分别开票
+│     └─ 账户下拉选择器（默认收起）
+└─ 开票方式卡片（并列两张）
+│     ├─ 按订单开票
+│     └─ 按月周期开票
+└─ [按周期模式独有] 开票周期卡片
+│     ├─ 当前月（禁用灰显，文案：本月未出账）
+│     ├─ 近 3 月（可点击）
+│     └─ 更早月份下拉（第 4–12 月）
+└─ [按周期模式独有] 本周期汇总卡片（大字金额 + 共 X 笔订单/X 笔可开票 + 查看计算明细）
+└─ 订单列表卡片
+│     ├─ 筛选行（随模式切换）
+│     ├─ 结果提示 + 批量操作（全选筛选结果 / 清空本次选择）
+│     └─ 订单表格（分页）
+└─ 订单详情页（点击详情→替换主内容区，带返回）
+└─ 计算明细弹窗（查看计算明细→模态）
+└─ 公式下钻页（历史已开票 / 本月不可开票 查看明细→替换主内容区）
+└─ 底部汇总栏（个人 / 企业差异）+ 提交
+</code></pre>
+
+<hr />
+<h2 id="4">4. 功能清单（按优先级）</h2>
+<table>
+<thead>
+<tr>
+<th>优先级</th>
+<th>模块</th>
+<th>子功能</th>
+<th>适用空间</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>P0</strong></td>
+<td>开票方式切换</td>
+<td>按订单开票 / 按月周期开票</td>
+<td>全部</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>订单筛选与列表</td>
+<td>关键字 / 开票状态 / 日期区间筛选，批量全选 / 清空</td>
+<td>全部</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>计算明细弹窗</td>
+<td>可开票金额 = 总计 − 历史已开 − 本月不可开（三项拆解 + 说明气泡 + 下钻）</td>
+<td>全部</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>订单详情页</td>
+<td>账单级明细分页展示（不可操作，仅查看）</td>
+<td>全部</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>底部汇总与提交</td>
+<td>已选账户数 / 订单数 / 金额，提交开票申请</td>
+<td>全部</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>账户范围选择</td>
+<td>搜索、全选 / 清空、多选账户</td>
+<td>仅企业空间</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>发票拆分模式</td>
+<td>合并为一张 / 按账户分别开票</td>
+<td>仅企业空间</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>状态判定引擎</td>
+<td>订单级 5 值 + 账单级 3 值（统一函数，零手填）</td>
+<td>全部</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>多订单合并开票</td>
+<td>多个订单合并生成一张发票</td>
+<td>全部</td>
+</tr>
+<tr>
+<td><strong>P1</strong></td>
+<td>周期选择器</td>
+<td>当前月锁定、近 3 月快捷、更早月份下拉</td>
+<td>仅按周期模式</td>
+</tr>
+<tr>
+<td><strong>P1</strong></td>
+<td>周期汇总卡片</td>
+<td>可开票金额、订单数 / 可开票笔数、查看计算明细</td>
+<td>仅按周期模式</td>
+</tr>
+<tr>
+<td><strong>P1</strong></td>
+<td>规则提示条</td>
+<td>4 条开票规则说明</td>
+<td>全部</td>
+</tr>
+<tr>
+<td><strong>P1</strong></td>
+<td>公式下钻页</td>
+<td>已开票 / 不可开票 账单明细跨订单汇总展示</td>
+<td>全部</td>
+</tr>
+<tr>
+<td><strong>P2</strong></td>
+<td>公共信息合并展示</td>
+<td>顶部合并展示抬头/税号等公共信息</td>
+<td>全部</td>
+</tr>
+<tr>
+<td><strong>P2</strong></td>
+<td>体验金 / 虚拟货币标识强化</td>
+<td>不可开票部分显著标识并说明原因</td>
+<td>全部</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5">5. 用户故事</h2>
+<ul>
+<li><strong>作为 ToC 个人用户</strong>，我希望按「月周期」一次性汇总整月按量付费账单并提交开票，以便免去逐条勾选的繁琐。</li>
+<li><strong>作为 ToB 企业管理员</strong>，我希望跨账户选择消费记录并「合并 / 拆分」开票，以便统一合规开票并按需拆分给各账户核算。</li>
+<li><strong>作为任意用户</strong>，我希望查看「可开票金额」的计算明细并下钻到账单级，以便理解为何部分金额不可开、避免误解。</li>
+<li><strong>作为任意用户</strong>，我希望订单与账单的开票状态有清晰、统一的名词界定，以便准确判断当前是否可开。</li>
+<li><strong>作为企业管理员</strong>，我希望将多个订单合并开一张发票，以便减少发票张数与报销流转成本。</li>
+</ul>
+<hr />
+<h2 id="6">6. 业务规则与状态机</h2>
+<h3 id="61">6.1 发票关联规则</h3>
+<p><strong>1 个账期结算单元 = 1 张发票。</strong></p>
+<h3 id="62">6.2 支付方式与账期结算单元</h3>
+<table>
+<thead>
+<tr>
+<th>支付方式</th>
+<th>说明</th>
+<th>账期结算单元</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>一次性支付（购买 Token 资源包）</td>
+<td>买完即可开票</td>
+<td>仅 1 个账期结算单元</td>
+</tr>
+<tr>
+<td>后付（按量计费）</td>
+<td>按天出账单，单月约 30 条；订单跨月持续存在（如横跨 5/6/7 月），无天然结束点</td>
+<td>账期结算单元 = 某订单 × 某自然月账期</td>
+</tr>
+</tbody>
+</table>
+<h3 id="63">6.3 跨周期两种开票模式</h3>
+<ul>
+<li><strong>按月开票模式</strong>：选定一个账期（月份），列表每行即一个「账期结算单元」，无需额外处理。</li>
+<li><strong>按订单开票模式</strong>：按自然月整月出账，每行对应该订单在某月的消费汇总，以「月度结算记录」展示；<strong>订单号仅用于信息展示，不作为实际开票字段，实际开票按该订单的账期</strong>。订单号后加「共 X 期」气泡，悬停显示："该订单持续出账，系统中共有 N 个账期结算单元，按账期分别独立开票，互不影响"。</li>
+</ul>
+<h3 id="64">6.4 日期筛选语义（关键规则）</h3>
+<ul>
+<li>后付费按自然月整月出账，<strong>日期用于圈定账期所在月份，不代表按天筛选账单</strong>。</li>
+<li>日期筛选的作用是<strong>帮用户定位账期结算单元</strong>；搜索命中判断对象 = 「账期结算单元所在自然月」与「搜索区间」是否重叠，<strong>不是逐条账单比日期</strong>。</li>
+<li>只要账期与搜索区间有任何重叠，该账期结算单元即被搜出，展示<strong>完整整月金额与状态</strong>，不会因搜索区间仅覆盖部分月份而拆成「半个月」。</li>
+</ul>
+<p><strong>示例（搜索 5.15–6.29）：</strong></p>
+<ul>
+<li>5 月账期（5.1–5.31）：与搜索区间重叠（5.15–5.31）→ 命中，展示<strong>整个 5 月账期</strong>金额与状态；</li>
+<li>6 月账期（6.1–6.30）：与搜索区间重叠（6.1–6.29）→ 命中，展示<strong>整个 6 月账期</strong>；</li>
+<li>7 月账期：完全不重叠 → 不命中。</li>
+</ul>
+<h3 id="65-3-1">6.5 开票资格（评审结论 · 问题3-(1)）</h3>
+<ol>
+<li><strong>充值开票</strong>：充值金额需完成实际消费并结算后，方可申请开票；未消费的充值金额不支持直接开票。</li>
+<li><strong>体验金 / 虚拟货币抵扣部分不可开票。</strong></li>
+<li><strong>已开过票的部分不会重复出现在可开票范围内。</strong></li>
+<li><strong>开票金额按选中订单的实付金额汇总计算，金额计算到分，分以下部分舍弃。</strong></li>
+<li><strong>按量付费产品</strong>：开通后按实际资源消耗量产生后付费账单，于<strong>次月 X 号后</strong>生成上月月账单，即可发起开票申请。</li>
+</ol>
+<h3 id="66-5">6.6 订单级状态（5 值，优先级自上而下，命中即返回）</h3>
+<table>
+<thead>
+<tr>
+<th>优先级</th>
+<th>值</th>
+<th>判定条件</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>未出账</td>
+<td>订单会持续产生新账单 == true 且 订单.账期 == 当前自然月</td>
+<td>持续出账订单，当前账期未结束，账单未最终生成</td>
+</tr>
+<tr>
+<td>2</td>
+<td>可开票</td>
+<td>可开票金额 == 订单总额</td>
+<td>全额可开</td>
+</tr>
+<tr>
+<td>3</td>
+<td>部分可开票</td>
+<td>0 &lt; 可开票金额 &lt; 订单总额</td>
+<td>一部分可开、一部分不可开（原因见明细）</td>
+</tr>
+<tr>
+<td>4</td>
+<td>已开票</td>
+<td>可开票金额 == 0 且 历史已开票金额 &gt; 0</td>
+<td>已开过发票，不是不能开，是不需再开</td>
+</tr>
+<tr>
+<td>5</td>
+<td>不可开票</td>
+<td>可开票金额 == 0 且 历史已开票金额 == 0</td>
+<td>全部为体验金 / 虚拟货币等本身不合规部分</td>
+</tr>
+</tbody>
+</table>
+<h3 id="67-3">6.7 账单级状态（3 值）</h3>
+<table>
+<thead>
+<tr>
+<th>值</th>
+<th>判定条件</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>可开票</td>
+<td>账本类型 == 真实货币 且 未被开过票</td>
+<td>该条账单本身可开</td>
+</tr>
+<tr>
+<td>已开票</td>
+<td>账本类型 == 真实货币 且 历史上已开过票</td>
+<td>汇总到订单级时计入历史已开票金额</td>
+</tr>
+<tr>
+<td>账本类型不可开票</td>
+<td>账本类型 == 体验金 / 虚拟货币</td>
+<td>汇总到订单级时计入本月不可开票金额</td>
+</tr>
+</tbody>
+</table>
+<h3 id="68">6.8 可开票金额公式</h3>
+<pre class="codehilite"><code>可开票金额（大字橙色）
+  = 总计消费可开票金额        （截至当前时点的总计消费可开票金额）
+  − 历史已开票金额            （此前已申请并开具的金额；可下钻明细）
+  − 本月不可开票金额          （含体验金/虚拟货币抵扣 + 后付费当月未结算部分，次月X号后可开；可下钻明细）
+</code></pre>
+
+<h3 id="69-1">6.9 多订单合并开票（评审结论 · 问题1）</h3>
+<ul>
+<li>经与业务负责人确认，<strong>允许多个订单合并开一张发票</strong>。</li>
+<li>提交时：所选订单的可开票金额汇总为单张发票金额；企业空间可叠加「合并 / 拆分」模式选择。</li>
+</ul>
+<hr />
+<h2 id="7">7. 详细功能说明</h2>
+<h3 id="71">7.1 开具发票主流程（个人 / 企业）</h3>
+<ul>
+<li><strong>前置条件</strong>：用户已登录且具备开票权限（子账户无权限，见 12 安全）。</li>
+<li><strong>主流程</strong>：<br />
+  1. 选择空间（个人 / 企业）。<br />
+  2. [企业] 选择账户范围 + 拆分模式（合并 / 拆分）。<br />
+  3. 选择开票方式（按订单 / 按月周期）。<br />
+  4. 按月周期：选周期 → 系统汇总本周期 → 订单列表默认全选；按订单：填筛选条件 → 勾选目标订单。<br />
+  5. 可查看「计算明细弹窗」与下钻账单明细页。<br />
+  6. 底部汇总栏展示已选账户数 / 订单数 / 金额。<br />
+  7. 提交：个人「申请开票」；企业合并「申请开票」/ 拆分「提交拆分开票申请」。</li>
+<li><strong>异常流程</strong>：可开票金额 = 0 时禁止提交并提示原因；子账户进入开票页提示「无开票权限」。</li>
+<li><strong>后置条件</strong>：生成发票申请工单，进入「已开具列表」流转。</li>
+</ul>
+<h3 id="72">7.2 账户范围与拆分（企业空间）</h3>
+<ul>
+<li>账户范围卡片：拆分模式单选（合并为一张 / 按账户分别开票）+ 账户下拉选择器（默认收起）。</li>
+<li>合并模式：所有选中账户消费汇总为一张发票；拆分模式：按账户分别生成发票。</li>
+</ul>
+<h3 id="73">7.3 周期选择器与汇总卡片（按周期模式）</h3>
+<ul>
+<li>当前月：禁用灰显，文案「本月未出账」，不可点击（提示用户当月按量计费账单未出账）。</li>
+<li>近 3 月：可点击快捷选择。</li>
+<li>更早月份：下拉框选择第 4–12 月（评审结论 · 问题6）。</li>
+<li>本周期汇总卡片：大字金额 + 共 X 笔订单 / X 笔可开票 + 「查看计算明细」入口。</li>
+</ul>
+<h3 id="74-4-5">7.4 订单详情页（评审结论 · 问题4 / 问题5）</h3>
+<ul>
+<li><strong>入口</strong>：订单表格「详情」列。</li>
+<li><strong>交互约束</strong>：点击详情<strong>跳转至独立页面（替换主内容区，非弹窗），带返回按钮</strong>；展示订单关联下所有账单信息，<strong>不可选中、不可操作，仅查看</strong>。</li>
+<li>账单明细表格：账单编号 / 账单月 / 账本类型 / 账户类型 / 实付金额 / 开票状态；分页展示。</li>
+<li>一次性订单显示「该订单为一次性结算，无逐笔账单明细」。</li>
+<li>跨账期后付费订单显示「共 X 期」说明气泡。</li>
+<li>月账单场景下「查看详情」展示该状态下的全部账单，不可选择、仅展示。</li>
+</ul>
+<h3 id="75">7.5 计算明细弹窗与公式下钻页</h3>
+<ul>
+<li><strong>弹窗</strong>（居中模态）：标题「可开票金额」，三项拆解 + 各自说明气泡（总计 / 历史已开 / 本月不可开）+ 关闭。</li>
+<li><strong>下钻页</strong>（替换主内容区，带返回）：</li>
+<li>点击「历史已开票金额 → 查看明细」：展示历史已开票关联账单列表（无则提示「本周期没有相关记录」），汇总表含订单号。</li>
+<li>点击「本月不可开票金额 → 查看明细」：展示本月不可开票关联账单列表（无则提示同上）。</li>
+</ul>
+<h3 id="76">7.6 提交与回执</h3>
+<ul>
+<li>提交后生成申请，回执展示申请编号、所选范围、金额、拆分模式；企业拆分模式逐账户回执。</li>
+</ul>
+<hr />
+<h2 id="8">8. 交互流程</h2>
+<p><strong>主流程（个人空间）</strong></p>
+<pre class="codehilite"><code>进入页面 → 选择开票方式（按订单 / 按月周期）
+  ├─ 按月周期：选周期 → 系统汇总 → 订单列表默认全选 → 查看计算明细弹窗 → 下钻账单明细页
+  └─ 按订单：筛选（关键字/日期区间/状态）→ 勾选目标订单
+→ 底部汇总栏（已选订单数 / 已选金额）→ 提交「申请开票」
+</code></pre>
+
+<p><strong>主流程（企业空间）</strong></p>
+<pre class="codehilite"><code>进入页面 → 选择账户范围 + 合并/拆分模式
+  → 选择开票方式（同上）
+  → 底部汇总栏（已选账户数 / 订单数 / 金额）
+  → 提交合并「申请开票」或拆分「提交拆分开票申请」
+</code></pre>
+
+<p><strong>异常流程</strong></p>
+<ul>
+<li>可开票金额 = 0 → 提交按钮禁用 + 文案「无可开票金额」；</li>
+<li>子账户访问开票页 → 提示「无开票权限」，不展示操作区；</li>
+<li>跨账期订单点击详情 → 独立页展示「共 X 期」，逐期账单只读。</li>
+</ul>
+<hr />
+<h2 id="9">9. 数据模型（字段语义）</h2>
+<p><strong>订单列表表格</strong></p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+<th>适用范围</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>复选框</td>
+<td>选择参与开票</td>
+<td>全部</td>
+</tr>
+<tr>
+<td>订单信息</td>
+<td>订单号（按订单模式含「共 X 期」气泡）</td>
+<td>全部</td>
+</tr>
+<tr>
+<td>所属账户 *</td>
+<td>账户标识</td>
+<td>仅企业空间</td>
+</tr>
+<tr>
+<td>账期 **</td>
+<td>自然月账期</td>
+<td>仅周期模式</td>
+</tr>
+<tr>
+<td>计费方式</td>
+<td>一次性 / 按量付费</td>
+<td>全部</td>
+</tr>
+<tr>
+<td>订单总额</td>
+<td>订单全额</td>
+<td>全部</td>
+</tr>
+<tr>
+<td>可开票金额</td>
+<td>本单当前可开金额</td>
+<td>全部</td>
+</tr>
+<tr>
+<td>状态标签</td>
+<td>订单级 5 值之一</td>
+<td>全部</td>
+</tr>
+<tr>
+<td>详情</td>
+<td>跳转订单详情页</td>
+<td>全部</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<ul>
+<li>仅企业空间展示；** 仅周期模式展示。</li>
+</ul>
+</blockquote>
+<p><strong>账单明细表（订单详情页）</strong>：账单编号 / 账单月 / 账本类型 / 账户类型 / 实付金额 / 开票状态。</p>
+<p><strong>汇总账单表（公式下钻页）</strong>：账单编号 / 账单月 / 账本类型 / 账户类型 / 实付金额 / 开票状态 / 订单号。</p>
+<p><strong>计算明细三项</strong>：总计消费可开票金额 / 历史已开票金额 / 本月不可开票金额。</p>
+<hr />
+<h2 id="10">10. 边界场景</h2>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>场景</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>异常</td>
+<td>可开票金额 = 0</td>
+<td>提交禁用，提示原因（已全开 / 全为体验金）</td>
+</tr>
+<tr>
+<td>异常</td>
+<td>体验金 / 虚拟货币订单</td>
+<td>全额计入「不可开票」，状态「不可开票」</td>
+</tr>
+<tr>
+<td>异常</td>
+<td>子账户访问开票</td>
+<td>无权限，仅展示本人账单，不开放操作</td>
+</tr>
+<tr>
+<td>异常</td>
+<td>后付费当月未结算</td>
+<td>本月不可开票，次月 X 号后转入可开</td>
+</tr>
+<tr>
+<td>极限</td>
+<td>跨多账期（如横跨 5/6/7 月）</td>
+<td>展示「共 X 期」，按账期独立开票互不影响</td>
+</tr>
+<tr>
+<td>极限</td>
+<td>单月 30+ 账单</td>
+<td>订单详情页分页（10 条/页）</td>
+</tr>
+<tr>
+<td>极限</td>
+<td>超大金额精度</td>
+<td>计算到分，分以下舍弃，勾稽误差 0</td>
+</tr>
+<tr>
+<td>极限</td>
+<td>十二月周期展示</td>
+<td>本月灰显禁点 + 近 3 月快捷 + 更早下拉（第 4–12 月）</td>
+</tr>
+<tr>
+<td>并发</td>
+<td>重复提交</td>
+<td>幂等：同一批选定 + 同金额仅生成一张申请工单</td>
+</tr>
+<tr>
+<td>并发</td>
+<td>已开票部分再次开票</td>
+<td>已开票不重复计入可开票范围，防重复开</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="11">11. 验收标准（可量化）</h2>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>标准</th>
+<th>量化条件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AC1</td>
+<td>状态判定准确率</td>
+<td>订单级 5 值 + 账单级 3 值由统一函数计算，<strong>零手填，准确率 100%</strong></td>
+</tr>
+<tr>
+<td>AC2</td>
+<td>金额精度</td>
+<td>计算到分，分以下舍弃，<strong>勾稽误差 = 0</strong>（可开票 = 总计 − 历史已开 − 本月不可开）</td>
+</tr>
+<tr>
+<td>AC3</td>
+<td>跨账期搜索</td>
+<td>搜索 5.15–6.29 须命中 5 月、6 月账期，不命中 7 月，且展示整月金额</td>
+</tr>
+<tr>
+<td>AC4</td>
+<td>多订单合并</td>
+<td>多个订单可合并生成一张发票，金额 = 各单可开票金额之和</td>
+</tr>
+<tr>
+<td>AC5</td>
+<td>详情页跳转</td>
+<td>点击详情<strong>跳转独立页面、带返回、账单只读不可操作</strong></td>
+</tr>
+<tr>
+<td>AC6</td>
+<td>十二月周期</td>
+<td>本月灰显禁点，近 3 月可点，更早月份下拉可选</td>
+</tr>
+<tr>
+<td>AC7</td>
+<td>计算明细</td>
+<td>弹窗三项拆解 + 下钻页数据与原列表同源一致</td>
+</tr>
+<tr>
+<td>AC8</td>
+<td>分页</td>
+<td>订单列表 / 账单明细均 10 条/页，分页正确</td>
+</tr>
+<tr>
+<td>AC9</td>
+<td>企业拆分</td>
+<td>合并 / 拆分模式提交后分别生成 1 张 / 多张发票</td>
+</tr>
+<tr>
+<td>AC10</td>
+<td>权限</td>
+<td>子账户无开票操作权限，仅本人账单可见</td>
+</tr>
+<tr>
+<td>AC11</td>
+<td>重复提交</td>
+<td>同批次同金额重复点击仅生成 1 张申请工单（幂等）</td>
+</tr>
+<tr>
+<td>AC12</td>
+<td>开票资格</td>
+<td>未消费充值、体验金/虚拟货币、已开票部分均不进入可开票范围</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="12">12. 非功能需求</h2>
+<ul>
+<li><strong>性能</strong>：订单列表首屏 P95 ≤ 2s；计算明细弹窗响应 ≤ 1s。</li>
+<li><strong>安全隐私</strong>：服务端强鉴权，按账号过滤；子账户不可越权查看他人账单；发票抬头/税号加密存储。</li>
+<li><strong>可靠</strong>：开票申请幂等，防止重复开票；账期结算单元计算异常可重试。</li>
+<li><strong>兼容</strong>：个人 / 企业双空间自适应；桌面端优先，适配主流分辨率。</li>
+<li><strong>可观测</strong>：关键操作埋点（见 13）；状态计算异常可审计。</li>
+</ul>
+<hr />
+<h2 id="13">13. 数据埋点（位置 / 事件 / 字段）</h2>
+<table>
+<thead>
+<tr>
+<th>位置</th>
+<th>事件</th>
+<th>关键字段</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>开具页</td>
+<td>invoice_page_view</td>
+<td>space, mode(订单/周期)</td>
+</tr>
+<tr>
+<td>周期选择</td>
+<td>invoice_period_select</td>
+<td>period, scope</td>
+</tr>
+<tr>
+<td>计算明细</td>
+<td>invoice_calc_detail_view</td>
+<td>billNo, amount</td>
+</tr>
+<tr>
+<td>公式下钻</td>
+<td>invoice_formula_drill</td>
+<td>type(历史已开/本月不可开)</td>
+</tr>
+<tr>
+<td>订单详情</td>
+<td>invoice_order_detail_view</td>
+<td>orderNo, periods</td>
+</tr>
+<tr>
+<td>提交</td>
+<td>invoice_submit</td>
+<td>merge/split, accountCount, orderCount, amount</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="14">14. 风险与依赖</h2>
+<table>
+<thead>
+<tr>
+<th>风险</th>
+<th>概率</th>
+<th>影响</th>
+<th>缓解</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>账期结算单元计算复杂（跨月/跨订单）</td>
+<td>中</td>
+<td>高</td>
+<td>明确规则（6.1–6.4）+ 单元测试用例覆盖</td>
+</tr>
+<tr>
+<td>状态误标引发客诉</td>
+<td>中</td>
+<td>中</td>
+<td>零手填，统一 computeOrderStatus 判定（AC1）</td>
+</tr>
+<tr>
+<td>多订单合并开票额度校验</td>
+<td>低</td>
+<td>高</td>
+<td>服务端校验合并后金额与开票限额</td>
+</tr>
+<tr>
+<td>体验金误开</td>
+<td>低</td>
+<td>高</td>
+<td>账本类型强过滤，不可开票部分不进范围</td>
+</tr>
+<tr>
+<td>十二月周期边界展示歧义</td>
+<td>中</td>
+<td>中</td>
+<td>明确交互（本月灰禁点 + 下拉，AC6）</td>
+</tr>
+<tr>
+<td>依赖</td>
+<td>——</td>
+<td>——</td>
+<td>账单/账本服务、发票开具服务、用户与账户服务</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><em>文档结束 / V2.0.0</em></p></div></div>
+</body></html>

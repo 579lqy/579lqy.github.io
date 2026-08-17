@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Token 成本测算方法论 · 第一性原理 SOP</title>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&f[]=satoshi@400,500,700&display=swap">
+<style>
+:root{
+  --bg:#0a0f1c; --card:#151c2e; --accent:#38bdf8; --accent-soft:rgba(56,189,248,.14);
+  --text:#e8edf6; --muted:#9ca3af; --border:#1f2a44;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:'Satoshi',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.75;
+  -webkit-font-smoothing:antialiased}
+.topbar{position:sticky;top:0;background:rgba(10,15,28,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:14px 24px;z-index:10}
+.topbar a{color:var(--accent);text-decoration:none;font-weight:700;font-size:14px}
+.topbar a:hover{text-decoration:underline}
+.wrap{max-width:880px;margin:0 auto;padding:36px 24px 80px}
+.markdown-body{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:40px 44px}
+.markdown-body h1{font-family:'Clash Display',sans-serif;font-size:30px;line-height:1.2;margin:.2em 0 .6em;
+  color:#fff;border-bottom:1px solid var(--border);padding-bottom:.4em}
+.markdown-body h2{font-family:'Clash Display',sans-serif;font-size:23px;margin:1.8em 0 .6em;color:#fff;
+  border-bottom:1px solid var(--border);padding-bottom:.3em}
+.markdown-body h3{font-size:18px;margin:1.4em 0 .5em;color:var(--accent)}
+.markdown-body h4{font-size:15.5px;margin:1.2em 0 .4em;color:#cfe8f5}
+.markdown-body p{color:var(--text);margin:.7em 0}
+.markdown-body a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-soft)}
+.markdown-body a:hover{text-decoration:underline}
+.markdown-body ul,.markdown-body ol{padding-left:1.6em;margin:.6em 0;color:var(--text)}
+.markdown-body li{margin:.35em 0}
+.markdown-body strong{color:#fff}
+.markdown-body hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.markdown-body blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);
+  background:var(--accent-soft);color:var(--muted);border-radius:0 10px 10px 0}
+.markdown-body code{font-family:'SFMono-Regular',Consolas,monospace;background:rgba(56,189,248,.1);
+  color:#a5e8ff;padding:.15em .4em;border-radius:6px;font-size:.88em}
+.markdown-body pre{background:#0b1424;border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;overflow:auto;margin:1em 0}
+.markdown-body pre code{background:none;color:#cfe3f5;padding:0;font-size:.85em;line-height:1.6}
+.markdown-body table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:14.5px}
+.markdown-body th,.markdown-body td{border:1px solid var(--border);padding:9px 12px;text-align:left;color:var(--text)}
+.markdown-body th{background:var(--accent-soft);color:#fff;font-weight:700}
+.markdown-body tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.markdown-body img{max-width:100%;border-radius:12px;border:1px solid var(--border)}
+@media(max-width:640px){.markdown-body{padding:24px 18px}.wrap{padding:20px 12px 60px}}
+</style></head>
+<body>
+<div class="topbar"><a href="../../index.html">← 返回作品集</a></div>
+<div class="wrap"><div class="markdown-body"><h1 id="token-sop">Token 成本测算方法论 · 第一性原理 SOP</h1>
+<blockquote>
+<p>适用：模型产商品上架定价、资源包设计、智能网关综合成本预测、投资与经营风险测算<br />
+配套交互工具：收益分析系列 4 个计算器（2×2 矩阵）+ 1 个补充版（核销率 / 三场景 / 龙卷风）</p>
+</blockquote>
+<hr />
+<h2 id="0-sop">0. 为什么要从第一性原理写这份 SOP</h2>
+<p>多数团队的 token 成本测算是「抄厂商计费规则」：火山怎么算我怎么填，金山云怎么报我怎么记。这种做法在单模型、单厂商时勉强可用，一旦遇到 <strong>多厂商聚合、组合包、智能网关路由、资源包核销</strong> 就会失准——本作品集里「武汉上架表原定价因忽略结构出现负毛利」就是典型后果。</p>
+<p>第一性原理的做法是：<strong>不依赖任何一家厂商的规则，只从「模型服务到底是什么」这一个最基本的事实出发，推导出自变量、公式与风险框架。</strong> 推导出的体系天然可迁移——换厂商、换模态、从单模型到网关，都只是同一套公理的不同实例化。</p>
+<h2 id="4-sop">本文档与「收益分析」系列 4 个交互式计算器是同一方法论的「文字版」与「工具版」：SOP 负责讲清"为什么"，计算器负责把"为什么"变成可拖拽、可决策的产品。</h2>
+<h2 id="1">1. 第一性原理：从「模型服务的本质」出发</h2>
+<p><strong>P0 ｜ 模型服务 = 以 token 为统一计量单位的算力服务</strong><br />
+模型对外交付的不是「一台机器」，而是「按 token 计费的算力」。因此一切成本与收入最终都锚定在 <strong>token 数量</strong> 这一个本位上。→ 记账本位统一为 <strong>百万 token（M token）</strong>，消除各厂商单位混乱。</p>
+<p><strong>P1 ｜ 任何一次请求的成本 = 实际消耗的 token 数量 × 该 token 的供货单价</strong></p>
+<blockquote>
+<p>cost = Σ (tokenᵢ × priceᵢ)</p>
+</blockquote>
+<p>这是成本唯一不变的底层定义。后面所有公式都是它的展开，不是新规则。</p>
+<p><strong>P2 ｜ token 不是同质的：按「流向」与「是否命中缓存」被差异化定价</strong><br />
+供应方对三类 token 报不同的价：<br />
+- 输入（未命中缓存）：按全价 <code>P_in</code><br />
+- 输入（命中缓存）：按便宜价 <code>P_cache</code>（通常 ≈ P_in 的 1/5~1/2）<br />
+- 输出（模型生成）：按最贵价 <code>P_out</code>（通常 ≈ P_in 的 2~4 倍）</p>
+<p><strong>P3 ｜ 一次请求的总 token 是守恒的，但「花在哪一类」决定成本</strong><br />
+设一次请求总 token 为 1（归一），它必然被分到上述三类，比例分别为 <code>r_in / r_cache / r_out</code>，且</p>
+<blockquote>
+<p><strong>r_in + r_cache + r_out = 1</strong></p>
+</blockquote>
+<p>成本不是由「平均单价」决定，而是由「最贵那类占多少」决定——这是后续所有毛利设计的支点。</p>
+<p><strong>P4 ｜ 平台不是单一模型，而是路由层</strong><br />
+一个请求可能被路由到不同模型（能力/成本/可用性权衡），还可能是多模型组合。因此总成本 = 各模型成本按<strong>真实流量占比</strong>加权：</p>
+<blockquote>
+<p>路由分布 <code>π_k</code>，且 <strong>Σ π_k = 1</strong>（流量守恒）</p>
+</blockquote>
+<p>对"固定组合包"，路由是既定搭配，此时用 <strong>消耗当量系数 k</strong>（每个模型折算成"基准模型 token 当量"的乘数）更直观；对"动态网关"，用实时流量分布 π 更真实。两者是同一 P4 的两种实例化。</p>
+<p><strong>P5 ｜ 售价是「按已售额度」收，成本是「按实际消耗」付</strong><br />
+资源包 / Token Plan 先卖出额度，用户未必用完。只有被<strong>核销（实际消耗）</strong>的部分才产生供货成本。所以存在一个业务折损系数：</p>
+<blockquote>
+<p><strong>核销率</strong> = 已售额度中真正被消耗的比例（0~1）</p>
+</blockquote>
+<hr />
+<h3 id="_1">第一性原理 → 变量映射（一眼看清每个变量从哪来）</h3>
+<pre class="codehilite"><code>P0  统一计量单位          →  记账本位：百万 token
+P1  成本=消耗×单价        →  供货单价 P_in / P_cache / P_out
+P2  差异化定价            →  三结构拆分（输入/缓存/输出）
+P3  token 守恒            →  比例约束 r_in+r_cache+r_out = 1
+P4  路由层加权            →  路由分布 π（Σπ=1）/ 组合包系数 k（消耗当量倍数）
+P5  售/耗错配            →  核销率（业务折损系数）
+</code></pre>
+
+<hr />
+<h2 id="2">2. 由原理直接推导的公式体系</h2>
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>公式</th>
+<th>来自哪条公理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>单模型三结构成本</td>
+<td><code>C_k = r_in·P_in + r_cache·P_cache + r_out·P_out</code>（元/百万 token）</td>
+<td>P1 + P2 + P3</td>
+</tr>
+<tr>
+<td>组合包成本（固定搭配）</td>
+<td><code>C_pkg = Σ (k_i · C_i)</code>，<code>k_i</code>=各模型消耗当量倍数（coeff）</td>
+<td>P4（固定组合特例）</td>
+</tr>
+<tr>
+<td>网关综合单位成本（动态）</td>
+<td><code>C_gw = Σ π_k · C_k</code></td>
+<td>P4</td>
+</tr>
+<tr>
+<td>有效单位成本</td>
+<td><code>C_eff = 核销率 × C_gw</code></td>
+<td>P5</td>
+</tr>
+<tr>
+<td>套餐利润（元）</td>
+<td><code>利润 = 售价 − C_eff × 套餐规格(M)</code></td>
+<td>P1 + P5</td>
+</tr>
+</tbody>
+</table>
+<p><strong>约束（源自守恒，不是经验值）</strong><br />
+- <code>r_in + r_cache + r_out = 1</code>（一次请求的 token 被完整划分）<br />
+- <code>Σ π_k = 1</code>（流量被完整划分）</p>
+<h3 id="_2">口径约定</h3>
+<ul>
+<li><strong>毛利率</strong>（SOP 主口径）=（售价 − 成本）/ 售价。</li>
+<li><strong>利润率</strong>（计算器主口径）=（售价 − 成本）/ 成本 = 成本利润率/加价率。</li>
+<li>两者换算：<code>毛利率 = 利润率 ÷ (1 + 利润率)</code>；<code>利润率 = 毛利率 ÷ (1 − 毛利率)</code>。</li>
+<li>计算器风险分级基于<strong>利润率</strong>：&lt;5% 高风险、5%~15% 中风险、≥15% 低风险。</li>
+</ul>
+<hr />
+<h2 id="3">3. 跨模态折算：为什么必须有一道「折算层」</h2>
+<p>P0 要求所有成本锚定 token，但网关实际吞的是文本/语音/视频/图片。<strong>必须先统一折算成 token，才能喂进同一套成本模型。</strong> 折算公式源自物理/分词规则：</p>
+<table>
+<thead>
+<tr>
+<th>模态</th>
+<th>折算规则（示例，随厂商而定）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>文本</td>
+<td>按分词 → token 数</td>
+</tr>
+<tr>
+<td>语音输入</td>
+<td>1 秒 ≈ 6.25 输入 token</td>
+</tr>
+<tr>
+<td>语音输出（合成）</td>
+<td>1 秒 ≈ 25 输出 token（方向不同，单价不同）</td>
+</tr>
+<tr>
+<td>视频</td>
+<td>token = (入+出时长) × 宽 × 高 × 帧率 / 1024</td>
+</tr>
+<tr>
+<td>图片</td>
+<td>按张折算为固定 token（如 ¥0.22/张 折算）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4">4. 风险仪表盘：三类场景 + 敏感性（第一性原理视角）</h2>
+<p>P1~P5 推导出的 C_gw / 毛利，其输入（r、π、P、核销率）<strong>全是估计值</strong>。第一性原理要求：凡估计，必测「估计错了会怎样」。</p>
+<ul>
+<li><strong>三类场景</strong> = 对假设参数（r、π、核销率）分三档「坏程度」扰动，看商品是否仍在安全区间：</li>
+<li>基准：最可能相信的假设（只定预算，不代表安全）</li>
+<li>压力：正常业务波动范围内的轻微不利</li>
+<li>极端：对平台最不利的压测（输出比例拉高、用户集中调贵模型、核销率近 100%、缓存命中下降、上游优惠减少）</li>
+<li><strong>敏感性测试</strong> = 系统性逐个扰动变量，量化每个变量对毛利的边际影响，定位「让商品开始亏损的边界」。核心问题不是「能赚多少」，而是「<strong>哪个变量一变，就开始亏</strong>」。通常 <code>r_out</code>、核销率斜率最陡，优先监控。</li>
+<li><strong>三条线</strong>（定价时必备）：</li>
+<li>盈亏平衡线：毛利 = 0 → 售价 = C_eff</li>
+<li>目标毛利线：售价 = C_eff / (1 − 目标毛利率)</li>
+<li>风险线：毛利低于经营下限时的售价阈值</li>
+</ul>
+<blockquote>
+<p>交叉验证：同一售价 4，基准毛利 35.3%、压力 −1.4%、极端 −40.7%——证明「商品安不安全不看基准盈不盈利，看压力/极端是否仍可接受」。</p>
+</blockquote>
+<h3 id="_3">计算器如何把"风险"做成可交互</h3>
+<p>本作品集 4 个计算器把上述方法论拆成两层可操作工具：<br />
+1. <strong>收益临界分析</strong>（对应"三条线"）：对每一个套餐，实时解出"输出比例推到多少开始破盈亏平衡"（即各模型的 p10/be10 临界曲线），并给出 利润率 + 风险等级。<br />
+2. <strong>各模型盈亏（耗尽额度）</strong>（对应"极端场景"）：把"用户只用某一模型耗尽全部额度"作为该模型的最不利压测，直接暴露哪个模型在哪个套餐下会亏——这是把 P5 核销率=100% 的极端情形具象化。</p>
+<hr />
+<h2 id="5-22">5. 配套计算器：2×2 矩阵与使用映射</h2>
+<p>"收益分析"系列 4 个计算器是本文档的方法论实例化，构成一张 <strong>2×2 矩阵</strong>——两个维度正好对应 P3（三结构比例如何设）与 P4（单模型还是路由层）：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><strong>单模型</strong></th>
+<th><strong>多模型 / 组合包</strong>（P4：路由/组合）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>缓存命中率模式</strong>（设缓存命中率+输出比例，输入比例自动算）</td>
+<td>收益分析_缓存命中率模式.html</td>
+<td>收益分析_多模型_缓存命中率模式.html</td>
+</tr>
+<tr>
+<td><strong>自由调节模式</strong>（三比例 r_in/r_cache/r_out 自由设，强制 Σ=1）</td>
+<td>收益分析_自由调节模式.html</td>
+<td>收益分析_多模型_自由调节模式.html</td>
+</tr>
+</tbody>
+</table>
+<h3 id="51-p3">5.1 两个"模式"在讲什么（对应 P3）</h3>
+<ul>
+<li><strong>缓存命中率模式</strong>：你给运营侧能拿到的「缓存命中率」和想探查的「输出比例」，输入未命中比例 <code>r_in = 1 − r_cache − r_out</code> 由守恒自动算出。适合"知道缓存水平、想看输出失控边界"的研讨。</li>
+<li><strong>自由调节模式</strong>：三比例全放开手拖，适合做敏感性扫描（对应第 4 节敏感性测试）。</li>
+</ul>
+<h3 id="52-vs">5.2 单模型 vs 多模型在讲什么</h3>
+<ul>
+<li><strong>单模型</strong>：直接计算 <code>C_k = r_in·P_in + r_cache·P_cache + r_out·P_out</code>，给出该模型下各套餐的利润率/风险/收益临界。</li>
+<li><strong>多模型（组合包）</strong>：每个模型带两个关键量——</li>
+<li><code>coeff</code>（消耗当量倍数 <strong>k</strong>，如 DeepSeek=1、MiniMax=3、GLM=8）——把该模型折算成基准模型的 token 当量；</li>
+<li><code>modelWeights</code>（路由/使用分布 <strong>π</strong>，Σ=1）。</li>
+</ul>
+<p>综合单位成本即 <code>C_gw = Σ π_k · (k_k · C_k)</code>。计算器会输出"加权供货价"与各模型的盈亏柱，直观看到路由权重一调、整体成本怎么变。</p>
+<h3 id="53">5.3 计算器通用输出（决策闭环）</h3>
+<ul>
+<li><strong>套餐包选择</strong>：预填真实套餐（如 10M/50M/100M/5亿 Token 资源包、文本模型基础/进阶/专业/加量套餐）与厂商单价（DeepSeek / MiniMax / GLM 等三结构报价）。</li>
+<li><strong>加权供货价</strong>：多模型下实时汇总成"基准当量单价"。</li>
+<li><strong>各模型盈亏分析</strong>：若用户只用某模型耗尽全部额度，该套餐是否盈利——极端压测。</li>
+<li><strong>收益临界分析</strong>：每个套餐的风险等级（高/中/低）+ 利润率，并可用搜索/筛选快速定位"哪些套餐在当前假设下已亏"。</li>
+</ul>
+<hr />
+<h2 id="6-sop">6. SOP：十步落地（从原理到可执行）</h2>
+<blockquote>
+<p>每一步都标了它服务的公理，便于审计与交接。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>步</th>
+<th>动作</th>
+<th>对应公理</th>
+<th>关键要求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>定记账本位为「百万 token」</td>
+<td>P0</td>
+<td>全团队统一，禁止混用不同单位</td>
+</tr>
+<tr>
+<td>2</td>
+<td>采集各模型三结构供货单价 <code>P_in/P_cache/P_out</code></td>
+<td>P1,P2</td>
+<td>取最新报价，记录来源与有效期</td>
+</tr>
+<tr>
+<td>3</td>
+<td>设定用量结构假设 <code>r_in/r_cache/r_out</code>（Σ=1）</td>
+<td>P3</td>
+<td><strong>必须基于真实业务压测，禁止拍脑袋</strong></td>
+</tr>
+<tr>
+<td>4</td>
+<td>定路由分布 <code>π</code>（网关/组合包）或消耗当量 <code>k</code>（组合包）</td>
+<td>P4</td>
+<td>π 来自真实流量；k 来自实测消耗当量</td>
+</tr>
+<tr>
+<td>5</td>
+<td>算单模型 <code>C_k</code> 与组合/网关 <code>C_gw</code></td>
+<td>P1~P4</td>
+<td>校验 Σr=1、Σπ=1</td>
+</tr>
+<tr>
+<td>6</td>
+<td>乘核销率得 <code>C_eff</code></td>
+<td>P5</td>
+<td>资源包/Plan 必做；第 5 个计算器已含核销率滑块，前 4 个以"耗尽额度"作极端档</td>
+</tr>
+<tr>
+<td>7</td>
+<td>定售价，算利润率/毛利率，做市场对标</td>
+<td>P1,P5</td>
+<td>对标同业，留安全垫</td>
+</tr>
+<tr>
+<td>8</td>
+<td>收益临界 + 各模型盈亏压测（即极端场景）</td>
+<td>风险公理</td>
+<td>用计算器"各模型盈亏（耗尽额度）"逐模型验</td>
+</tr>
+<tr>
+<td>9</td>
+<td>敏感性分析，定位首要监控变量</td>
+<td>风险公理</td>
+<td>通常 <code>r_out</code>、核销率最陡，优先监控</td>
+</tr>
+<tr>
+<td>10</td>
+<td>画三条线，设预警阈值，用真实流量持续校准</td>
+<td>P3,P4,P5</td>
+<td>上线后回流数据反哺步骤 3/4</td>
+</tr>
+</tbody>
+</table>
+<p><strong>两条铁律（源自守恒公理，不可破）</strong><br />
+1. 先算「三结构 + π/k」再定价，禁止用单一平均单价。<br />
+2. <code>r</code>、<code>π</code>、核销率必须真实压测校准——武汉「原定价」负毛利正是忽略它们的代价。</p>
+<hr />
+<h2 id="ai-agent">该方法可平移至智能网关与 AI Agent 成本预测。</h2>
+<h2 id="8">8. 配套交付物</h2>
+<ul>
+<li><strong>交互式计算器（5 个）</strong>，位于作品集 <code>Token成本测算/</code> 目录：</li>
+<li><code>收益分析_缓存命中率模式.html</code>（单模型）</li>
+<li><code>收益分析_自由调节模式.html</code>（单模型）</li>
+<li><code>收益分析_多模型_缓存命中率模式.html</code>（组合包/网关）</li>
+<li><code>收益分析_多模型_自由调节模式.html</code>（组合包/网关）</li>
+<li><code>收益分析_核销率与场景敏感性.html</code>（<strong>补充版</strong>：核销率滑块 + 三场景卡片 + 敏感性龙卷风图，沿用前 4 个的计算器形式，支持单/多模型 × 缓存/自由四种形式）</li>
+</ul>
+<hr />
+<p><em>版本说明：本 SOP 为方法论主文档；"收益分析"系列 4 个计算器（2×2 矩阵）为其交互式实例化，另有 1 个补充版（核销率/三场景/龙卷风）。两者配套使用。</em></p></div></div>
+</body></html>

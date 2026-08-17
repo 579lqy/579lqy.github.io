@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>模型调用配额与限流管理 产品需求文档（PRD）</title>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&f[]=satoshi@400,500,700&display=swap">
+<style>
+:root{
+  --bg:#0a0f1c; --card:#151c2e; --accent:#38bdf8; --accent-soft:rgba(56,189,248,.14);
+  --text:#e8edf6; --muted:#9ca3af; --border:#1f2a44;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:'Satoshi',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.75;
+  -webkit-font-smoothing:antialiased}
+.topbar{position:sticky;top:0;background:rgba(10,15,28,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:14px 24px;z-index:10}
+.topbar a{color:var(--accent);text-decoration:none;font-weight:700;font-size:14px}
+.topbar a:hover{text-decoration:underline}
+.wrap{max-width:880px;margin:0 auto;padding:36px 24px 80px}
+.markdown-body{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:40px 44px}
+.markdown-body h1{font-family:'Clash Display',sans-serif;font-size:30px;line-height:1.2;margin:.2em 0 .6em;
+  color:#fff;border-bottom:1px solid var(--border);padding-bottom:.4em}
+.markdown-body h2{font-family:'Clash Display',sans-serif;font-size:23px;margin:1.8em 0 .6em;color:#fff;
+  border-bottom:1px solid var(--border);padding-bottom:.3em}
+.markdown-body h3{font-size:18px;margin:1.4em 0 .5em;color:var(--accent)}
+.markdown-body h4{font-size:15.5px;margin:1.2em 0 .4em;color:#cfe8f5}
+.markdown-body p{color:var(--text);margin:.7em 0}
+.markdown-body a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-soft)}
+.markdown-body a:hover{text-decoration:underline}
+.markdown-body ul,.markdown-body ol{padding-left:1.6em;margin:.6em 0;color:var(--text)}
+.markdown-body li{margin:.35em 0}
+.markdown-body strong{color:#fff}
+.markdown-body hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.markdown-body blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);
+  background:var(--accent-soft);color:var(--muted);border-radius:0 10px 10px 0}
+.markdown-body code{font-family:'SFMono-Regular',Consolas,monospace;background:rgba(56,189,248,.1);
+  color:#a5e8ff;padding:.15em .4em;border-radius:6px;font-size:.88em}
+.markdown-body pre{background:#0b1424;border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;overflow:auto;margin:1em 0}
+.markdown-body pre code{background:none;color:#cfe3f5;padding:0;font-size:.85em;line-height:1.6}
+.markdown-body table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:14.5px}
+.markdown-body th,.markdown-body td{border:1px solid var(--border);padding:9px 12px;text-align:left;color:var(--text)}
+.markdown-body th{background:var(--accent-soft);color:#fff;font-weight:700}
+.markdown-body tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.markdown-body img{max-width:100%;border-radius:12px;border:1px solid var(--border)}
+@media(max-width:640px){.markdown-body{padding:24px 18px}.wrap{padding:20px 12px 60px}}
+</style></head>
+<body>
+<div class="topbar"><a href="../../../../index.html">← 返回作品集</a></div>
+<div class="wrap"><div class="markdown-body"><h1 id="prd">模型调用配额与限流管理 产品需求文档（PRD）</h1>
+<blockquote>
+<p>本文档为使用 <code>pm-prd-standard</code> skill <strong>实际产出</strong>的验证样例，模块选"模型调用配额与限流"，专门检验新增的 模型管理 / 接口契约 / 灰度发布 / 边界场景 等章节落地效果。<br />
+隐私说明：以"平台/租户/开发者"代称。</p>
+</blockquote>
+<h2 id="1">1. 文档概览与修订记录</h2>
+<table>
+<thead>
+<tr>
+<th>版本</th>
+<th>日期</th>
+<th>修改人</th>
+<th>审批人</th>
+<th>状态</th>
+<th>变更类型</th>
+<th>修改内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V0.1</td>
+<td>2026-07-14</td>
+<td>产品经理</td>
+<td>—</td>
+<td>草稿</td>
+<td>新增</td>
+<td>初稿</td>
+</tr>
+<tr>
+<td>V1.0</td>
+<td>2026-07-15</td>
+<td>产品经理</td>
+<td>架构师</td>
+<td>定稿</td>
+<td>定稿</td>
+<td>评审通过</td>
+</tr>
+</tbody>
+</table>
+<h2 id="2">2. 术语表与缩写</h2>
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>英文/缩写</th>
+<th>定义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>配额</td>
+<td>Quota</td>
+<td>租户在单位时间可调用模型的额度（QPD/QPS）</td>
+</tr>
+<tr>
+<td>限流</td>
+<td>Rate Limit</td>
+<td>超过配额时拒绝或降级的策略</td>
+</tr>
+<tr>
+<td>API Key</td>
+<td>—</td>
+<td>开发者调用模型的凭证</td>
+</tr>
+<tr>
+<td>突发</td>
+<td>Burst</td>
+<td>短时间内超过均值的瞬时流量</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3">3. 需求背景与目标</h2>
+<ul>
+<li><strong>痛点</strong>：开发者高频突发调用导致模型服务被打挂，单租户故障影响全局；缺乏可视化配额与用量，工单量大。</li>
+<li><strong>价值</strong>：隔离租户故障域，配额自助管理，用量透明。</li>
+<li><strong>SMART</strong>：2026-Q4 上线；限流误杀率 &lt; 0.1%；配额配置生效时延 ≤ 1s。</li>
+<li><strong>角色矩阵</strong>：平台管理员（全局配额策略）、租户管理员（本租户配额）、开发者（调用+查看用量）。</li>
+</ul>
+<h2 id="4">4. 范围说明</h2>
+<ul>
+<li><strong>做</strong>：配额设置/调整、API Key 管理、限流策略、用量看板、超限降级。</li>
+<li><strong>不做</strong>：按模型粒度的动态竞价、跨云调度。</li>
+</ul>
+<h2 id="5">5. 信息架构</h2>
+<pre class="codehilite"><code>模型管理
+├─ 配额设置
+├─ API Key 管理
+├─ 用量看板
+└─ 限流策略配置
+</code></pre>
+
+<h2 id="6">6. 功能清单</h2>
+<ul>
+<li><strong>P0</strong>：配额默认值、API Key 创建/吊销、QPS/QPD 限流、超限返回 429、用量看板。</li>
+<li><strong>P1</strong>：配额自助申请审批流、突发令牌桶、按模型维度配额。</li>
+<li><strong>P2</strong>：配额预测告警、成本联动。</li>
+</ul>
+<h2 id="7">7. 用户故事</h2>
+<ul>
+<li>作为租户管理员，我希望设置本租户 QPS 上限，以便保护自身预算。</li>
+<li>作为开发者，我希望超限时收到明确错误与重试提示，以便快速定位。</li>
+<li>作为平台管理员，我希望查看全局用量，以便容量规划。</li>
+</ul>
+<h2 id="8-rbac">8. 角色与权限矩阵（RBAC）</h2>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>功能权限</th>
+<th>数据范围</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>平台管理员</td>
+<td>全局策略、查看所有租户</td>
+<td>跨租户</td>
+</tr>
+<tr>
+<td>租户管理员</td>
+<td>本租户配额/Key/用量</td>
+<td>本租户</td>
+</tr>
+<tr>
+<td>开发者</td>
+<td>调用、查看本人 Key 用量</td>
+<td>本 Key</td>
+</tr>
+</tbody>
+</table>
+<h2 id="9">9. 业务规则与状态机</h2>
+<pre class="codehilite"><code class="language-mermaid">stateDiagram-v2
+    [*] --&gt; 生效中
+    生效中 --&gt; 暂停: 管理员暂停
+    暂停 --&gt; 生效中: 恢复
+    生效中 --&gt; 超额熔断: 连续超限
+    超额熔断 --&gt; 生效中: 人工/自动恢复
+</code></pre>
+
+<ul>
+<li>配额：QPD（日调用次数）、QPS（并发）。默认 QPS=20，QPD=100000。</li>
+<li>限流算法：令牌桶（突发上限 = QPS × 2）。</li>
+<li>超限策略：返回 HTTP 429 + Retry-After 头，不降级业务数据。</li>
+</ul>
+<h2 id="10-api-key">10. 详细功能说明（API Key 管理）</h2>
+<ul>
+<li>前置：租户管理员已认证。</li>
+<li>主流程：创建 Key → 系统生成密钥（仅展示一次）→ 绑定配额 → 启用。</li>
+<li>异常：Key 泄露 → 一键吊销，立即生效（≤ 1s）。</li>
+<li>后置：Key 事件入审计。</li>
+</ul>
+<h2 id="11">11. 交互流程</h2>
+<ol>
+<li>开发者持 Key 调 /v1/models/{id}/invoke。</li>
+<li>网关校验 Key → 查配额 → 令牌桶判余量。</li>
+<li>有余量 → 放行；无余量 → 429 + Retry-After。</li>
+</ol>
+<h2 id="12">12. 数据模型</h2>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>api_key</td>
+<td>string</td>
+<td>密钥（密文存储）</td>
+</tr>
+<tr>
+<td>tenant_id</td>
+<td>string</td>
+<td>租户</td>
+</tr>
+<tr>
+<td>qps_limit</td>
+<td>int</td>
+<td>QPS 上限</td>
+</tr>
+<tr>
+<td>qpd_limit</td>
+<td>int</td>
+<td>日调用上限</td>
+</tr>
+<tr>
+<td>used_today</td>
+<td>int</td>
+<td>当日已用</td>
+</tr>
+</tbody>
+</table>
+<h2 id="13">13. 接口/数据契约</h2>
+<table>
+<thead>
+<tr>
+<th>接口</th>
+<th>方法</th>
+<th>路径</th>
+<th>幂等键</th>
+<th>关键字段</th>
+<th>错误码</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>调用模型</td>
+<td>POST</td>
+<td>/v1/models/{id}/invoke</td>
+<td>request_id</td>
+<td>api_key, model_id</td>
+<td>429 限流 / 401 无效 Key</td>
+</tr>
+<tr>
+<td>设配额</td>
+<td>PUT</td>
+<td>/v1/quota</td>
+<td>—</td>
+<td>tenant_id, qps_limit</td>
+<td>4003 超全局上限</td>
+</tr>
+</tbody>
+</table>
+<h2 id="14">14. 存量数据迁移与兼容</h2>
+<ul>
+<li>老 Key：默认继承全局默认配额，不中断在途调用。</li>
+<li>老调用方：过渡期兼容无 Key 调用（仅内部），截止上线后 30 天。</li>
+</ul>
+<h2 id="15">15. 边界场景</h2>
+<ul>
+<li><strong>异常</strong>：Key 无效、配额未配、模型不存在。</li>
+<li><strong>极限</strong>：单 Key 瞬时 10×QPS 突发 → 令牌桶放 2× 后全部 429。</li>
+<li><strong>并发</strong>：多 Key 同租户共享 QPS 池 → 网关聚合判桶。</li>
+</ul>
+<h2 id="16">16. 验收标准</h2>
+<table>
+<thead>
+<tr>
+<th>AC ID</th>
+<th>前置</th>
+<th>操作</th>
+<th>期望</th>
+<th>阈值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AC-01</td>
+<td>Key 有效、余量足</td>
+<td>调用</td>
+<td>200</td>
+<td>时延 P99 ≤ 150ms</td>
+</tr>
+<tr>
+<td>AC-02</td>
+<td>余量 0</td>
+<td>调用</td>
+<td>429 + Retry-After</td>
+<td>误杀 &lt; 0.1%</td>
+</tr>
+<tr>
+<td>AC-03</td>
+<td>吊销 Key</td>
+<td>用旧 Key 调用</td>
+<td>401</td>
+<td>生效 ≤ 1s</td>
+</tr>
+</tbody>
+</table>
+<h2 id="17">17. 非功能需求</h2>
+<ul>
+<li>性能：网关限流判定 P99 ≤ 5ms。</li>
+<li>可靠：限流服务可用性 99.99%（故障默认放行并告警）。</li>
+<li>安全：Key 密文存储、传输 TLS、最小权限。</li>
+<li>可观测：限流次数/429 占比/Key 调用 TOP 看板。</li>
+</ul>
+<h2 id="18">18. 数据埋点</h2>
+<table>
+<thead>
+<tr>
+<th>埋点ID</th>
+<th>位置</th>
+<th>事件</th>
+<th>字段</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ML01</td>
+<td>网关</td>
+<td>invoke</td>
+<td>tenant_id, model_id, cost_ms</td>
+</tr>
+<tr>
+<td>ML02</td>
+<td>网关</td>
+<td>rate_limited</td>
+<td>tenant_id, limit_type</td>
+</tr>
+</tbody>
+</table>
+<h2 id="19">19. 灰度发布与回滚</h2>
+<ul>
+<li>放量：白名单租户 → 30% → 100%。</li>
+<li>熔断：429 占比异常升高（&gt;5%）→ 暂停，回退"不限流"开关。</li>
+<li>回滚：配置开关，无需发版。</li>
+</ul>
+<h2 id="20">20. 国际化/多币种/税务</h2>
+<ul>
+<li>多币种：按调用抵扣额度（token/次），展示用租户基准币种。</li>
+<li>时区：QPD 以租户时区自然日切分。</li>
+</ul>
+<h2 id="21">21. 风险与依赖</h2>
+<table>
+<thead>
+<tr>
+<th>风险</th>
+<th>概率</th>
+<th>影响</th>
+<th>缓解</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>限流误杀正常流量</td>
+<td>中</td>
+<td>高</td>
+<td>令牌桶+监控+快速回滚</td>
+</tr>
+<tr>
+<td>网关成为瓶颈</td>
+<td>低</td>
+<td>高</td>
+<td>无状态水平扩容</td>
+</tr>
+<tr>
+<td>Key 泄露</td>
+<td>中</td>
+<td>中</td>
+<td>一键吊销+审计</td>
+</tr>
+</tbody>
+</table></div></div>
+</body></html>

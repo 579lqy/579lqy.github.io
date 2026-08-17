@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Token工场模型下架 — 术语表</title>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&f[]=satoshi@400,500,700&display=swap">
+<style>
+:root{
+  --bg:#0a0f1c; --card:#151c2e; --accent:#38bdf8; --accent-soft:rgba(56,189,248,.14);
+  --text:#e8edf6; --muted:#9ca3af; --border:#1f2a44;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:'Satoshi',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.75;
+  -webkit-font-smoothing:antialiased}
+.topbar{position:sticky;top:0;background:rgba(10,15,28,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:14px 24px;z-index:10}
+.topbar a{color:var(--accent);text-decoration:none;font-weight:700;font-size:14px}
+.topbar a:hover{text-decoration:underline}
+.wrap{max-width:880px;margin:0 auto;padding:36px 24px 80px}
+.markdown-body{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:40px 44px}
+.markdown-body h1{font-family:'Clash Display',sans-serif;font-size:30px;line-height:1.2;margin:.2em 0 .6em;
+  color:#fff;border-bottom:1px solid var(--border);padding-bottom:.4em}
+.markdown-body h2{font-family:'Clash Display',sans-serif;font-size:23px;margin:1.8em 0 .6em;color:#fff;
+  border-bottom:1px solid var(--border);padding-bottom:.3em}
+.markdown-body h3{font-size:18px;margin:1.4em 0 .5em;color:var(--accent)}
+.markdown-body h4{font-size:15.5px;margin:1.2em 0 .4em;color:#cfe8f5}
+.markdown-body p{color:var(--text);margin:.7em 0}
+.markdown-body a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-soft)}
+.markdown-body a:hover{text-decoration:underline}
+.markdown-body ul,.markdown-body ol{padding-left:1.6em;margin:.6em 0;color:var(--text)}
+.markdown-body li{margin:.35em 0}
+.markdown-body strong{color:#fff}
+.markdown-body hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.markdown-body blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);
+  background:var(--accent-soft);color:var(--muted);border-radius:0 10px 10px 0}
+.markdown-body code{font-family:'SFMono-Regular',Consolas,monospace;background:rgba(56,189,248,.1);
+  color:#a5e8ff;padding:.15em .4em;border-radius:6px;font-size:.88em}
+.markdown-body pre{background:#0b1424;border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;overflow:auto;margin:1em 0}
+.markdown-body pre code{background:none;color:#cfe3f5;padding:0;font-size:.85em;line-height:1.6}
+.markdown-body table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:14.5px}
+.markdown-body th,.markdown-body td{border:1px solid var(--border);padding:9px 12px;text-align:left;color:var(--text)}
+.markdown-body th{background:var(--accent-soft);color:#fff;font-weight:700}
+.markdown-body tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.markdown-body img{max-width:100%;border-radius:12px;border:1px solid var(--border)}
+@media(max-width:640px){.markdown-body{padding:24px 18px}.wrap{padding:20px 12px 60px}}
+</style></head>
+<body>
+<div class="topbar"><a href="../../index.html">← 返回作品集</a></div>
+<div class="wrap"><div class="markdown-body"><h1 id="token">Token工场模型下架 — 术语表</h1>
+<hr />
+<h2 id="_1">一、术语定义</h2>
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>定义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>模型下架</strong></td>
+<td>平台运营管理员将已上架模型从Token工场移除的操作。下架后模型不可被新用户搜索/浏览/订购</td>
+</tr>
+<tr>
+<td><strong>下架生效日期</strong></td>
+<td>下架操作时指定的日期。已购用户可继续调用至该日期的 23:59:59，之后API网关拒绝调用</td>
+</tr>
+<tr>
+<td><strong>缓停期</strong></td>
+<td>下架操作日 → 下架生效日期之间的时间段，供已购用户消耗剩余Token额度</td>
+</tr>
+<tr>
+<td><strong>永久下架</strong></td>
+<td>模型状态变为"已下架(OFFLINE)"，为终态，不可恢复。如需重新上线，须走完整上架流程（新建模型+审核+上架）</td>
+</tr>
+<tr>
+<td><strong>已下架（OFFLINE）</strong></td>
+<td>模型状态枚举值，终态。与"已停用(SUSPENDED)"区别：后者可恢复</td>
+</tr>
+<tr>
+<td><strong>已停用（SUSPENDED）</strong></td>
+<td>预留状态枚举值，本期不实现。设计意图：允许临时停用后恢复上架</td>
+</tr>
+<tr>
+<td><strong>存量Token包</strong></td>
+<td>下架前用户已订购且尚未耗尽/未过期的Token资源包</td>
+</tr>
+<tr>
+<td><strong>Token Plane</strong></td>
+<td>多模型组合套餐包（如文本模型组合包），包含多个模型 + <strong>固定Token总额度（套餐内模型共用）</strong> + 固定有效期，按套售卖</td>
+</tr>
+<tr>
+<td><strong>权益补偿</strong></td>
+<td>模型下架后，用户因无法继续消费剩余权益所获得的非退款形式补偿</td>
+</tr>
+<tr>
+<td><strong>补偿处理有效期</strong></td>
+<td>下架生效日期起 30 天内，用户可主动发起权益补偿申请</td>
+</tr>
+<tr>
+<td><strong>模型价值权重</strong></td>
+<td>Token Plane 中单个模型占套餐总价值的比例，用于折算下架模型的补偿份额</td>
+</tr>
+<tr>
+<td><strong>核心能力受损（L1）</strong></td>
+<td>Token Plane 内下架模型无同能力标签的可用替代模型，视为套餐核心能力受损，需发放补偿券</td>
+</tr>
+<tr>
+<td><strong>额度转移</strong></td>
+<td>Token资源包用户将下架模型剩余 Token 额度按换算比例转移至其他有效模型 Token 包</td>
+</tr>
+</tbody>
+</table>
+<h1 id="_2">二、未尽事项 / 后续建议</h1>
+<ol>
+<li>
+<p><strong>下架生效日期到期后的自动拦截</strong>：需与API网关团队对齐，确认网关侧增加模型状态检查的时间点和技术方案。</p>
+</li>
+<li>
+<p><strong>操作审计日志</strong>：下架操作应接入平台统一的审计日志系统（操作人、时间、IP、操作内容）。</p>
+</li>
+<li>
+<p><strong>代金券中心对接</strong>：需确认代金券发放接口、使用规则、过期策略是否已具备。</p>
+</li>
+</ol></div></div>
+</body></html>

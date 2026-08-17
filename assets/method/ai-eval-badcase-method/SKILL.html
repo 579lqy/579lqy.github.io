@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI 评测体系设计与 Bad Case 拆解方法论</title>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&f[]=satoshi@400,500,700&display=swap">
+<style>
+:root{
+  --bg:#0a0f1c; --card:#151c2e; --accent:#38bdf8; --accent-soft:rgba(56,189,248,.14);
+  --text:#e8edf6; --muted:#9ca3af; --border:#1f2a44;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:'Satoshi',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.75;
+  -webkit-font-smoothing:antialiased}
+.topbar{position:sticky;top:0;background:rgba(10,15,28,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:14px 24px;z-index:10}
+.topbar a{color:var(--accent);text-decoration:none;font-weight:700;font-size:14px}
+.topbar a:hover{text-decoration:underline}
+.wrap{max-width:880px;margin:0 auto;padding:36px 24px 80px}
+.markdown-body{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:40px 44px}
+.markdown-body h1{font-family:'Clash Display',sans-serif;font-size:30px;line-height:1.2;margin:.2em 0 .6em;
+  color:#fff;border-bottom:1px solid var(--border);padding-bottom:.4em}
+.markdown-body h2{font-family:'Clash Display',sans-serif;font-size:23px;margin:1.8em 0 .6em;color:#fff;
+  border-bottom:1px solid var(--border);padding-bottom:.3em}
+.markdown-body h3{font-size:18px;margin:1.4em 0 .5em;color:var(--accent)}
+.markdown-body h4{font-size:15.5px;margin:1.2em 0 .4em;color:#cfe8f5}
+.markdown-body p{color:var(--text);margin:.7em 0}
+.markdown-body a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-soft)}
+.markdown-body a:hover{text-decoration:underline}
+.markdown-body ul,.markdown-body ol{padding-left:1.6em;margin:.6em 0;color:var(--text)}
+.markdown-body li{margin:.35em 0}
+.markdown-body strong{color:#fff}
+.markdown-body hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.markdown-body blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);
+  background:var(--accent-soft);color:var(--muted);border-radius:0 10px 10px 0}
+.markdown-body code{font-family:'SFMono-Regular',Consolas,monospace;background:rgba(56,189,248,.1);
+  color:#a5e8ff;padding:.15em .4em;border-radius:6px;font-size:.88em}
+.markdown-body pre{background:#0b1424;border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;overflow:auto;margin:1em 0}
+.markdown-body pre code{background:none;color:#cfe3f5;padding:0;font-size:.85em;line-height:1.6}
+.markdown-body table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:14.5px}
+.markdown-body th,.markdown-body td{border:1px solid var(--border);padding:9px 12px;text-align:left;color:var(--text)}
+.markdown-body th{background:var(--accent-soft);color:#fff;font-weight:700}
+.markdown-body tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.markdown-body img{max-width:100%;border-radius:12px;border:1px solid var(--border)}
+@media(max-width:640px){.markdown-body{padding:24px 18px}.wrap{padding:20px 12px 60px}}
+</style></head>
+<body>
+<div class="topbar"><a href="../../../index.html">← 返回作品集</a></div>
+<div class="wrap"><div class="markdown-body"><hr />
+<p>name: ai-eval-badcase-method<br />
+description: This skill should be used when designing evaluation systems for AI products (RAG / Agent / LLM / 推荐 / 对话系统), constructing test-case sets, analyzing bad cases, or attributing root causes to improve AI system quality. It provides the three-pillar eval framework (sampling / labeling / orthogonal metrics) and the four-layer bad-case funnel (phenomenon → hypothesis → verification → classification), with control-variable attribution and documented pitfall patterns. Trigger when the user wants to "搭建评测体系", "设计测试用例", "跑 eval", "分析 bad case", "归因", "评测指标为什么低", or build an AI product that must be measured honestly.<br />
+agent_created: true</p>
+<hr />
+<h1 id="ai-bad-case">AI 评测体系设计与 Bad Case 拆解方法论</h1>
+<h2 id="overview">Overview</h2>
+<p>This skill encodes a first-principles workflow for measuring and improving AI systems. Unlike traditional software, AI outputs are probabilistic and non-enumerable, so correctness can only be <em>inferred</em> from objective measurements on a representative sample—never proven from "the code is right". Use this skill to build eval sets that do not inflate metrics, to dissect failures honestly, and to attribute root causes without guesswork.</p>
+<p>The methodology has two halves:<br />
+- <strong>评测体系三支柱 (Eval system, 3 pillars):</strong> 采样 (what to test) + 标注 (how to judge) + 指标 (what to report, orthogonally decomposed).<br />
+- <strong>Bad Case 四层漏斗 (Bad-case funnel, 4 layers):</strong> 现象层 → 假设层 → 验证层 → 归类层.</p>
+<p>Load <code>references/methodology.md</code> for the full reasoning, worked examples, and pitfall catalog. Use <code>scripts/eval_scaffold.py</code> as a starter for a reproducible eval harness.</p>
+<h2 id="when-to-use">When to Use</h2>
+<ul>
+<li>Designing an eval set for a RAG / Agent / LLM feature (or any AI product with probabilistic output).</li>
+<li>Reporting metrics and needing to know <em>which metric measures which subsystem</em>.</li>
+<li>A metric looks suspiciously low (or high)—before changing code, validate the measurement.</li>
+<li>Running a post-launch bad-case review or building a continuous eval loop.</li>
+</ul>
+<h2 id="core-principles-load-if-needed-from-referencesmethodologymd">Core Principles (load if needed from references/methodology.md)</h2>
+<h3 id="1-three-pillars-of-an-eval-system">1. Three pillars of an eval system</h3>
+<p>A working eval = <strong>采样 + 标注 + 指标</strong>. Missing any pillar invalidates the result.</p>
+<ul>
+<li><strong>采样 (what to test):</strong> Enumerate real intent/query-type distribution; stratified-sample cases covering happy / edge / adversarial. Only easy cases → inflated Recall. The eval set must mirror how the system is actually used, including its differentiated value (e.g. hybrid "formula-on-real-data" queries).</li>
+<li><strong>标注 (how to judge / ground truth):</strong> For retrieval, label <code>gold chunk id</code>; for tool/numeric, compute the answer with an <strong>independent reference implementation</strong> (never the system's own output—circular proof); for hybrid, both. Attach a <code>rubric</code> (e.g. "numeric error &lt;1% counts as correct").</li>
+<li><strong>指标 (what to report, must be orthogonal):</strong> Decompose so each metric tests a different subsystem. Typical orthogonal set: <code>Recall@K</code> (retriever only, rag+hybrid subset) · <code>端到端准确率</code> (whole pipeline, all cases) · <code>意图准确率</code> (router only). <strong>Never mix them</strong>—mixing hides where the failure lives.</li>
+</ul>
+<h3 id="2-four-layer-bad-case-funnel">2. Four-layer bad-case funnel</h3>
+<p>Do NOT jump to "it's an X bug" and edit code. Walk all four layers.</p>
+<ol>
+<li><strong>现象层 (phenomenon):</strong> Open the eval results; read <code>recall@K / e2e / intent_ok</code> columns; locate which line broke. State the gold chunk vs actual top-K. No diagnosis yet.</li>
+<li><strong>假设层 (hypothesis):</strong> List <strong>≥2 candidate root causes</strong> per case. Keep them as hypotheses, not conclusions.</li>
+<li><strong>验证层 (verification):</strong> Inspect real intermediate artifacts—run the retriever's scores, print chunk id↔section, trace the router's output, trace the dispatcher's arguments. <strong>Use evidence to falsify hypotheses; never rely on intuition.</strong></li>
+<li><strong>归类层 (classification):</strong> Map the verified cause onto the root-cause tree (below). Write it into the iteration backlog.</li>
+</ol>
+<h3 id="3-root-cause-attribution-tree-control-variable">3. Root-cause attribution tree (control variable)</h3>
+<p>Anchor: feed the same input and walk downstream layer-by-layer; the layer whose output is wrong is the root-cause layer. Classify by subsystem:</p>
+<ul>
+<li><strong>检索根因 (retrieval):</strong> retriever failed to surface the correct chunk (low recall / bad chunking / weak embedding).</li>
+<li><strong>工具根因 (tool):</strong> numeric computed wrong / wrong field / wrong row-count or口径 (silent failure is most dangerous).</li>
+<li><strong>路由根因 (router):</strong> intent misclassified → wrong module dispatched.</li>
+<li><strong>生成根因 (generation):</strong> retrieval+tool both correct, but LLM/prompt/format wrong.</li>
+<li><strong>标注根因 (labeling):</strong> gold itself is ambiguous or mis-mapped. <strong>Most overlooked, can flip the whole eval.</strong></li>
+</ul>
+<h3 id="4-iron-rules">4. Iron rules</h3>
+<ul>
+<li>A metric's credibility is <strong>never higher than its labeling's credibility</strong>.</li>
+<li>Verify before fixing. Running the real scorer once beats ten guesses.</li>
+<li>Distinguish subsystems: tokenizers serve the <strong>retriever</strong>; dispatchers use <strong>string/regex matching</strong>—mixing them up in an interview reveals shallow understanding.</li>
+<li>Prefer "silent failures" detection: code that returns 3 rows instead of 5 (looks fine) is only caught by an independent reference implementation.</li>
+</ul>
+<h2 id="workflow">Workflow</h2>
+<ol>
+<li>Define the query-type distribution; stratified-sample N cases (happy/edge/adversarial). Record <code>type / grounding / verify / expected</code> per case (see scaffold).</li>
+<li>Implement an <strong>independent reference</strong> for tool/numeric answers; label <code>gold chunk id</code> for retrieval cases.</li>
+<li>Run the harness; report orthogonal metrics separately.</li>
+<li>For every failing case, run the four-layer funnel. Always start at 现象层 from the results file.</li>
+<li>Before any code fix, re-verify the <strong>measurement itself</strong> (gold mapping, recall counting, data version). A wrong baseline wastes the whole iteration.</li>
+<li>Fix by root-cause class; re-run; report before/after per metric.</li>
+</ol>
+<h2 id="resources">Resources</h2>
+<ul>
+<li><code>references/methodology.md</code> — full first-principles derivation, the worked RAG-Agent example (gold-misalignment that faked Recall 21.4%→true 92.9%, and the TOOL-02/05 dispatch bugs), and the pitfall catalog.</li>
+<li><code>scripts/eval_scaffold.py</code> — runnable starter: loads a <code>eval_cases.json</code>, computes an independent reference, runs a retriever+router+dispatcher stub, and prints orthogonal metrics + per-case detail. Adapt the stubs to the real system.</li>
+</ul></div></div>
+</body></html>
