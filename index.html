@@ -85,6 +85,16 @@ header{position:fixed;top:0;left:0;right:0;z-index:50;backdrop-filter:blur(10px)
 .links a:hover{background:var(--accent-soft);border-color:var(--accent)}
 .links-group{margin-top:10px}
 .links-group a{padding:6px 11px;font-size:12.5px}
+/* wide card */
+.card-wide{grid-column:1/-1}
+.card-wide-body{display:grid;grid-template-columns:2fr 1fr;gap:32px;align-items:start}
+.card-wide-main{min-width:0}
+.card-wide-actions{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.card-wide-actions .links{margin-top:0}
+@media(max-width:760px){
+  .card-wide-body{grid-template-columns:1fr}
+  .card-wide-actions{flex-direction:row;flex-wrap:wrap}
+}
 /* metrics row */
 .metrics{display:flex;flex-wrap:wrap;gap:14px;margin:22px 0}
 .metrics .m{background:var(--bg-secondary);border:1px solid var(--border);border-radius:14px;
@@ -234,25 +244,29 @@ footer{border-top:1px solid var(--border);padding:30px 0;color:var(--text-second
         </div>
       </div>
 
-      <div class="card reveal">
-        <div class="kicker">成本治理 · 第一性原理</div>
-        <h3>Token 成本测算</h3>
-        <p>从"模型服务 = 以 token 计费的算力"出发，推导出自变量、公式与风险框架。</p>
-        <ul>
-          <li>P0–P5 五条公理推导公式</li>
-          <li>5 个交互式收益计算器</li>
-          <li>覆盖单厂商 / 多厂商 / 组合包 / 智能网关场景</li>
-          <li>敏感性压测：缓存命中率、核销率、自由调节</li>
-        </ul>
-        <div class="links">
-          <a href="assets/cost/token成本测算_SOP.md" target="_blank">📘 方法论 SOP</a>
-        </div>
-        <div class="links links-group">
-          <a href="assets/cost/收益分析_缓存命中率模式.html" target="_blank">缓存命中(单)</a>
-          <a href="assets/cost/收益分析_自由调节模式.html" target="_blank">自由调节(单)</a>
-          <a href="assets/cost/收益分析_多模型_缓存命中率模式.html" target="_blank">缓存命中(多)</a>
-          <a href="assets/cost/收益分析_多模型_自由调节模式.html" target="_blank">自由调节(多)</a>
-          <a href="assets/cost/收益分析_核销率与场景敏感性.html" target="_blank">核销率/敏感性</a>
+      <div class="card card-wide reveal">
+        <div class="card-wide-body">
+          <div class="card-wide-main">
+            <div class="kicker">成本治理 · 第一性原理</div>
+            <h3>Token 成本测算</h3>
+            <p>从"模型服务 = 以 token 计费的算力"出发，推导出自变量、公式与风险框架。</p>
+            <ul>
+              <li>P0–P5 五条公理推导公式</li>
+              <li>5 个交互式收益计算器</li>
+              <li>覆盖单厂商 / 多厂商 / 组合包 / 智能网关场景</li>
+              <li>敏感性压测：缓存命中率、核销率、自由调节</li>
+            </ul>
+          </div>
+          <div class="card-wide-actions">
+            <a class="btn btn-primary" href="assets/cost/token成本测算_SOP.md" target="_blank">📘 方法论 SOP</a>
+            <div class="links">
+              <a href="assets/cost/收益分析_缓存命中率模式.html" target="_blank">缓存命中(单)</a>
+              <a href="assets/cost/收益分析_自由调节模式.html" target="_blank">自由调节(单)</a>
+              <a href="assets/cost/收益分析_多模型_缓存命中率模式.html" target="_blank">缓存命中(多)</a>
+              <a href="assets/cost/收益分析_多模型_自由调节模式.html" target="_blank">自由调节(多)</a>
+              <a href="assets/cost/收益分析_核销率与场景敏感性.html" target="_blank">核销率/敏感性</a>
+            </div>
+          </div>
         </div>
       </div>
 
