@@ -79,10 +79,12 @@ header{position:fixed;top:0;left:0;right:0;z-index:50;backdrop-filter:blur(10px)
 .card p{color:var(--text-secondary);font-size:15px}
 .card ul{margin:14px 0 0;padding-left:18px;color:var(--text-secondary);font-size:14.5px}
 .card ul li{margin:6px 0}
-.links{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.links{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
 .links a{font-size:13.5px;font-weight:600;color:var(--accent);border:1px solid var(--border);
-  padding:7px 13px;border-radius:999px;transition:.2s}
+  padding:7px 13px;border-radius:999px;transition:.2s;white-space:nowrap}
 .links a:hover{background:var(--accent-soft);border-color:var(--accent)}
+.links-group{margin-top:10px}
+.links-group a{padding:6px 11px;font-size:12.5px}
 /* metrics row */
 .metrics{display:flex;flex-wrap:wrap;gap:14px;margin:22px 0}
 .metrics .m{background:var(--bg-secondary);border:1px solid var(--border);border-radius:14px;
@@ -131,8 +133,7 @@ footer{border-top:1px solid var(--border);padding:30px 0;color:var(--text-second
       <a href="#about">关于</a>
       <a href="#work">需求设计</a>
       <a href="#ai">AI 能力</a>
-      <a href="#method">方法论</a>
-      <a href="#resources">演示与文档</a>
+      <a href="#method">Skill 沉淀</a>
       <a href="#resume">简历</a>
       <a href="#contact">联系</a>
       <button class="theme-btn" id="themeBtn" title="切换暗/亮色">🌙</button>
@@ -245,6 +246,8 @@ footer{border-top:1px solid var(--border);padding:30px 0;color:var(--text-second
         </ul>
         <div class="links">
           <a href="assets/cost/token成本测算_SOP.md" target="_blank">📘 方法论 SOP</a>
+        </div>
+        <div class="links links-group">
           <a href="assets/cost/收益分析_缓存命中率模式.html" target="_blank">缓存命中(单)</a>
           <a href="assets/cost/收益分析_自由调节模式.html" target="_blank">自由调节(单)</a>
           <a href="assets/cost/收益分析_多模型_缓存命中率模式.html" target="_blank">缓存命中(多)</a>
