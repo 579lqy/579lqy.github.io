@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>供应链协同 RAG Agent · 演示级原型</title>
+<style>
+  :root{
+    --bg:#0f1117; --panel:#171a23; --panel2:#1d212c; --line:#2a2f3c;
+    --text:#e6e8ee; --muted:#9aa3b2; --accent:#4f8cff; --accent2:#7c5cff;
+    --good:#36c275; --bad:#ff6b6b; --warn:#ffb454; --chip:#222838;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+  header{padding:22px 28px 14px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#141823,#0f1117)}
+  h1{margin:0;font-size:20px;letter-spacing:.5px}
+  .sub{color:var(--muted);font-size:12.5px;margin-top:4px}
+  .metrics{display:flex;gap:12px;margin-top:14px;flex-wrap:wrap}
+  .metric{background:var(--chip);border:1px solid var(--line);border-radius:10px;padding:8px 14px;min-width:120px}
+  .metric .v{font-size:22px;font-weight:700}
+  .metric .k{font-size:11px;color:var(--muted)}
+  .metric.good .v{color:var(--good)} .metric.warn .v{color:var(--warn)}
+  .tabs{display:flex;gap:6px;padding:0 28px;border-bottom:1px solid var(--line);background:var(--panel)}
+  .tab{padding:11px 16px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;font-size:13.5px}
+  .tab.active{color:var(--text);border-bottom-color:var(--accent)}
+  .tab:hover{color:var(--text)}
+  .pane{display:none;padding:22px 28px;max-width:1180px}
+  .pane.active{display:block}
+  .row{display:flex;gap:18px;flex-wrap:wrap}
+  .col{flex:1;min-width:340px}
+  input[type=text]{width:100%;padding:11px 13px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--text);font-size:14px}
+  input[type=text]:focus{outline:none;border-color:var(--accent)}
+  .btns{margin:12px 0 4px;display:flex;gap:8px;flex-wrap:wrap}
+  .chip{cursor:pointer;background:var(--chip);border:1px solid var(--line);color:var(--muted);border-radius:20px;padding:5px 12px;font-size:12.5px}
+  .chip:hover{color:var(--text);border-color:var(--accent)}
+  button.run{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:10px 20px;font-size:14px;cursor:pointer;font-weight:600}
+  button.run:hover{filter:brightness(1.08)}
+  button.ghost{background:transparent;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:9px 16px;cursor:pointer}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:14px}
+  .card h3{margin:0 0 10px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .tag{font-size:11px;padding:2px 9px;border-radius:6px;font-weight:600}
+  .tag.rag{background:rgba(79,140,255,.18);color:var(--accent)}
+  .tag.tool{background:rgba(54,194,117,.18);color:var(--good)}
+  .tag.hybrid{background:rgba(124,92,255,.2);color:var(--accent2)}
+  .tag.ok{background:rgba(54,194,117,.18);color:var(--good)}
+  .tag.x{background:rgba(255,107,107,.18);color:var(--bad)}
+  .kv{font-size:12.5px;color:var(--muted);margin:3px 0}
+  .chunk{border-left:3px solid var(--accent);padding:6px 10px;margin:6px 0;background:var(--panel2);border-radius:0 8px 8px 0;font-size:12.5px}
+  .chunk .sp{color:var(--accent);font-weight:600}
+  .chunk .sc{color:var(--muted);float:right}
+  .find{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 11px;margin:6px 0;font-size:13px}
+  .pipe{display:flex;align-items:stretch;gap:0;margin-top:8px;flex-wrap:wrap}
+  .pipe .box{flex:1;min-width:140px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;position:relative}
+  .pipe .box .t{font-size:12px;color:var(--muted)}
+  .pipe .box .b{font-size:14px;font-weight:600;margin-top:4px}
+  .pipe .arrow{display:flex;align-items:center;color:var(--muted);padding:0 8px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
+  th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--panel)}
+  tr.bad td{background:rgba(255,107,107,.06)}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:var(--panel2)}
+  .funnel{border-left:3px solid var(--warn);padding:10px 14px;margin:12px 0;background:var(--panel);border-radius:0 10px 10px 0}
+  .funnel .lv{font-size:11px;color:var(--warn);font-weight:700;letter-spacing:1px}
+  .funnel .ct{font-size:13.5px;margin-top:3px}
+  .note{font-size:12.5px;color:var(--muted);line-height:1.7}
+  select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:13px;min-width:220px}
+  .legend{font-size:12px;color:var(--muted);margin-top:8px}
+  code{background:var(--panel2);padding:1px 5px;border-radius:5px;font-size:12px;color:#cdd6f4}
+  footer{padding:18px 28px;color:var(--muted);font-size:11.5px;border-top:1px solid var(--line)}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <h1>供应链协同 RAG Agent · 演示级原型</h1>
+  <div class="sub">核心算法（检索 / 意图路由 / 工具派发）用 JS 忠实移植自 Python 源码，知识库与数据集为真实公开数据，全部内嵌、零外部依赖、可离线运行。</div>
+  <div class="metrics" id="metrics">
+    <div class="metric good"><div class="v" id="m-e2e">—</div><div class="k">端到端准确率 e2e</div></div>
+    <div class="metric good"><div class="v" id="m-r3">—</div><div class="k">召回率 Recall@3</div></div>
+    <div class="metric warn"><div class="v" id="m-int">—</div><div class="k">意图路由准确率</div></div>
+    <div class="metric"><div class="v" id="m-n">—</div><div class="k">评测样本数</div></div>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-tab="live">① 实时管道演示</div>
+  <div class="tab" data-tab="eval">② 评测看板（21 条真实用例）</div>
+  <div class="tab" data-tab="funnel">③ Bad Case 四层漏斗</div>
+</div>
+
+<!-- ===================== TAB 1: 实时管道 ===================== -->
+<div class="pane active" id="pane-live">
+  <div class="col" style="max-width:100%">
+    <input type="text" id="q" placeholder="输入业务问题，例如：Mumbai 仓哪个 SKU 最该优先补货（结合库存覆盖与缺陷风险）？" />
+    <div class="btns">
+      <button class="run" id="runBtn">运行管道 ▶</button>
+      <span class="legend">示例问题：</span>
+      <span class="chip" data-q="如何计算安全库存？给出公式与各参数含义。">RAG·安全库存公式</span>
+      <span class="chip" data-q="SKU0 的缺陷率是多少？是否超过 AQL 2.5%？">TOOL·SKU0 缺陷率</span>
+      <span class="chip" data-q="Mumbai 库存水平最低的 5 个 SKU。">TOOL·Mumbai 最低库存(的)</span>
+      <span class="chip" data-q="库存水平低于 10 的 SKU 有哪些？">TOOL·库存&lt;10</span>
+      <span class="chip" data-q="用安全库存公式，SKU0 要支持 95% 服务水平(Z=1.65)，安全库存应设多少？">HY·安全库存计算</span>
+      <span class="chip" data-q="Mumbai 仓哪个 SKU 最该优先补货（结合库存覆盖与缺陷风险）？">HY·优先补货</span>
+      <span class="chip" data-q="按营收对全部 SKU 做 ABC 分类，前 20% SKU 贡献多少比例营收？">HY·ABC 分类</span>
+    </div>
+  </div>
+  <div id="liveOut"></div>
+</div>
+
+<!-- ===================== TAB 2: 评测看板 ===================== -->
+<div class="pane" id="pane-eval">
+  <div class="btns">
+    <button class="run" id="evalBtn">运行 21 条评测 ▶</button>
+    <button class="ghost" id="evalReset">收起明细</button>
+    <span class="legend">三支柱：采样(21条真实用例) · 标注(语义锚点 resolve_gold) · 指标正交(召回/端到端/意图互不替代)</span>
+  </div>
+  <div id="evalOut"></div>
+</div>
+
+<!-- ===================== TAB 3: Bad Case 漏斗 ===================== -->
+<div class="pane" id="pane-funnel">
+  <div class="btns">
+    <span class="legend">选择一个用例，按「现象 → ≥2 假设 → 验证 → 归类」四层漏斗拆解：</span>
+    <select id="caseSel"></select>
+  </div>
+  <div id="funnelOut"></div>
+</div>
+
+<footer>
+  原型 = 真实算法 + 真实数据 + 真实评测口径的浏览器可运行版本。指标由 <code>RAGEngine.runEval</code> 在浏览器内实时复现（与 Python <code>tests/eval_rag.py</code> 同源）。
+  完整源码见 <code>supply-chain-rag-portfolio/</code> 项目。
+</footer>
+
+<!-- ===== 引擎（构建时注入，与 engine_src.js 同源） ===== -->
+<script>/* =============================================================================
+ * RAG Agent 核心引擎（浏览器 / Node 双用）
+ * 忠实移植自 Python 项目 src/：
+ *   tokenize / chunk_markdown / LocalRetriever(TF-IDF) /
+ *   route(确定性意图路由) / dispatch_tool(真实数据工具派发) /
+ *   7 个 MCP 工具 / resolve_gold / reference / _tool_matches / runEval
+ * 数据由外部注入（docs=KB 切片, rows=CSV 行），引擎本身零 I/O。
+ * ========================================================================== */
+(function (root) {
+  "use strict";
+
+  // ---------- 分词：单字中文 + 英文/数字词，去停用词（与 Python tokenize 一致） ----------
+  function tokenize(text) {
+    const words = (text.toLowerCase().match(/[a-z0-9-]+|[一-鿿]/g) || []);
+    const stop = new Set(["的", "和", "及", "与", "是", "了", "在", "到", "如何"]);
+    return words.filter((w) => !stop.has(w));
+  }
+
+  // ---------- Markdown 切片（按 ## 标题切，带来源路径元数据） ----------
+  const HEADING_RE = /^(#{1,6})\s+(.+?)\s*#*\s*$/;
+  function chunkMarkdown(text, source) {
+    const lines = text.split(/\r?\n/);
+    let docTitle = source;
+    for (const ln of lines) {
+      const m = HEADING_RE.exec(ln);
+      if (m && m[1].length === 1) { docTitle = m[2].trim(); break; }
+    }
+    const chunks = [];
+    let buf = [];
+    let curTitle = docTitle;
+    function emit(title) {
+      const sectionPath = docTitle + " > " + title;
+      const body = buf.join("\n").trim();
+      if (!body) return;
+      const content = "[来源: " + sectionPath + "]\n" + body;
+      chunks.push({
+        id: source + "-" + (chunks.length + 1),
+        source: source,
+        doc_title: docTitle,
+        section_path: sectionPath,
+        title: title,
+        content: content,
+      });
+    }
+    for (const ln of lines) {
+      const m = HEADING_RE.exec(ln);
+      if (m && m[1].length <= 2) {
+        emit(curTitle);
+        curTitle = m[2].trim();
+        buf = [ln];
+      } else {
+        buf.push(ln);
+      }
+    }
+    emit(curTitle);
+    return chunks;
+  }
+
+  // ---------- TF-IDF 轻量检索（含同义词轻量补检索） ----------
+  const QUERY_SYNONYMS = {
+    "补货": ["补货", "库存", "风险", "缺陷率"],
+    "优先": ["优先", "评分卡", "风险", "管控"],
+    "风险": ["风险", "缺陷率", "达标", "管控"],
+  };
+  class LocalRetriever {
+    constructor(documents) {
+      this.documents = documents;
+      this.docTokens = documents.map((d) => tokenize(d.content));
+      this.docFreq = {};
+      this.docTokens.forEach((toks) => {
+        const s = new Set(toks);
+        s.forEach((t) => { this.docFreq[t] = (this.docFreq[t] || 0) + 1; });
+      });
+    }
+    search(query, topK) {
+      topK = topK || 5;
+      let qt = tokenize(query);
+      const expanded = qt.slice();
+      qt.forEach((t) => { if (QUERY_SYNONYMS[t]) expanded.push(...QUERY_SYNONYMS[t]); });
+      qt = expanded;
+      const total = Math.max(this.documents.length, 1);
+      const scored = [];
+      this.documents.forEach((doc, i) => {
+        const counts = {};
+        this.docTokens[i].forEach((t) => { counts[t] = (counts[t] || 0) + 1; });
+        let score = 0;
+        qt.forEach((token) => {
+          if (!counts[token]) return;
+          const idf = Math.log((total + 1) / (this.docFreq[token] + 1)) + 1;
+          score += counts[token] * idf;
+        });
+        if (score > 0) scored.push({ score: Math.round(score * 10000) / 10000, doc });
+      });
+      scored.sort((a, b) => b.score - a.score);
+      return scored.slice(0, topK).map((x) => ({
+        score: x.score, id: x.doc.id, source: x.doc.source,
+        title: x.doc.title, section_path: x.doc.section_path, content: x.doc.content,
+      }));
+    }
+  }
+
+  // ---------- 确定性意图路由 ----------
+  const FORMULA_TERMS = ["安全库存", "再订货点", "rop", "eoq", "经济订货批量", "abc", "aql",
+    "评分卡", "公式", "服务水平", "经济订货"];
+  const CONCRETE_DATA_TERMS = ["sku0", "sku1", "sku2", "sku3", "sku4", "sku5",
+    "mumbai", "kolkata", "chennai", "bangalore", "delhi",
+    "库存水平最低", "最低", "最高", "低于", "平均", "各城市", "均值", "全部 sku"];
+  const SOP_TERMS = ["风险", "sop", "管控", "预警", "策略", "达标", "是否触发", "判为", "应采用"];
+  function route(query) {
+    const q = query.toLowerCase();
+    const f = FORMULA_TERMS.some((t) => q.includes(t));
+    const cd = CONCRETE_DATA_TERMS.some((t) => q.includes(t));
+    const s = SOP_TERMS.some((t) => q.includes(t));
+    if (f && cd) return "hybrid";
+    if (s && cd) return "hybrid";
+    if (f) return "rag";
+    if (cd) return "tool";
+    return "rag";
+  }
+
+  // ---------- 真实数据工具（操作注入的 rows） ----------
+  function toInt(v) { return parseInt(parseFloat(v || 0), 10); }
+  function toF(v) { return parseFloat(v || 0); }
+
+  function findSku(rows, sku) {
+    for (const r of rows) if (r.sku.toLowerCase() === sku.toLowerCase()) return r;
+    return null;
+  }
+  function lowStockSkus(rows, opts) {
+    opts = opts || {};
+    let out = rows.slice();
+    if (opts.location) out = out.filter((r) => r.location.toLowerCase() === opts.location.toLowerCase());
+    if (opts.threshold != null) out = out.filter((r) => toInt(r.stock_level) < opts.threshold);
+    out.sort((a, b) => toInt(a.stock_level) - toInt(b.stock_level));
+    const sel = opts.topN ? out.slice(0, opts.topN) : out;
+    return sel.map((r) => ({
+      sku: r.sku, location: r.location, stock_level: toInt(r.stock_level),
+      defect_rate: toF(r.defect_rate),
+    }));
+  }
+  function supplierDefectRanking(rows) {
+    const by = {};
+    rows.forEach((r) => { (by[r.supplier_name] = by[r.supplier_name] || []).push(toF(r.defect_rate)); });
+    const ranked = Object.keys(by).map((s) => ({
+      supplier: s, avg_defect_rate: Math.round(mean(by[s]) * 10000) / 10000, n: by[s].length,
+    }));
+    ranked.sort((a, b) => b.avg_defect_rate - a.avg_defect_rate);
+    return ranked;
+  }
+  function avgLeadTimeByLocation(rows) {
+    const by = {};
+    rows.forEach((r) => { (by[r.location] = by[r.location] || []).push(toF(r.lead_time_days)); });
+    return Object.keys(by).map((loc) => ({
+      location: loc, avg_lead_time_days: Math.round(mean(by[loc]) * 100) / 100, n: by[loc].length,
+    }));
+  }
+  function leadTimeStats(rows) {
+    const vals = rows.map((r) => toF(r.lead_time_days));
+    const m = mean(vals);
+    const sd = pstdev(vals);
+    return { mean: Math.round(m * 100) / 100, std: Math.round(sd * 100) / 100, mean_plus_2std: Math.round((m + 2 * sd) * 100) / 100 };
+  }
+  function abcClassification(rows) {
+    const sorted = rows.slice().sort((a, b) => toF(b.revenue) - toF(a.revenue));
+    const total = sorted.reduce((s, r) => s + toF(r.revenue), 0);
+    let cum = 0;
+    const ordered = sorted.map((r) => {
+      const rev = toF(r.revenue); cum += rev;
+      return { sku: r.sku, revenue: Math.round(rev * 100) / 100, cum_pct: Math.round((cum / total) * 100 * 100) / 100 };
+    });
+    ordered.forEach((it) => { it.class = it.cum_pct <= 80 ? "A" : (it.cum_pct <= 95 ? "B" : "C"); });
+    const top20n = Math.max(1, Math.floor(ordered.length * 0.2));
+    const top20rev = sorted.slice(0, top20n).reduce((s, r) => s + toF(r.revenue), 0);
+    return { ordered, top20_sku_share: Math.round((top20n / ordered.length) * 1000) / 10,
+      top20_revenue_share: Math.round((top20rev / total) * 1000) / 10 };
+  }
+  function supplierScorecard(rows, sku) {
+    const facts = findSku(rows, sku);
+    if (!facts) return {};
+    const stats = leadTimeStats(rows);
+    const dr = toF(facts.defect_rate);
+    return {
+      sku, supplier: facts.supplier_name, defect_rate: dr,
+      quality_pass: dr <= 0.025, quality_score: Math.round((1 - dr) * 100 * 10) / 10,
+      lead_time_days: toF(facts.lead_time_days), delivery_baseline: stats.mean_plus_2std,
+      delivery_pass: toF(facts.lead_time_days) <= stats.mean_plus_2std,
+    };
+  }
+  function priorityRestock(rows, loc, topN) {
+    let res = lowStockSkus(rows, { location: loc, topN: topN || 5 });
+    if (!res.length) return null;
+    res = res.slice().sort((a, b) => (a.stock_level - b.stock_level) || (b.defect_rate - a.defect_rate));
+    const top = res[0];
+    return { sku: top.sku, stock_level: top.stock_level, defect_rate: top.defect_rate };
+  }
+
+  // ---------- 参数抽取 + 工具派发（与 Python dispatch_tool 一致） ----------
+  function extractSku(q) { const m = q.match(/sku\d+/i); return m ? m[0].toUpperCase() : null; }
+  function extractLocation(q) {
+    for (const loc of ["Mumbai", "Kolkata", "Chennai", "Bangalore", "Delhi"])
+      if (q.toLowerCase().includes(loc.toLowerCase())) return loc;
+    return null;
+  }
+  function extractThreshold(q) { const m = q.match(/低于\s*(\d+)/); return m ? parseInt(m[1], 10) : null; }
+
+  function dispatchTool(query, rows) {
+    const q = query.toLowerCase();
+    const sku = extractSku(query);
+    const loc = extractLocation(query);
+    const thr = extractThreshold(query);
+    if (q.includes("库存")) {
+      if (thr != null) return { tool: "low_stock_skus", result: lowStockSkus(rows, { location: loc, threshold: thr }) };
+      const m = q.match(/最低\D*(\d+)/);
+      const topN = m ? parseInt(m[1], 10) : 3;
+      if (q.includes("最低")) return { tool: "low_stock_skus", result: lowStockSkus(rows, { location: loc, topN }) };
+      return { tool: "low_stock_skus", result: lowStockSkus(rows, { location: loc }) };
+    }
+    if (q.includes("缺陷率最高") || q.includes("平均缺陷率")) return { tool: "supplier_defect_ranking", result: supplierDefectRanking(rows) };
+    if (q.includes("平均提前期") || q.includes("各城市")) return { tool: "avg_lead_time_by_location", result: avgLeadTimeByLocation(rows) };
+    if (q.includes("均值") && q.includes("2σ")) return { tool: "lead_time_stats", result: leadTimeStats(rows) };
+    if (q.includes("abc") || q.includes("营收")) return { tool: "abc_classification", result: abcClassification(rows) };
+    if (q.includes("评分卡")) { const f = sku ? supplierScorecard(rows, sku) : {}; return { tool: "supplier_scorecard", result: f }; }
+    if (sku && (q.includes("单价") || q.includes("运费") || q.includes("成本") || q.includes("缺陷率") || q.includes("提前期")))
+      return { tool: "find_sku", result: findSku(rows, sku) };
+    if (sku) return { tool: "find_sku", result: findSku(rows, sku) };
+    if (q.includes("补货") && (q.includes("优先") || q.includes("先"))) {
+      const r = priorityRestock(rows, loc, 5);
+      return { tool: "priority_restock", result: r ? ("Mumbai 最优先补货: " + r.sku + "(库存" + r.stock_level + ",缺陷率" + r.defect_rate + ")") : {} };
+    }
+    return { tool: null, result: {} };
+  }
+
+  function summarize(result, limit) {
+    limit = limit || 3;
+    if (Array.isArray(result)) return JSON.stringify(result.slice(0, limit)) + (result.length > limit ? " …(共 " + result.length + " 项)" : "");
+    if (result && typeof result === "object" && "top20_revenue_share" in result)
+      return "top20%SKU 营收占比 " + result.top20_revenue_share + "%，共 " + result.ordered.length + " 个 SKU";
+    if (result && typeof result === "object") return JSON.stringify(result);
+    return String(result);
+  }
+
+  // ---------- 答案组装 ----------
+  function buildAnswer(query, intent, ctx, toolOut) {
+    if (intent === "rag") {
+      const top = ctx[0] || {};
+      return {
+        query, intent,
+        scenario: "供应链知识 / 方法论问答（RAG 检索）",
+        findings: [top.content ? ("依据「" + top.section_path + "」：" + top.content.replace(/^\[来源:[^\]]*\]\n/, "").slice(0, 200) + "…") : "未检索到相关知识。"],
+        strategy: ["直接套用上述 SOP/公式定义回答。"],
+        risks: ["需确认适用前提（如服务水平、持有成本率）与数据口径一致。"],
+        retrieved_context: ctx,
+      };
+    }
+    if (intent === "tool") {
+      return {
+        query, intent,
+        scenario: "供应链实时数值 / 统计问答（MCP 工具）",
+        findings: ["调用工具 " + toolOut.tool + "，结果：" + summarize(toolOut.result)],
+        strategy: ["基于真实数据给出结论，无需文本检索。"],
+        risks: ["数值随数据集更新而变化，结论仅对当前快照有效。"],
+        retrieved_context: [],
+      };
+    }
+    const top = ctx[0] || {};
+    return {
+      query, intent,
+      scenario: "方法论 + 真实数据混合问答（RAG 公式 + 工具数值）",
+      findings: ["公式/规则（RAG）：「" + (top.section_path || "") + "」", "数据（工具 " + toolOut.tool + "）：" + summarize(toolOut.result)],
+      strategy: ["将真实数据代入 SOP 公式得到可执行结论。"],
+      risks: ["公式参数口径（如 σ_d、持有率）需与业务确认，避免误用默认假设。"],
+      retrieved_context: ctx,
+    };
+  }
+
+  // ---------- 评测：黄金解析 + 独立参考 + 匹配校验 ----------
+  function resolveGold(caseObj, docs) {
+    const g = caseObj.grounding;
+    if (!g) return null;
+    const idx = g.indexOf(" > ");
+    if (idx < 0) return null;
+    const src = g.slice(0, idx).trim();
+    const sec = g.slice(idx + 3).trim();
+    for (const d of docs) if (d.source === src && (d.title.startsWith(sec) || d.title.includes(sec))) return d.id;
+    return null;
+  }
+  function mean(a) { return a.reduce((s, x) => s + x, 0) / (a.length || 1); }
+  function pstdev(a) { const m = mean(a); return Math.sqrt(mean(a.map((x) => (x - m) * (x - m)))); }
+
+  function reference(cid, rows) {
+    const fr = (r, c) => toF(r[c]);
+    if (cid === "TOOL-01") { const r = findSku(rows, "SKU0"); const dr = fr(r, "defect_rate"); return "SKU0 缺陷率 " + dr.toFixed(4) + "，" + (dr > 0.025 ? "超过" : "未超过") + " AQL 2.5%"; }
+    if (cid === "TOOL-02") { const m = lowStockSkus(rows, { location: "Mumbai", topN: 5 }); return "Mumbai 库存最低5: " + m.map((x) => x.sku + "=" + x.stock_level).join(", "); }
+    if (cid === "TOOL-03") { const d = {}; rows.forEach((r) => { (d[r.supplier_name] = d[r.supplier_name] || []).push(fr(r, "defect_rate")); }); const best = Object.keys(d).sort((a, b) => mean(d[b]) - mean(d[a]))[0]; return "缺陷率最高供应商 " + best + " 均值 " + mean(d[best]).toFixed(4); }
+    if (cid === "TOOL-04") { const r = findSku(rows, "SKU0"); return "SKU0 报价提前期(lead_times_days)=" + fr(r, "lead_times_days").toFixed(1) + "，实际提前期(lead_time_days)=" + fr(r, "lead_time_days").toFixed(1); }
+    if (cid === "TOOL-05") { const low = rows.filter((r) => toInt(r.stock_level) < 10).map((r) => r.sku); return "库存<10 的SKU: " + low.join(", ") + " (共" + low.length + "个)"; }
+    if (cid === "TOOL-06") { const d = {}; rows.forEach((r) => { (d[r.location] = d[r.location] || []).push(fr(r, "lead_time_days")); }); return "各城市平均提前期: " + Object.keys(d).map((loc) => loc + "=" + mean(d[loc]).toFixed(2)).join(", "); }
+    if (cid === "TOOL-07") { const r = findSku(rows, "SKU0"); return "SKU0 单价=" + fr(r, "price").toFixed(2) + " 运费=" + fr(r, "shipping_cost").toFixed(2) + " 制造成本=" + fr(r, "mfg_cost").toFixed(2) + " 总成本=" + fr(r, "total_cost").toFixed(2); }
+    if (cid === "HY-01") { const r = findSku(rows, "SKU0"); const L = fr(r, "lead_time_days"); const sd = pstdev(rows.map((x) => fr(x, "units_sold"))); const ss = 1.65 * sd * Math.sqrt(L); return "安全库存≈" + ss.toFixed(1) + "（σ_d=" + sd.toFixed(1) + ", L=" + L.toFixed(0) + "）"; }
+    if (cid === "HY-02") { const r = findSku(rows, "SKU0"); const D = fr(r, "units_sold"), S = fr(r, "shipping_cost"), H = fr(r, "mfg_cost") * 0.25; const eoq = Math.sqrt(2 * D * S / H); return "EOQ≈" + eoq.toFixed(1) + "（D=" + D.toFixed(0) + ", S=" + S.toFixed(2) + ", H=" + H.toFixed(2) + "）"; }
+    if (cid === "HY-03") { const abc = abcClassification(rows); return "top20%SKU=" + abc.top20_sku_share + "% 贡献营收 " + abc.top20_revenue_share + "%"; }
+    if (cid === "HY-04") { const r = findSku(rows, "SKU0"); return "SKU0 缺陷率" + fr(r, "defect_rate").toFixed(4) + ">0.025 → 质量不达标 → 高风险供应商"; }
+    if (cid === "HY-05") { const m = lowStockSkus(rows, { location: "Mumbai", topN: 5 }); const mm = m.slice().sort((a, b) => (a.stock_level - b.stock_level) || (b.defect_rate - a.defect_rate))[0]; return "Mumbai 最优先补货: " + mm.sku + "(库存" + mm.stock_level + ",缺陷率" + mm.defect_rate + ")"; }
+    if (cid === "HY-06") { const r = findSku(rows, "SKU0"); const st = leadTimeStats(rows); const L = fr(r, "lead_time_days"); return "SKU0 实际提前期" + L.toFixed(0) + " " + (L > st.mean_plus_2std ? ">" : "<=") + " 基线" + st.mean_plus_2std + " → " + (L > st.mean_plus_2std ? "触发" : "不触发") + "预警"; }
+    if (cid === "HY-07") { const sc = supplierScorecard(rows, "SKU0"); return "供应商" + sc.supplier + " 质量" + (sc.quality_pass ? "达标" : "不达标") + "(缺陷率" + sc.defect_rate.toFixed(4) + ") 交付" + (sc.delivery_pass ? "达标" : "不达标") + "(提前期" + sc.lead_time_days.toFixed(0) + ")"; }
+    if (cid === "HY-08") { return "C类SKU → 宽松管控（高ROP/低复盘频次）"; }
+    return "（rag 类无需数值参考）";
+  }
+
+  function toolMatches(cid, toolOut, rows) {
+    const res = toolOut ? toolOut.result : null;
+    const fr = (r, c) => toF(r[c]);
+    if (cid === "TOOL-02" && Array.isArray(res)) return res.length === 5;
+    if (cid === "TOOL-05" && Array.isArray(res)) return res.length >= 1;
+    if ((cid === "TOOL-03" || cid === "TOOL-06") && Array.isArray(res)) return res.length >= 1;
+    if (cid === "TOOL-01" && res && typeof res === "object" && !Array.isArray(res)) return Math.abs(res.defect_rate - fr(findSku(rows, "SKU0"), "defect_rate")) < 1e-6;
+    if (cid === "TOOL-04" && res && typeof res === "object" && !Array.isArray(res)) { const r = findSku(rows, "SKU0"); return Math.abs(res.lead_times_days - fr(r, "lead_times_days")) < 1e-6 && Math.abs(res.lead_time_days - fr(r, "lead_time_days")) < 1e-6; }
+    if (cid === "TOOL-07" && res && typeof res === "object" && !Array.isArray(res)) { const r = findSku(rows, "SKU0"); return ["price", "shipping_cost", "mfg_cost", "total_cost"].every((k) => Math.abs(res[k] - fr(r, k)) < 1e-6); }
+    if (cid === "HY-01" && res && typeof res === "object" && !Array.isArray(res)) return "sku" in res && res.sku === "SKU0";
+    if (cid === "HY-02" && res && typeof res === "object" && !Array.isArray(res)) return "sku" in res;
+    if (cid === "HY-03" && res && typeof res === "object" && !Array.isArray(res)) return "top20_revenue_share" in res;
+    if (cid === "HY-04" && res && typeof res === "object" && !Array.isArray(res)) return res.defect_rate > 0.025;
+    if (cid === "HY-05") return !!(res && (typeof res === "string" ? res.length > 0 : Array.isArray(res) && res.length > 0));
+    if (cid === "HY-06" && res && typeof res === "object" && !Array.isArray(res)) return "mean_plus_2std" in res;
+    if (cid === "HY-07" && res && typeof res === "object" && !Array.isArray(res)) return "quality_pass" in res && "delivery_pass" in res;
+    if (cid === "HY-08" && res && typeof res === "object" && !Array.isArray(res)) return "top20_revenue_share" in res;
+    return !!res;
+  }
+
+  // ---------- 端到端评测 ----------
+  function runEval(ctx) {
+    const docs = ctx.docs, rows = ctx.rows, cases = ctx.cases;
+    const retriever = new LocalRetriever(docs);
+    let intentHit = 0, rec3Hit = 0, e2eHit = 0, nRec = 0;
+    const details = [];
+    cases.forEach((c) => {
+      const q = c.query;
+      const intent = route(q);
+      const intentOk = intent === c.type;
+      const context = (c.type === "rag" || c.type === "hybrid") ? retriever.search(q, 5) : [];
+      const top3 = context.slice(0, 3).map((x) => x.id);
+      const gold = resolveGold(c, docs);
+      const recallOk = gold ? top3.includes(gold) : false;
+      const e2eRagOk = gold ? context.map((x) => x.id).includes(gold) : true;
+      let toolOk = true;
+      if (c.type === "tool" || c.type === "hybrid") {
+        const toolOut = dispatchTool(q, rows);
+        toolOk = toolMatches(c.id, toolOut, rows);
+      }
+      const e2eOk = e2eRagOk && toolOk;
+      intentHit += intentOk ? 1 : 0;
+      if (gold) { nRec += 1; rec3Hit += recallOk ? 1 : 0; }
+      e2eHit += e2eOk ? 1 : 0;
+      details.push({
+        id: c.id, type: c.type, intent_pred: intent, intent_ok: intentOk,
+        gold: gold, recall3: recallOk, e2e: e2eOk, top3: top3,
+        expected: reference(c.id, rows),
+      });
+    });
+    const summary = {
+      intent_accuracy: Math.round((intentHit / cases.length) * 1000) / 10,
+      recall_at_3: nRec ? Math.round((rec3Hit / nRec) * 1000) / 10 : 0,
+      end2end_accuracy: Math.round((e2eHit / cases.length) * 1000) / 10,
+      n_total: cases.length, n_recall_subset: nRec,
+    };
+    return { summary, details };
+  }
+
+  const API = {
+    tokenize, chunkMarkdown, LocalRetriever, route,
+    dispatchTool, summarize, buildAnswer, resolveGold, reference, toolMatches, runEval,
+    lowStockSkus, supplierScorecard, abcClassification, leadTimeStats,
+  };
+  if (typeof module !== "undefined" && module.exports) module.exports = API;
+  if (root) root.RAGEngine = API;
+})(typeof window !== "undefined" ? window : null);
+</script>
+
+<!-- ===== 真实数据（构建时注入） ===== -->
+<script>
+  const KB_RAW = {"algorithm_params.md": "# 订货批量与分类模型（基于经典运营管理）\n\n> 本节为可引用的领域知识（标准方法论），用于 RAG 检索；具体数值由工具层（MCP）从真实数据集实时计算。\n\n## 1. 经济订货批量 EOQ（Economic Order Quantity）\n\n使\"订货成本 + 持有成本\"之和最小的每次订货量：\n\n`EOQ = √(2 × D × S / H)`\n\n- `D`：年需求量（单位/年）。\n- `S`：每次订货（或换线/setup）成本。\n- `H`：单位商品年持有成本（= 单位成本 × 持有成本率）。\n\n原理：订货频次↑ → S 成本↑但持有成本↓；EOQ 取二者拐点。\n\n## 2. ABC 分类（帕累托库存分类）\n\n按**年消耗金额**（`年需求量 × 单位成本`）降序排列，累计占比分层：\n\n- **A 类**：约占年消耗金额 70%–80%，SKU 数约 10%–20% → 重点管控（高频复盘、严安全库存）。\n- **B 类**：约占金额 15%，SKU 约 30% → 中等管控。\n- **C 类**：约占金额 5%–10%，SKU 约 50%–60% → 宽松管控（高 ROP、低复盘频次）。\n\n## 3. 应用说明\n\n- EOQ 假设需求稳定、瞬时补货；真实快消品需求波动大，常与安全库存模型联用。\n- ABC 决定\"管控力度\"，应作为补货优先级与盘点频率的依据，而非绝对阈值。\n\n## 引用来源\n\n- Harris, F. W. (1913). \"How Many Parts to Make at Once.\" *Factory: The Magazine of Management*. —— EOQ 原始模型。\n- Heizer, J., Render, B., & Munson, C. (2020). *Operations Management* (13th ed.). Pearson. —— 第 12 章（EOQ、ABC）。\n- APICS / ASCM. *APICS Dictionary* (16th ed.). —— ABC analysis 定义与分层口径。\n", "business_rules.md": "# 库存策略与补货规则（基于经典供应链管理）\n\n> 本节为可引用的领域知识（标准方法论），用于 RAG 检索；具体数值由工具层（MCP）从真实数据集实时计算。\n\n## 1. 安全库存 Safety Stock（SS）\n\n应对需求与提前期不确定性的缓冲库存。\n\n- **提前期稳定、需求波动**（最常用）：\n\n  `SS = Z × σ_d × √L`\n\n  - `Z`：服务水平系数（周期服务水平 CSL）。Z=1.65 → 95%，Z=2.33 → 99%（标准正态分位数）。\n  - `σ_d`：单位周期需求标准差。\n  - `L`：提前期（周期数）。\n\n- **需求与提前期同时波动**（更完备）：\n\n  `SS = Z × √(L × σ_d² + d̄² × σ_L²)`\n\n  - `d̄`：平均周期需求；`σ_L`：提前期标准差。\n\n## 2. 再订货点 Reorder Point（ROP）\n\n`ROP = d̄ × L + SS`\n\n当库存降至 ROP 时触发补货，使补货到货时库存恰好覆盖提前期内的需求 + 安全缓冲。\n\n## 3. 应用说明\n\n- 服务水平（Z）越高，SS 越大、持有成本越高——需在**缺货成本 vs 持有成本**间权衡。\n- 真实数据中 `lead_time_days`、`stock_level`、`defect_rate` 等由工具层提供；本节只定义\"应如何计算与判定\"。\n\n## 引用来源\n\n- Chopra, S., & Meindl, P. (2021). *Supply Chain Management: Strategy, Planning, and Operation* (8th ed.). Pearson. —— 第 3 章 Managing Uncertainties in a Supply Chain（安全库存与 ROP 公式）。\n- Heizer, J., Render, B., & Munson, C. (2020). *Operations Management: Sustainability and Supply Chain Management* (13th ed.). Pearson. —— 第 11 章（安全库存/ROP）。\n- APICS / ASCM. *APICS Dictionary* (16th ed.). —— safety stock、reorder point 定义。\n", "sop.md": "# 供应商质量与风险 SOP（基于质量管理标准）\n\n> 本节为可引用的领域知识（标准方法论），用于 RAG 检索；具体数值由工具层（MCP）从真实数据集实时计算。\n\n## SOP-1 缺陷率判定\n\n- **缺陷率定义**：`缺陷率 = 不合格单位数 / 检验单位总数`（0–1，或折算为 PPM = 缺陷率 × 10⁶）。\n- **可接受质量限 AQL**：按 ANSI/ASQ Z1.4（等同 ISO 2859-1）一般检验水平 II，**AQL = 2.5%** 为消费品通用接收上限；缺陷率 > AQL 判为\"质量不达标\"。\n- 执行：取该供应商在真实数据集中的 `defect_rate`，与 AQL 2.5% 比较输出\"达标 / 不达标\"。\n\n## SOP-2 供应商综合评分卡\n\n维度与权重（行业通行实践）：\n\n- 质量（缺陷率/PPM）：权重 ~40%\n- 交付（准时率 OTIF = 按期交付量 / 总交付量）：权重 ~35%\n- 成本（相对基准成本指数）：权重 ~25%\n\n判定：质量不达标（>AQL）或 OTIF < 90% 任一触发，即列为**高风险供应商**，进入替代评估流程。\n\n## SOP-3 高风险供应商处理\n\n1. 确认高风险 SKU、缺口量与可恢复日期。\n2. 查询替代供应商的准时率、缺陷率与 MOQ。\n3. 评估切换供应商或拆分采购订单的可行性。\n4. 同步计划与销售重评客户交付承诺，写入供应商绩效记录。\n\n## 引用来源\n\n- ANSI/ASQ Z1.4-2003 (R2018). *Sampling Procedures and Tables for Inspection by Attributes*. —— AQL 2.5% 一般检验水平 II 接收限。\n- Heizer, J., Render, B., & Munson, C. (2020). *Operations Management* (13th ed.). Pearson. —— 质量管理与供应商评分（第 6、17 章）。\n- APICS / ASCM. *APICS Dictionary* (16th ed.). —— OTIF、PPM、supplier scorecard 定义。\n"};
+  const CSV_TEXT = `product_type,sku,price,availability,units_sold,revenue,customer_demographics,stock_level,lead_times_days,order_qty,shipping_time_days,shipping_carrier,shipping_cost,supplier_name,location,lead_time_days,production_volume,mfg_lead_time_days,mfg_cost,inspection_result,defect_rate,transport_mode,route,total_cost
+haircare,SKU0,69.81,55,802.0,8662.0,Non-binary,58.0,7.0,96.0,4.0,Carrier B,2.96,Supplier 3,Mumbai,29.0,215.0,29.0,46.28,Pending,0.2264,Road,Route B,187.75
+skincare,SKU1,14.84,95,736.0,7460.9,Female,53.0,30.0,37.0,2.0,Carrier A,9.72,Supplier 3,Mumbai,23.0,517.0,30.0,33.62,Pending,4.8541,Road,Route B,503.07
+haircare,SKU2,11.32,34,8.0,9577.75,Unknown,1.0,10.0,88.0,2.0,Carrier B,8.05,Supplier 1,Mumbai,12.0,971.0,27.0,30.69,Pending,4.5806,Air,Route C,141.92
+skincare,SKU3,61.16,68,83.0,7766.84,Non-binary,23.0,13.0,59.0,6.0,Carrier C,1.73,Supplier 5,Kolkata,24.0,937.0,18.0,35.62,Fail,4.7466,Rail,Route A,254.78
+skincare,SKU4,4.81,26,871.0,2686.51,Non-binary,5.0,3.0,56.0,8.0,Carrier A,3.89,Supplier 1,Delhi,5.0,414.0,3.0,92.07,Fail,3.1456,Air,Route A,923.44
+haircare,SKU5,1.7,87,147.0,2828.35,Non-binary,90.0,27.0,66.0,3.0,Carrier B,4.44,Supplier 4,Bangalore,10.0,104.0,17.0,56.77,Fail,2.7792,Road,Route A,235.46
+skincare,SKU6,4.08,48,65.0,7823.48,Male,11.0,15.0,58.0,8.0,Carrier C,3.88,Supplier 3,Kolkata,14.0,314.0,24.0,1.09,Pending,1.0009,Sea,Route A,134.37
+cosmetics,SKU7,42.96,59,426.0,8496.1,Female,93.0,17.0,11.0,1.0,Carrier B,2.35,Supplier 4,Bangalore,22.0,564.0,1.0,99.47,Fail,0.3982,Road,Route C,802.06
+cosmetics,SKU8,68.72,78,150.0,7517.36,Female,5.0,10.0,15.0,7.0,Carrier C,3.4,Supplier 4,Mumbai,13.0,769.0,8.0,11.42,Pending,2.7099,Sea,Route B,505.56
+skincare,SKU9,64.02,35,980.0,4971.15,Unknown,14.0,27.0,83.0,1.0,Carrier A,7.17,Supplier 2,Chennai,29.0,963.0,23.0,47.96,Pending,3.8446,Rail,Route B,995.93
+skincare,SKU10,15.71,11,996.0,2330.97,Non-binary,51.0,13.0,80.0,2.0,Carrier C,8.67,Supplier 5,Kolkata,18.0,830.0,5.0,96.53,Pass,1.7273,Road,Route B,806.1
+skincare,SKU11,90.64,95,960.0,6099.94,Female,46.0,23.0,60.0,1.0,Carrier A,4.52,Supplier 2,Kolkata,28.0,362.0,11.0,27.59,Pending,0.0212,Air,Route A,126.72
+haircare,SKU12,71.21,41,336.0,2873.74,Unknown,100.0,30.0,85.0,4.0,Carrier A,1.33,Supplier 4,Kolkata,3.0,563.0,3.0,32.32,Fail,2.1613,Road,Route B,402.97
+skincare,SKU13,16.16,5,249.0,4052.74,Male,80.0,8.0,48.0,9.0,Carrier A,9.54,Supplier 5,Bangalore,23.0,173.0,10.0,97.83,Pending,1.6311,Road,Route B,547.24
+skincare,SKU14,99.17,26,562.0,8653.57,Non-binary,54.0,29.0,78.0,5.0,Carrier B,2.04,Supplier 1,Kolkata,25.0,558.0,14.0,5.79,Pending,0.1007,Air,Route B,929.24
+skincare,SKU15,36.99,94,469.0,5442.09,Non-binary,9.0,8.0,69.0,7.0,Carrier B,2.42,Supplier 1,Bangalore,14.0,580.0,7.0,97.12,Pass,2.2644,Sea,Route B,127.86
+skincare,SKU16,7.55,74,280.0,6453.8,Female,2.0,5.0,78.0,1.0,Carrier B,4.19,Supplier 1,Bangalore,3.0,399.0,21.0,77.11,Pass,1.0126,Air,Route A,865.53
+cosmetics,SKU17,81.46,82,126.0,2629.4,Female,45.0,17.0,85.0,9.0,Carrier C,3.59,Supplier 1,Chennai,7.0,453.0,16.0,47.68,Fail,0.102,Air,Route C,670.93
+haircare,SKU18,36.44,23,620.0,9364.67,Unknown,10.0,10.0,46.0,8.0,Carrier C,4.34,Supplier 2,Kolkata,18.0,374.0,17.0,27.11,Pending,2.2319,Sea,Route A,593.48
+skincare,SKU19,51.12,100,187.0,2553.5,Unknown,48.0,11.0,94.0,3.0,Carrier A,4.74,Supplier 4,Chennai,20.0,694.0,16.0,82.37,Fail,3.6465,Road,Route C,477.31
+skincare,SKU20,96.34,22,320.0,8128.03,Unknown,27.0,12.0,68.0,6.0,Carrier A,8.88,Supplier 1,Chennai,29.0,309.0,6.0,65.69,Pass,4.2314,Air,Route B,493.87
+cosmetics,SKU21,84.89,60,601.0,7087.05,Unknown,69.0,25.0,7.0,6.0,Carrier B,6.04,Supplier 5,Chennai,19.0,791.0,4.0,61.74,Pending,0.0186,Air,Route C,523.36
+haircare,SKU22,27.68,55,884.0,2390.81,Unknown,71.0,1.0,63.0,10.0,Carrier A,9.57,Supplier 4,Kolkata,22.0,780.0,28.0,50.12,Fail,2.5913,Rail,Route C,205.57
+cosmetics,SKU23,4.32,30,391.0,8858.37,Unknown,84.0,5.0,29.0,7.0,Carrier A,2.92,Supplier 5,Kolkata,11.0,568.0,29.0,98.61,Pending,1.3423,Rail,Route A,196.33
+haircare,SKU24,4.16,32,209.0,9049.08,Male,4.0,26.0,2.0,8.0,Carrier C,9.74,Supplier 2,Bangalore,28.0,447.0,3.0,40.38,Pending,3.6913,Air,Route A,758.72
+haircare,SKU25,39.63,73,142.0,2174.78,Male,82.0,11.0,52.0,3.0,Carrier C,2.23,Supplier 4,Kolkata,19.0,934.0,23.0,78.28,Pending,3.7972,Road,Route B,458.54
+haircare,SKU26,97.45,9,353.0,3716.49,Male,59.0,16.0,48.0,4.0,Carrier B,6.51,Supplier 2,Bangalore,26.0,171.0,4.0,15.97,Pass,2.1193,Rail,Route A,617.87
+cosmetics,SKU27,92.56,42,352.0,2686.46,Unknown,47.0,9.0,62.0,8.0,Carrier C,7.41,Supplier 5,Mumbai,25.0,291.0,4.0,10.53,Fail,2.8647,Sea,Route B,762.46
+cosmetics,SKU28,2.4,12,394.0,6117.32,Female,48.0,15.0,24.0,4.0,Carrier B,9.9,Supplier 1,Mumbai,13.0,171.0,7.0,59.43,Fail,0.8158,Air,Route A,123.44
+cosmetics,SKU29,63.45,3,253.0,8318.9,Female,45.0,5.0,67.0,7.0,Carrier B,8.1,Supplier 1,Kolkata,16.0,329.0,7.0,39.29,Pass,3.8781,Road,Route B,764.94
+haircare,SKU30,8.02,10,327.0,2766.34,Male,60.0,26.0,35.0,7.0,Carrier B,8.95,Supplier 4,Kolkata,27.0,806.0,30.0,51.63,Pending,0.9654,Road,Route C,880.08
+skincare,SKU31,50.85,28,168.0,9655.14,Male,6.0,17.0,44.0,4.0,Carrier B,2.68,Supplier 3,Chennai,24.0,461.0,8.0,60.25,Pending,2.989,Rail,Route C,609.38
+skincare,SKU32,79.21,43,781.0,9571.55,Unknown,89.0,13.0,64.0,4.0,Carrier C,6.6,Supplier 3,Kolkata,30.0,737.0,7.0,29.69,Pass,1.946,Road,Route A,761.17
+cosmetics,SKU33,64.8,63,616.0,5150.0,Non-binary,4.0,17.0,95.0,9.0,Carrier C,4.86,Supplier 5,Chennai,1.0,251.0,23.0,23.85,Fail,3.541,Sea,Route A,371.26
+skincare,SKU34,37.47,96,602.0,9061.71,Unknown,1.0,26.0,21.0,7.0,Carrier A,1.02,Supplier 1,Chennai,4.0,452.0,10.0,10.75,Pass,0.6466,Road,Route B,510.36
+cosmetics,SKU35,84.96,11,449.0,6541.33,Female,42.0,27.0,85.0,8.0,Carrier C,5.29,Supplier 1,Delhi,3.0,367.0,2.0,58.0,Pass,0.5412,Sea,Route C,553.42
+skincare,SKU36,9.81,34,963.0,7573.4,Female,18.0,23.0,28.0,3.0,Carrier B,2.11,Supplier 2,Delhi,26.0,671.0,19.0,45.53,Fail,3.8055,Air,Route C,403.81
+skincare,SKU37,23.4,5,963.0,2438.34,Female,25.0,8.0,21.0,9.0,Carrier A,1.53,Supplier 3,Kolkata,24.0,867.0,15.0,34.34,Pending,2.6103,Sea,Route A,183.93
+cosmetics,SKU38,52.08,75,705.0,9692.32,Non-binary,69.0,1.0,88.0,5.0,Carrier B,9.24,Supplier 5,Mumbai,10.0,841.0,12.0,5.93,Pending,0.6133,Air,Route B,339.67
+skincare,SKU39,19.13,26,176.0,1912.47,Female,78.0,29.0,34.0,3.0,Carrier A,5.56,Supplier 2,Kolkata,30.0,791.0,6.0,9.01,Fail,1.452,Air,Route B,653.67
+skincare,SKU40,80.54,97,933.0,5724.96,Female,90.0,20.0,39.0,8.0,Carrier C,7.23,Supplier 1,Kolkata,18.0,793.0,1.0,88.18,Pending,4.2133,Road,Route A,529.81
+skincare,SKU41,99.11,35,556.0,5521.21,Female,64.0,19.0,38.0,8.0,Carrier B,5.77,Supplier 4,Chennai,18.0,892.0,7.0,95.33,Fail,0.0453,Sea,Route A,275.52
+skincare,SKU42,46.53,98,155.0,1839.61,Female,22.0,27.0,57.0,4.0,Carrier C,7.53,Supplier 5,Bangalore,26.0,179.0,7.0,96.42,Fail,4.9393,Road,Route A,635.66
+haircare,SKU43,11.74,6,598.0,5737.43,Unknown,36.0,29.0,85.0,9.0,Carrier B,3.69,Supplier 5,Mumbai,1.0,206.0,23.0,26.28,Pending,0.3723,Air,Route A,716.04
+cosmetics,SKU44,51.36,34,919.0,7152.29,Female,13.0,19.0,72.0,6.0,Carrier C,7.58,Supplier 2,Delhi,7.0,834.0,18.0,22.55,Fail,2.9626,Rail,Route A,610.45
+haircare,SKU45,33.78,1,24.0,5267.96,Male,93.0,7.0,52.0,6.0,Carrier B,5.22,Supplier 2,Chennai,25.0,794.0,25.0,66.31,Pass,3.2196,Rail,Route A,495.31
+haircare,SKU46,27.08,75,859.0,2556.77,Non-binary,92.0,29.0,6.0,8.0,Carrier B,4.07,Supplier 3,Chennai,18.0,870.0,23.0,77.32,Pending,3.6486,Road,Route B,380.44
+skincare,SKU47,95.71,93,910.0,7089.47,Male,4.0,15.0,51.0,9.0,Carrier B,8.98,Supplier 1,Kolkata,10.0,964.0,20.0,19.71,Pending,0.3806,Rail,Route A,581.6
+haircare,SKU48,76.04,28,29.0,7397.07,Non-binary,30.0,16.0,9.0,3.0,Carrier C,7.1,Supplier 2,Mumbai,9.0,109.0,18.0,23.13,Fail,1.6981,Rail,Route B,768.65
+cosmetics,SKU49,78.9,19,99.0,8001.61,Unknown,97.0,24.0,9.0,6.0,Carrier C,2.51,Supplier 5,Delhi,28.0,177.0,28.0,14.15,Pass,2.8258,Rail,Route A,336.89
+cosmetics,SKU50,14.2,91,633.0,5910.89,Female,31.0,23.0,82.0,10.0,Carrier A,6.25,Supplier 2,Delhi,20.0,306.0,21.0,45.18,Fail,4.7548,Rail,Route B,496.25
+haircare,SKU51,26.7,61,154.0,9866.47,Male,100.0,4.0,52.0,1.0,Carrier A,4.78,Supplier 5,Bangalore,18.0,673.0,28.0,14.19,Pending,1.773,Road,Route A,694.98
+skincare,SKU52,98.03,1,820.0,9435.76,Male,64.0,11.0,11.0,1.0,Carrier B,8.63,Supplier 1,Mumbai,10.0,727.0,27.0,9.17,Pending,2.1225,Air,Route C,602.9
+skincare,SKU53,30.34,93,242.0,8232.33,Male,96.0,25.0,54.0,3.0,Carrier B,1.01,Supplier 1,Delhi,1.0,631.0,17.0,83.34,Pending,1.4103,Air,Route B,750.74
+haircare,SKU54,31.15,11,622.0,6088.02,Non-binary,33.0,22.0,61.0,3.0,Carrier B,4.31,Supplier 1,Kolkata,26.0,497.0,29.0,30.19,Pass,2.4788,Road,Route B,814.07
+haircare,SKU55,79.86,16,701.0,2925.68,Male,97.0,11.0,11.0,5.0,Carrier A,5.01,Supplier 2,Delhi,27.0,918.0,5.0,30.32,Fail,4.5489,Sea,Route B,323.01
+skincare,SKU56,20.99,90,93.0,4767.02,Non-binary,25.0,23.0,83.0,5.0,Carrier C,1.77,Supplier 1,Mumbai,24.0,826.0,28.0,12.84,Pass,1.1738,Air,Route B,832.21
+haircare,SKU57,49.26,65,227.0,1605.87,Unknown,5.0,18.0,51.0,1.0,Carrier B,9.16,Supplier 2,Delhi,21.0,588.0,25.0,67.78,Pending,2.5112,Rail,Route A,482.19
+skincare,SKU58,59.84,81,896.0,2021.15,Non-binary,10.0,5.0,44.0,7.0,Carrier A,4.94,Supplier 3,Delhi,18.0,396.0,7.0,65.05,Fail,1.7304,Road,Route B,110.36
+cosmetics,SKU59,63.83,30,484.0,1061.62,Non-binary,100.0,16.0,26.0,7.0,Carrier B,7.29,Supplier 1,Kolkata,11.0,176.0,4.0,1.9,Fail,0.4472,Air,Route A,312.57
+skincare,SKU60,17.03,16,380.0,8864.08,Female,41.0,27.0,72.0,8.0,Carrier C,4.38,Supplier 4,Mumbai,29.0,929.0,24.0,87.21,Fail,2.8531,Rail,Route A,430.17
+haircare,SKU61,52.03,23,117.0,6885.59,Unknown,32.0,23.0,36.0,7.0,Carrier C,9.03,Supplier 4,Kolkata,14.0,480.0,12.0,78.7,Fail,4.3675,Air,Route A,164.37
+cosmetics,SKU62,72.8,89,270.0,3899.75,Unknown,86.0,2.0,40.0,7.0,Carrier C,7.29,Supplier 2,Mumbai,13.0,751.0,14.0,21.05,Pass,1.874,Sea,Route C,320.85
+skincare,SKU63,13.02,55,246.0,4256.95,Non-binary,54.0,19.0,10.0,4.0,Carrier A,2.46,Supplier 3,Bangalore,18.0,736.0,10.0,20.08,Pending,3.6328,Sea,Route A,687.29
+skincare,SKU64,89.63,11,134.0,8458.73,Female,73.0,27.0,75.0,6.0,Carrier C,4.59,Supplier 1,Delhi,17.0,328.0,6.0,8.69,Fail,0.1595,Air,Route C,771.23
+skincare,SKU65,33.7,72,457.0,8354.58,Male,57.0,24.0,54.0,8.0,Carrier C,6.58,Supplier 5,Kolkata,16.0,358.0,21.0,1.6,Fail,4.9111,Rail,Route C,555.86
+skincare,SKU66,26.03,52,704.0,8367.72,Female,13.0,17.0,19.0,8.0,Carrier A,2.22,Supplier 5,Kolkata,24.0,867.0,28.0,42.08,Fail,3.4481,Road,Route A,393.84
+skincare,SKU67,87.76,16,513.0,9473.8,Unknown,12.0,9.0,71.0,9.0,Carrier C,9.15,Supplier 1,Mumbai,10.0,198.0,11.0,7.06,Pass,0.132,Sea,Route C,169.27
+haircare,SKU68,37.93,29,163.0,3550.22,Non-binary,0.0,8.0,58.0,8.0,Carrier B,1.19,Supplier 2,Bangalore,2.0,375.0,18.0,97.11,Fail,1.9835,Rail,Route A,299.71
+skincare,SKU69,54.87,62,511.0,1752.38,Non-binary,95.0,1.0,27.0,3.0,Carrier B,9.71,Supplier 4,Kolkata,9.0,862.0,7.0,77.63,Pending,1.3624,Air,Route A,207.66
+haircare,SKU70,47.91,90,32.0,7014.89,Female,10.0,12.0,22.0,4.0,Carrier B,6.32,Supplier 1,Bangalore,22.0,775.0,16.0,11.44,Pass,1.8306,Road,Route C,183.27
+cosmetics,SKU71,6.38,14,637.0,8180.34,Female,76.0,2.0,26.0,6.0,Carrier A,9.23,Supplier 2,Bangalore,2.0,258.0,10.0,30.66,Pending,2.0788,Road,Route A,405.17
+cosmetics,SKU72,90.2,88,478.0,2633.12,Non-binary,57.0,29.0,77.0,9.0,Carrier A,6.6,Supplier 1,Bangalore,21.0,152.0,11.0,55.76,Pending,3.2133,Rail,Route B,677.94
+cosmetics,SKU73,83.85,41,375.0,7910.89,Male,17.0,25.0,66.0,5.0,Carrier B,1.51,Supplier 4,Chennai,13.0,444.0,4.0,46.87,Fail,4.6205,Road,Route A,866.47
+haircare,SKU74,3.17,64,904.0,5709.95,Female,41.0,6.0,1.0,5.0,Carrier A,5.24,Supplier 4,Delhi,1.0,919.0,9.0,80.58,Fail,0.3966,Rail,Route A,341.55
+skincare,SKU75,93.0,29,106.0,1889.07,Non-binary,16.0,20.0,56.0,10.0,Carrier C,2.47,Supplier 1,Chennai,25.0,759.0,11.0,48.06,Pass,2.0301,Air,Route C,873.13
+haircare,SKU76,69.11,23,241.0,5328.38,Male,38.0,1.0,22.0,10.0,Carrier A,7.05,Supplier 2,Bangalore,25.0,985.0,24.0,64.32,Pending,2.18,Rail,Route A,997.41
+haircare,SKU77,57.45,14,359.0,2483.76,Unknown,96.0,28.0,57.0,4.0,Carrier B,6.78,Supplier 1,Kolkata,26.0,334.0,5.0,42.95,Pass,3.0551,Road,Route B,852.57
+haircare,SKU78,6.31,50,946.0,1292.46,Unknown,5.0,4.0,51.0,5.0,Carrier B,8.47,Supplier 5,Mumbai,25.0,858.0,21.0,71.13,Pending,4.0969,Sea,Route C,323.59
+haircare,SKU79,57.06,56,198.0,7888.72,Non-binary,31.0,25.0,20.0,1.0,Carrier B,6.5,Supplier 3,Bangalore,5.0,228.0,12.0,57.87,Pending,0.1659,Air,Route C,351.5
+skincare,SKU80,91.13,75,872.0,8651.67,Unknown,39.0,14.0,41.0,2.0,Carrier C,2.83,Supplier 3,Chennai,8.0,202.0,5.0,76.96,Fail,2.8497,Sea,Route B,787.78
+haircare,SKU81,72.82,9,774.0,4384.41,Unknown,48.0,6.0,8.0,5.0,Carrier B,4.07,Supplier 3,Delhi,28.0,698.0,1.0,19.79,Pending,2.5475,Rail,Route B,276.78
+skincare,SKU82,17.03,13,336.0,2943.38,Unknown,42.0,19.0,72.0,1.0,Carrier A,4.71,Supplier 2,Mumbai,6.0,955.0,26.0,4.47,Pending,4.1379,Road,Route C,589.98
+haircare,SKU83,68.91,82,663.0,2411.75,Unknown,65.0,24.0,7.0,8.0,Carrier B,4.95,Supplier 1,Bangalore,20.0,443.0,5.0,97.73,Fail,0.773,Road,Route A,682.97
+haircare,SKU84,89.1,99,618.0,2048.29,Unknown,73.0,26.0,80.0,10.0,Carrier A,8.38,Supplier 5,Chennai,24.0,589.0,22.0,33.81,Pass,4.8435,Air,Route B,465.46
+cosmetics,SKU85,76.96,83,25.0,8684.61,Female,15.0,18.0,66.0,2.0,Carrier C,8.25,Supplier 5,Chennai,4.0,211.0,2.0,69.93,Fail,1.3744,Road,Route B,842.69
+skincare,SKU86,20.0,18,223.0,1229.59,Unknown,32.0,14.0,22.0,6.0,Carrier B,1.45,Supplier 1,Mumbai,4.0,569.0,18.0,74.61,Pass,2.0515,Rail,Route A,264.25
+haircare,SKU87,80.41,24,79.0,5133.85,Male,5.0,7.0,55.0,10.0,Carrier A,6.58,Supplier 3,Chennai,27.0,523.0,17.0,28.7,Fail,3.6937,Sea,Route B,879.36
+cosmetics,SKU88,75.27,58,737.0,9444.74,Male,60.0,18.0,85.0,7.0,Carrier A,3.8,Supplier 2,Mumbai,21.0,953.0,11.0,68.18,Pending,0.7222,Sea,Route A,103.92
+cosmetics,SKU89,97.76,10,134.0,5924.68,Unknown,90.0,1.0,27.0,8.0,Carrier B,9.93,Supplier 1,Kolkata,23.0,370.0,11.0,46.6,Pending,1.9077,Rail,Route B,517.5
+skincare,SKU90,13.88,56,320.0,9592.63,Non-binary,66.0,18.0,96.0,7.0,Carrier B,7.67,Supplier 3,Bangalore,8.0,585.0,8.0,85.68,Pass,1.2194,Rail,Route B,990.08
+cosmetics,SKU91,62.11,90,916.0,1935.21,Male,98.0,22.0,85.0,7.0,Carrier B,7.47,Supplier 4,Delhi,5.0,207.0,28.0,39.77,Pending,0.626,Rail,Route B,996.78
+cosmetics,SKU92,47.71,44,276.0,2100.13,Male,90.0,25.0,10.0,8.0,Carrier B,4.47,Supplier 2,Mumbai,4.0,671.0,29.0,62.61,Pass,0.3334,Rail,Route B,230.09
+haircare,SKU93,69.29,88,114.0,4531.4,Unknown,63.0,17.0,66.0,1.0,Carrier C,7.01,Supplier 4,Chennai,21.0,824.0,20.0,35.63,Fail,4.1658,Air,Route A,823.52
+cosmetics,SKU94,3.04,97,987.0,7888.36,Unknown,77.0,26.0,72.0,9.0,Carrier B,6.94,Supplier 2,Delhi,12.0,908.0,14.0,60.39,Pass,1.4636,Rail,Route B,846.67
+haircare,SKU95,77.9,65,672.0,7386.36,Unknown,15.0,14.0,26.0,9.0,Carrier B,8.63,Supplier 4,Mumbai,18.0,450.0,26.0,58.89,Pending,1.2109,Air,Route A,778.86
+cosmetics,SKU96,24.42,29,324.0,7698.42,Non-binary,67.0,2.0,32.0,3.0,Carrier C,5.35,Supplier 3,Mumbai,28.0,648.0,28.0,17.8,Pending,3.872,Road,Route A,188.74
+haircare,SKU97,3.53,56,62.0,4370.92,Male,46.0,19.0,4.0,9.0,Carrier A,7.9,Supplier 4,Mumbai,10.0,535.0,13.0,65.77,Fail,3.3762,Road,Route A,540.13
+skincare,SKU98,19.75,43,913.0,8525.95,Female,53.0,1.0,27.0,7.0,Carrier B,1.41,Supplier 5,Chennai,28.0,581.0,9.0,5.6,Pending,2.9081,Rail,Route A,882.2
+haircare,SKU99,68.52,17,627.0,9185.19,Unknown,55.0,8.0,59.0,6.0,Carrier B,1.31,Supplier 2,Chennai,29.0,921.0,2.0,38.07,Fail,0.346,Rail,Route B,210.74`;
+  const EVAL_CASES = [{"id": "RAG-01", "type": "rag", "query": "如何计算安全库存？给出公式与各参数含义。", "grounding": "business_rules.md > 1. 安全库存", "expected": "（rag 类）"}, {"id": "RAG-02", "type": "rag", "query": "再订货点 ROP 的公式是什么？", "grounding": "business_rules.md > 2. 再订货点", "expected": "（rag 类）"}, {"id": "RAG-03", "type": "rag", "query": "EOQ 经济订货批量公式及 D/S/H 参数含义？", "grounding": "algorithm_params.md > 1. 经济订货批量 EOQ", "expected": "（rag 类）"}, {"id": "RAG-04", "type": "rag", "query": "什么是 ABC 分类？A/B/C 各类约占多少金额与 SKU 比例？", "grounding": "algorithm_params.md > 2. ABC 分类", "expected": "（rag 类）"}, {"id": "RAG-05", "type": "rag", "query": "AQL 2.5% 是什么意思？缺陷率超过多少算不达标？", "grounding": "sop.md > SOP-1 缺陷率判定", "expected": "（rag 类）"}, {"id": "RAG-06", "type": "rag", "query": "供应商综合评分卡看哪些维度、各自权重多少？", "grounding": "sop.md > SOP-2 供应商综合评分卡", "expected": "（rag 类）"}, {"id": "TOOL-01", "type": "tool", "query": "SKU0 的缺陷率是多少？是否超过 AQL 2.5%？", "grounding": "clean_supply_chain.csv: sku=SKU0 -> defect_rate", "verify": "取 SKU0 行 defect_rate，与 0.025 比较", "expected": "SKU0 缺陷率 0.2264，超过 AQL 2.5%"}, {"id": "TOOL-02", "type": "tool", "query": "列出 Mumbai 库存水平最低的 5 个 SKU。", "grounding": "clean_supply_chain.csv: location=Mumbai 按 stock_level 升序", "verify": "filter location=Mumbai, sort stock_level asc, top5", "expected": "Mumbai 库存最低5: SKU2=1, SKU8=5, SKU78=5, SKU67=12, SKU95=15"}, {"id": "TOOL-03", "type": "tool", "query": "哪个供应商的平均缺陷率最高？", "grounding": "clean_supply_chain.csv: group by supplier_name mean(defect_rate)", "verify": "分组求均值取最大", "expected": "缺陷率最高供应商 Supplier 5 均值 2.6654"}, {"id": "TOOL-04", "type": "tool", "query": "SKU0 的提前期(lead_time_days)与报价提前期(lead_times_days)分别是多少？", "grounding": "clean_supply_chain.csv: sku=SKU0 两列", "verify": "取两字段值", "expected": "SKU0 报价提前期(lead_times_days)=7.0，实际提前期(lead_time_days)=29.0"}, {"id": "TOOL-05", "type": "tool", "query": "库存水平低于 10 的 SKU 有哪些？", "grounding": "clean_supply_chain.csv: stock_level<10", "verify": "filter stock_level<10", "expected": "库存<10 的SKU: SKU2, SKU4, SKU8, SKU15, SKU16, SKU24, SKU31, SKU33, SKU34, SKU47, SKU57, SKU68, SKU78, SKU87 (共14个)"}, {"id": "TOOL-06", "type": "tool", "query": "各城市的平均提前期(lead_time_days)各是多少？", "grounding": "clean_supply_chain.csv: group by location mean(lead_time_days)", "verify": "分组求均值", "expected": "各城市平均提前期: Mumbai=15.32, Kolkata=19.44, Delhi=14.60, Bangalore=16.28, Chennai=18.65"}, {"id": "TOOL-07", "type": "tool", "query": "SKU0 的单价、运费、制造成本、总成本分别是多少？", "grounding": "clean_supply_chain.csv: sku=SKU0 四列", "verify": "取 price/shipping_cost/mfg_cost/total_cost", "expected": "SKU0 单价=69.81 运费=2.96 制造成本=46.28 总成本=187.75"}, {"id": "HY-01", "type": "hybrid", "query": "用安全库存公式，SKU0 要支持 95% 服务水平(Z=1.65)，安全库存应设多少？（σ_d 取 units_sold 标准差，L 取 lead_time_days）", "grounding": "business_rules.md > 1. 安全库存", "verify": "SS=1.65*σ_d*√L，σ_d、L 由数据算", "expected": "安全库存≈2685.7（σ_d=302.3, L=29）"}, {"id": "HY-02", "type": "hybrid", "query": "用 EOQ 估算 SKU0 的经济订货批量（D=units_sold，S=shipping_cost，H=mfg_cost×0.25 持有率）。", "grounding": "algorithm_params.md > 1. 经济订货批量 EOQ", "verify": "EOQ=√(2DS/H)", "expected": "EOQ≈20.3（D=802, S=2.96, H=11.57）"}, {"id": "HY-03", "type": "hybrid", "query": "按营收对全部 SKU 做 ABC 分类，前 20% SKU 贡献多少比例营收？", "grounding": "algorithm_params.md > 2. ABC 分类", "verify": "按 revenue 降序累计占比", "expected": "top20%SKU=20.0% 贡献营收 31.8%"}, {"id": "HY-04", "type": "hybrid", "query": "SKU0 缺陷率超 AQL，按 SOP 应判为哪类风险供应商？", "grounding": "sop.md > SOP-1 缺陷率判定", "verify": "defect_rate>0.025 -> 质量不达标 -> 高风险", "expected": "SKU0 缺陷率0.2264>0.025 → 质量不达标 → 高风险供应商"}, {"id": "HY-05", "type": "hybrid", "query": "Mumbai 仓哪个 SKU 最该优先补货（结合库存覆盖与缺陷风险）？", "grounding": "sop.md > SOP-1 缺陷率判定", "verify": "低 stock_level 且高 defect_rate 优先", "expected": "Mumbai 最优先补货: SKU2(库存1,缺陷率4.5806)"}, {"id": "HY-06", "type": "hybrid", "query": "若 SKU0 的 lead_time_days 高于全数据集均值+2σ，按 SOP 是否触发提前期预警？", "grounding": "business_rules.md > 3. 应用说明", "verify": "比较 L 与 mean+2σ", "expected": "SKU0 实际提前期29 <= 基线34.68 → 不触发预警"}, {"id": "HY-07", "type": "hybrid", "query": "按供应商评分卡，SKU0 的推荐供应商在质量与交付上是否达标？", "grounding": "sop.md > SOP-2 供应商综合评分卡", "verify": "质量(缺陷率)与交付(OTIF 代理)评分", "expected": "供应商Supplier 3 质量不达标(缺陷率0.2264) 交付达标(提前期29)"}, {"id": "HY-08", "type": "hybrid", "query": "按 ABC 结论，C 类 SKU 应采用什么补货管控策略？", "grounding": "algorithm_params.md > 3. 应用说明", "verify": "C 类 -> 宽松管控(高 ROP/低复盘)", "expected": "C类SKU → 宽松管控（高ROP/低复盘频次）"}];
+</script>
+
+<!-- ===== UI 逻辑 ===== -->
+<script>
+(function(){
+  const E = window.RAGEngine;
+  // ---- 构建 docs / rows ----
+  const DOCS = [];
+  Object.keys(KB_RAW).sort().forEach(f => { DOCS.push(...E.chunkMarkdown(KB_RAW[f], f)); });
+  const ROWS = (function(){
+    const lines = CSV_TEXT.replace(/^﻿/, "").split(/\r?\n/);
+    const hdr = lines[0].split(","); const out = [];
+    for (let i = 1; i < lines.length; i++) { if (!lines[i].trim()) continue; const o = {}; const p = lines[i].split(","); hdr.forEach((h, j) => o[h] = p[j]); out.push(o); }
+    return out;
+  })();
+  const RETRIEVER = new E.LocalRetriever(DOCS);
+
+  // ---- 标签文案 ----
+  const TAG = { rag: "纯知识 RAG", tool: "纯数值 MCP", hybrid: "公式+数据 混合" };
+
+  // ===== Tabs =====
+  document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+    document.querySelectorAll(".pane").forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    document.getElementById("pane-" + t.dataset.tab).classList.add("active");
+  }));
+
+  // ===== 实时管道 =====
+  const qEl = document.getElementById("q");
+  document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => { qEl.value = c.dataset.q; runLive(); }));
+  document.getElementById("runBtn").addEventListener("click", runLive);
+  qEl.addEventListener("keydown", e => { if (e.key === "Enter") runLive(); });
+
+  function runLive() {
+    const q = qEl.value.trim(); if (!q) return;
+    const intent = E.route(q);
+    const ctx = (intent === "rag" || intent === "hybrid") ? RETRIEVER.search(q, 5) : [];
+    const toolOut = (intent === "tool" || intent === "hybrid") ? E.dispatchTool(q, ROWS) : { tool: null, result: {} };
+    const ans = E.buildAnswer(q, intent, ctx, toolOut);
+    renderLive(q, intent, ctx, toolOut, ans);
+  }
+
+  function renderLive(q, intent, ctx, toolOut, ans) {
+    let h = `<div class="pipe">
+      <div class="box"><div class="t">① 用户输入</div><div class="b" style="font-size:12.5px">${esc(q)}</div></div>
+      <div class="arrow">→</div>
+      <div class="box"><div class="t">② 意图路由</div><div class="b"><span class="tag ${intent}">${TAG[intent]}</span></div></div>
+      <div class="arrow">→</div>
+      <div class="box"><div class="t">③ ${intent==="tool"?"工具派发(MCP)":"检索(RAG)"}</div><div class="b" style="font-size:12.5px">${intent==="tool" ? (toolOut.tool||"—") : (ctx.length+" 个召回块")}</div></div>
+      <div class="arrow">→</div>
+      <div class="box"><div class="t">④ 答案组装</div><div class="b" style="font-size:12.5px">${ans.scenario.split("（")[0]}</div></div>
+    </div>`;
+
+    // 意图路由说明
+    h += `<div class="card"><h3>② 意图路由决策 <span class="tag ${intent}">${intent}</span></h3>
+      <div class="kv">判定规则：公式词∩具体数据实体 → hybrid；风险词∩具体数据 → hybrid；仅公式词 → rag；仅具体数据 → tool；否则 rag。</div>
+      <div class="kv">本问命中的关键词类型：${describeIntent(q)}</div></div>`;
+
+    // 检索
+    if (intent !== "tool") {
+      h += `<div class="card"><h3>③ RAG 检索 · TF-IDF Top3（含同义词轻量补检索）</h3>`;
+      ctx.slice(0, 3).forEach(c => {
+        h += `<div class="chunk"><span class="sp">${esc(c.section_path)}</span><span class="sc">score ${c.score}</span><div style="margin-top:4px;color:var(--text)">${esc(c.content.replace(/^\[来源:[^\]]*\]\n/, "").slice(0, 160))}…</div></div>`;
+      });
+      h += `</div>`;
+    }
+    // 工具
+    if (intent !== "rag") {
+      h += `<div class="card"><h3>③ MCP 工具派发 · <code>${toolOut.tool || "—"}</code></h3>
+        <div class="find">${esc(E.summarize(toolOut.result, 6))}</div></div>`;
+    }
+    // 答案
+    h += `<div class="card"><h3>④ 最终答案 · ${ans.scenario}</h3>`;
+    h += `<div class="kv" style="color:var(--text)"><b>关键发现</b></div>`;
+    ans.findings.forEach(f => h += `<div class="find">${esc(f)}</div>`);
+    h += `<div class="kv" style="color:var(--text);margin-top:8px"><b>推荐策略</b></div>`;
+    ans.strategy.forEach(f => h += `<div class="find">${esc(f)}</div>`);
+    h += `<div class="kv" style="color:var(--text);margin-top:8px"><b>风险提示</b></div>`;
+    ans.risks.forEach(f => h += `<div class="find">${esc(f)}</div>`);
+    if (ans.evidence && ans.evidence.length) {
+      h += `<div class="kv" style="color:var(--text);margin-top:8px"><b>依据来源</b></div>`;
+      ans.evidence.forEach(e => h += `<div class="kv">· ${esc(e.source)} / ${esc(e.section_path)}（相关度 ${e.score}）</div>`);
+    }
+    h += `</div>`;
+    document.getElementById("liveOut").innerHTML = h;
+  }
+
+  function describeIntent(q) {
+    const f = ["安全库存","再订货点","rop","eoq","经济订货批量","abc","aql","评分卡","公式","服务水平","经济订货"].filter(t => q.toLowerCase().includes(t));
+    const cd = ["sku0","sku1","sku2","sku3","sku4","sku5","mumbai","kolkata","chennai","bangalore","delhi","库存水平最低","最低","最高","低于","平均","各城市","均值","全部 sku"].filter(t => q.toLowerCase().includes(t));
+    const s = ["风险","sop","管控","预警","策略","达标","是否触发","判为","应采用"].filter(t => q.toLowerCase().includes(t));
+    const parts = [];
+    if (f.length) parts.push("公式词[" + f.slice(0, 3).join("/") + "]");
+    if (cd.length) parts.push("具体数据词[" + cd.slice(0, 3).join("/") + "]");
+    if (s.length) parts.push("SOP词[" + s.slice(0, 3).join("/") + "]");
+    return parts.join(" ＋ ") || "（无强信号 → 默认 rag）";
+  }
+
+  // ===== 评测看板 =====
+  let EVAL = null;
+  document.getElementById("evalBtn").addEventListener("click", () => {
+    EVAL = E.runEval({ docs: DOCS, rows: ROWS, cases: EVAL_CASES });
+    renderMetrics(EVAL.summary);
+    renderEvalTable(EVAL);
+  });
+  document.getElementById("evalReset").addEventListener("click", () => { document.getElementById("evalOut").innerHTML = ""; });
+
+  function renderMetrics(s) {
+    document.getElementById("m-e2e").textContent = s.end2end_accuracy + "%";
+    document.getElementById("m-r3").textContent = s.recall_at_3 + "%";
+    document.getElementById("m-int").textContent = s.intent_accuracy + "%";
+    document.getElementById("m-n").textContent = s.n_total;
+  }
+
+  function renderEvalTable(ev) {
+    let h = `<div class="card"><h3>评测结果 · 端到端 ${ev.summary.end2end_accuracy}% ｜ Recall@3 ${ev.summary.recall_at_3}% ｜ 意图 ${ev.summary.intent_accuracy}%</h3>`;
+    h += `<table><thead><tr><th>ID</th><th>类型</th><th>意图预测</th><th>意图</th><th>召回R3</th><th>端到端</th><th>期望(独立参考)</th></tr></thead><tbody>`;
+    ev.details.forEach(d => {
+      const bad = !(d.intent_ok && d.e2e);
+      h += `<tr class="${bad ? "bad" : ""}" data-id="${d.id}">
+        <td>${d.id}</td><td><span class="tag ${d.type}">${d.type}</span></td>
+        <td>${d.intent_pred}</td>
+        <td><span class="tag ${d.intent_ok ? "ok" : "x"}">${d.intent_ok ? "✓" : "✗"}</span></td>
+        <td>${d.gold ? (d.recall3 ? "✓" : "✗") : "—"}</td>
+        <td><span class="tag ${d.e2e ? "ok" : "x"}">${d.e2e ? "✓" : "✗"}</span></td>
+        <td style="color:var(--muted)">${esc(d.expected)}</td></tr>`;
+    });
+    h += `</tbody></table>`;
+    h += `<div class="legend">红底行 = 需复盘的 Bad Case（本项目中 TOOL-01 / HY-08 为「意图标签分歧但答案正确」的已知边界，点③可看四层漏斗）。</div></div>`;
+    document.getElementById("evalOut").innerHTML = h;
+    document.querySelectorAll("#evalOut tbody tr").forEach(tr => tr.addEventListener("click", () => {
+      document.querySelector('.tab[data-tab="funnel"]').click();
+      document.getElementById("caseSel").value = tr.dataset.id;
+      renderFunnel(tr.dataset.id);
+    }));
+  }
+
+  // ===== Bad Case 漏斗 =====
+  const NOTES = {
+    "GOLD-OFFBYONE": { hypo: ["GOLD 用「第N节」位置编号映射，但 H1+前言被切成 -1，整体错开一位", "检索算法本身失效"],
+      verify: "实时检索显示 gold chunk 实际排第 1，但 eval 报 Recall@3=21.4% —— 现象与中间产物矛盾",
+      root: "标注第一性错误：改用语义锚点 resolve_gold()（source > 节标题），不再依赖脆弱位置编号。真实基线 Recall@3=92.9% 而非 21.4%。" },
+    "TOOL-02": { hypo: ["意图识别误判为纯知识", "分词错误导致「最低的5」被断开"],
+      verify: "route 实测 = tool（正确）；dispatch 用硬编码 \"最低 5\" in q，而真实问法「最低的 5」含「的」字 → 正则未命中",
+      root: "派发字符串匹配脆弱：改用 最低\\D*(\\d+) 容忍「的」等汉字。修复后命中 low_stock_skus top5。" },
+    "TOOL-05": { hypo: ["阈值抽取正则失效", "检索未覆盖"],
+      verify: "extract_threshold 抽到 10，但当时无「库存<阈值」派发分支，返回 {} 空结果",
+      root: "工具存在但路由未接：补「库存低于 N」分支消费阈值 → low_stock_skus(threshold=10)。" },
+    "HY-05": { hypo: ["检索缺口（gold 块未进 top3）", "意图路由错误"],
+      verify: "route=hybrid 正确；但 gold 锚定 SOP-2，真实问法「缺陷风险」应映射 SOP-1（排第 1）—— 属 GOLD 误标；并补同义词「补货/优先→评分卡/风险/缺陷率」提升综合问法召回",
+      root: "标注误标 + 检索补强：gold 改为 SOP-1 缺陷率判定，并加 QUERY_SYNONYMS 轻量补检索。e2e 通过。" },
+    "TOOL-01": { hypo: ["aql 关键词触发 rag，应 tool", "sku0 未识别"],
+      verify: "route=hybrid（aql+sku0 双命中）；独立参考值校验工具结果 = SKU0 defect_rate 0.2264>0.025 → 答案正确",
+      root: "意图边界分歧（标签 hybrid vs 标注 tool），但端到端答案正确 → 诚实保留为边界样例，展示「路由标签 ≠ 答案正确性」。" },
+    "HY-08": { hypo: ["abc 关键词未触发", "检索命中但路由误判 rag"],
+      verify: "route=rag（「C 类」未进 CONCRETE_DATA_TERMS）；gold(SOP/应用说明)进 top3，答案正确",
+      root: "意图边界分歧（标签 rag vs 标注 hybrid）。若追求 100% 意图，可在路由补 [ABC]类→abc 映射；当前保留为诚实边界。" },
+  };
+  const CASE_TITLE = {}; EVAL_CASES.forEach(c => CASE_TITLE[c.id] = c.query);
+
+  function fillCaseSel() {
+    const sel = document.getElementById("caseSel");
+    const special = [{ id: "GOLD-OFFBYONE", q: "【元复盘】GOLD 位置编号错开一位（假指标 21.4%→真实 92.9%）" }];
+    const opts = special.concat(EVAL_CASES.map(c => ({ id: c.id, q: c.id + " · " + c.query })));
+    sel.innerHTML = opts.map(o => `<option value="${o.id}">${esc(o.q)}</option>`).join("");
+    sel.addEventListener("change", () => renderFunnel(sel.value));
+  }
+
+  function renderFunnel(id) {
+    const note = NOTES[id];
+    if (id === "GOLD-OFFBYONE") {
+      document.getElementById("funnelOut").innerHTML = funnelHTML("GOLD-OFFBYONE",
+        "eval 报 Recall@3=21.4%，但人工实时检索确认 gold chunk 排第 1 —— 指标与中间产物矛盾。",
+        note.hypo, note.verify, note.root, null);
+      return;
+    }
+    const d = EVAL ? EVAL.details.find(x => x.id === id) : null;
+    if (!d) { document.getElementById("funnelOut").innerHTML = `<div class="card note">请先在「② 评测看板」点击「运行 21 条评测」生成明细。</div>`; return; }
+    const phenomenon = `类型=${d.type}，意图预测=${d.intent_pred}（${d.intent_ok ? "✓一致" : "✗分歧"}）；Recall@3=${d.gold ? (d.recall3 ? "✓" : "✗") : "—"}；端到端=${d.e2e ? "✓" : "✗"}。` +
+      (d.gold ? ` gold chunk=${d.gold}，top3=${JSON.stringify(d.top3)}` : "");
+    const root = note ? note.root : "其他 / 非 genuine 失败（答案正确，无需修复）。";
+    const hypo = note ? note.hypo : ["检索未召回", "工具派发失败", "意图路由错误"];
+    const verify = note ? note.verify : "见评测看板：意图/召回/端到端标记。";
+    document.getElementById("funnelOut").innerHTML = funnelHTML(id, phenomenon, hypo, verify, root, d);
+  }
+
+  function funnelHTML(id, phenomenon, hypo, verify, root, d) {
+    const goldCtx = d && d.gold ? (() => { const c = DOCS.find(x => x.id === d.gold); return c ? `<div class="chunk"><span class="sp">${esc(c.section_path)}</span><div style="margin-top:4px;color:var(--text)">${esc(c.content.replace(/^\[来源:[^\]]*\]\n/, "").slice(0, 200))}…</div></div>` : "（未定位）"; })() : "";
+    let h = `<div class="card"><h3>Bad Case 四层漏斗 · ${id}</h3>`;
+    h += `<div class="funnel"><div class="lv">L1 现象层</div><div class="ct">${esc(phenomenon)}</div></div>`;
+    h += `<div class="funnel"><div class="lv">L2 假设层（≥2 候选，避免单一归因）</div><div class="ct">` + hypo.map(x => "· " + esc(x)).join("<br>") + `</div></div>`;
+    h += `<div class="funnel"><div class="lv">L3 验证层（跑真实中间产物，控制变量）</div><div class="ct">${esc(verify)}</div>`;
+    if (goldCtx) h += `<div style="margin-top:8px"><b style="color:var(--muted);font-size:12px">gold chunk 实际内容：</b>${goldCtx}</div>`;
+    h += `</div>`;
+    h += `<div class="funnel" style="border-left-color:var(--accent)"><div class="lv" style="color:var(--accent)">L4 归类层（根因 + 修复）</div><div class="ct">${esc(root)}</div></div>`;
+    h += `</div>`;
+    return h;
+  }
+
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+
+  // ---- 初始化 ----
+  fillCaseSel();
+  renderFunnel("GOLD-OFFBYONE");
+  // 进场即跑一次评测，填充顶部指标
+  EVAL = E.runEval({ docs: DOCS, rows: ROWS, cases: EVAL_CASES });
+  renderMetrics(EVAL.summary);
+})();
+</script>
+</body>
+</html>

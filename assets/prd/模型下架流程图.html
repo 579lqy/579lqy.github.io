@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>模型下架执行主流程</title>
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --panel: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --blue: #2563eb;
+    --blue-soft: #dbeafe;
+    --red: #dc2626;
+    --red-soft: #fee2e2;
+    --teal: #0891b2;
+    --teal-soft: #cffafe;
+    --gray: #9ca3af;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+    color: var(--text);
+    line-height: 1.6;
+    padding: 48px 24px;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 40px; }
+  header .eyebrow {
+    font-size: 13px; font-weight: 600; letter-spacing: 0.12em;
+    color: var(--muted); text-transform: uppercase;
+  }
+  header h1 { font-size: 32px; font-weight: 700; margin-top: 8px; letter-spacing: -0.01em; }
+
+  .legend {
+    display: flex; justify-content: center; gap: 24px; flex-wrap: wrap;
+    margin-bottom: 40px; font-size: 13px; color: var(--muted);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 12px; height: 12px; border-radius: 3px; }
+  .dot.info { background: var(--panel); border: 1px solid var(--line); }
+  .dot.key { background: var(--blue); }
+  .dot.warn { background: var(--red); }
+  .dot.time { background: var(--teal); }
+
+  .flow { position: relative; padding-left: 36px; }
+  .flow::before {
+    content: ""; position: absolute; left: 15px; top: 8px; bottom: 8px;
+    width: 2px; background: var(--line);
+  }
+
+  .step {
+    position: relative; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 14px; padding: 22px 24px; margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .step::before {
+    content: attr(data-num); position: absolute; left: -36px; top: 22px;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--blue); color: #fff; font-weight: 700; font-size: 14px;
+    display: grid; place-items: center; z-index: 2;
+  }
+  .step h3 { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+  .step .meta { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+  .step ul { list-style: none; }
+  .step ul li {
+    position: relative; padding-left: 18px; margin: 8px 0; font-size: 14px; color: #374151;
+  }
+  .step ul li::before {
+    content: ""; position: absolute; left: 0; top: 9px; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--blue);
+  }
+  .step .tag {
+    display: inline-block; font-size: 12px; font-weight: 600;
+    padding: 3px 10px; border-radius: 999px; margin-top: 10px;
+  }
+  .tag.key { background: var(--blue-soft); color: var(--blue); }
+  .tag.warn { background: var(--red-soft); color: var(--red); }
+  .tag.time { background: var(--teal-soft); color: var(--teal); }
+
+  .milestone {
+    background: var(--teal-soft); border: 1px dashed var(--teal);
+    color: var(--teal); font-weight: 700; font-size: 13px;
+    text-align: center; padding: 10px 18px; border-radius: 999px;
+    margin: 18px 0 18px -36px; display: inline-block;
+  }
+
+  .state-machine {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 14px; padding: 24px; margin-top: 32px;
+  }
+  .state-machine h2 { font-size: 18px; margin-bottom: 16px; }
+  .states { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  .state {
+    background: #f3f4f6; border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 18px; text-align: center; min-width: 120px;
+  }
+  .state .name { font-weight: 700; font-size: 14px; }
+  .state .code { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .arrow { color: var(--muted); font-size: 18px; }
+  .note { font-size: 13px; color: var(--muted); margin-top: 16px; text-align: center; }
+
+  .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 32px; }
+  .rule { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+  .rule h4 { font-size: 15px; margin-bottom: 10px; }
+  .rule p, .rule li { font-size: 13px; color: var(--muted); }
+  .rule ul { padding-left: 16px; }
+  .rule ul li { margin: 5px 0; }
+
+  footer { text-align: center; margin-top: 40px; font-size: 12px; color: var(--muted); }
+
+  @media (max-width: 640px) {
+    .flow { padding-left: 0; }
+    .flow::before { display: none; }
+    .step::before { position: static; display: inline-grid; margin-bottom: 10px; }
+    .milestone { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">模型生命周期管理</div>
+    <h1>模型下架执行主流程</h1>
+  </header>
+
+  <div class="legend">
+    <span><span class="dot info"></span>系统/信息步骤</span>
+    <span><span class="dot key"></span>关键操作</span>
+    <span><span class="dot warn"></span>不可逆 / 警示</span>
+    <span><span class="dot time"></span>时间线节点</span>
+  </div>
+
+  <div class="flow">
+    <div class="step" data-num="1">
+      <h3>准备与确认</h3>
+      <div class="meta">管理员发起下架请求，系统协助校验影响面</div>
+      <ul>
+        <li>运营后台「已上架模型列表」点击下架，进入四步弹窗</li>
+        <li>选择下架场景：合规整改 / 性能迭代 / 平台运营调整 / 模型能力异常</li>
+        <li>填写生效日期（默认当天，不可早于当天）、内部原因、用户通知内容</li>
+        <li>系统拉取该模型下所有生效/未生效订单，按（企业 ID, 模型 ID）去重生成影响记录</li>
+      </ul>
+      <span class="tag key">状态锁定：禁止新购 / 续订 / 扩容</span>
+    </div>
+
+    <div class="step" data-num="2">
+      <h3>预告与通知</h3>
+      <div class="meta">下架单创建后 5 分钟内完成预告通知下发</div>
+      <ul>
+        <li>模型状态置为 SOON_OFFLINE（即将下架）</li>
+        <li>前端模型卡片置灰 + [即将下架] 标签 + 倒计时</li>
+        <li>站内信 + 邮件触达个人/企业管理员，含四要素：模型、时间、受影响订单、核心规则</li>
+      </ul>
+      <span class="tag time">通知时效目标：创建后 5 分钟内</span>
+    </div>
+
+    <div class="step" data-num="3">
+      <h3>存量保护期</h3>
+      <div class="meta">下架操作日 → 生效日期，存量租户按原规则继续使用</div>
+      <ul>
+        <li>保护期内再次发送“最后机会”提醒</li>
+        <li>期间仍禁止新购 / 续订 / 扩容</li>
+        <li>不同场景建议缓停期：合规整改 0–7 天 / 性能迭代 14–30 天 / 运营调整 7–14 天 / 能力异常 0–3 天</li>
+      </ul>
+      <span class="tag time">时间线：缓停期 = 下架操作日 → 生效日期 23:59:59</span>
+    </div>
+
+    <div class="milestone">生效日期到达 · 时间线分界点</div>
+
+    <div class="step" data-num="4">
+      <h3>正式下架</h3>
+      <div class="meta">模型停止调用，进入 OFFLINE 终态</div>
+      <ul>
+        <li>模型状态置为 OFFLINE，卡片显示 [已下架]</li>
+        <li>API 网关对该模型调用统一返回 410 MODEL_RETIRED</li>
+        <li>计费停止点生效，下架后的失败调用不计费</li>
+        <li>调用记录、账单、关联政府券核销记录打包归档，模型记录不可物理删除</li>
+      </ul>
+      <span class="tag warn">不可逆终态：须重新走完整上架流程才能恢复</span>
+    </div>
+
+    <div class="step" data-num="5">
+      <h3>权益处理</h3>
+      <div class="meta">单模型包 / 组合包分别计算补偿</div>
+      <ul>
+        <li>单模型包：未消耗权益 = 未使用 Token ÷ 总 Token × 订单实付金额，券面额 100% 折算、四舍五入到元</li>
+        <li>组合包：先判继续售卖（包内可用模型 ≥ 原模型数 60%）</li>
+        <li>组合包 L0：包内有同能力标签模型 → 仅通知，不发券</li>
+        <li>组合包 L1：核心能力受损 → 通知 + 按依赖度 r 发放补偿券（封顶实付 30%）</li>
+        <li>免费试用账户 / 已过期订单 / 赠送额度不补偿</li>
+      </ul>
+      <span class="tag key">补偿券：平台通用券，90 天有效，不可提现/找零/转赠</span>
+    </div>
+
+    <div class="step" data-num="6">
+      <h3>售后与归档</h3>
+      <div class="meta">用户主动申请 + 审计留痕</div>
+      <ul>
+        <li>下架生效日起 30 天内用户可主动发起权益补偿申请，逾期系统自动发放代金券</li>
+        <li>下架操作接入统一审计日志（操作人 / 时间 / IP / 内容）</li>
+        <li>历史订单、通知记录、补偿发放记录可对账追溯</li>
+      </ul>
+      <span class="tag time">补偿处理有效期：下架生效日起 30 天</span>
+    </div>
+  </div>
+
+  <div class="state-machine">
+    <h2>模型生命周期状态机</h2>
+    <div class="states">
+      <div class="state"><div class="name">已上架</div><div class="code">ONLINE</div></div>
+      <div class="arrow">→</div>
+      <div class="state"><div class="name">即将下架</div><div class="code">SOON_OFFLINE</div></div>
+      <div class="arrow">→</div>
+      <div class="state" style="border-color:var(--red);background:var(--red-soft)"><div class="name">已下架</div><div class="code">OFFLINE</div></div>
+    </div>
+    <div class="note">创建下架单触发 ONLINE → SOON_OFFLINE；到达生效日期 23:59:59 后转为 OFFLINE（终态，不可恢复）。SUSPENDED 为预留枚举，本期不实现。</div>
+  </div>
+
+  <div class="rules">
+    <div class="rule">
+      <h4>去重规则</h4>
+      <ul>
+        <li>唯一键：(企业 ID, 模型 ID)</li>
+        <li>通知：每（企业 × 模型）1 次</li>
+        <li>补偿券：每（企业 × 模型）1 张</li>
+      </ul>
+    </div>
+    <div class="rule">
+      <h4>错误码</h4>
+      <p>正式下架后 API 统一返回：</p>
+      <p style="margin-top:8px;font-family:monospace;background:#f3f4f6;padding:8px;border-radius:6px;">
+        410 MODEL_RETIRED<br>
+        该模型已下架，请在平台自行选择其他模型或 Token Plan。
+      </p>
+    </div>
+    <div class="rule">
+      <h4>量化目标</h4>
+      <ul>
+        <li>下架流程 100% 线上闭环</li>
+        <li>权益处理触达率 ≥ 99%</li>
+        <li>410 错误码一致率 100%</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>模型下架执行主流程 · 基于 PRD V1.0 整理</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>多模型组合包 · 收益分析（缓存命中率模式）</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Microsoft YaHei',sans-serif; background: #f0f2f5; color: #1e2a3a; min-height: 100vh; }
+.header { background: linear-gradient(135deg,#1a2332,#2d4a6a); color: white; padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+.header h1 { font-size: 18px; }
+.header .badge { background: #10b981; color: #1a2332; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 700; }
+.layout { display: flex; min-height: calc(100vh - 56px); }
+.sidebar { width: 340px; background: #1a2332; color: #e2e8f0; padding: 20px; overflow-y: auto; flex-shrink: 0; }
+.sidebar h2 { font-size: 14px; color: #94a3b8; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+.sidebar .section { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #2d3a4a; }
+.sidebar label { font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px; }
+.sidebar select, .sidebar input[type=range] { width: 100%; }
+.sidebar select { background: #0d1824; color: #e2e8f0; border: 1px solid #334155; padding: 8px; border-radius: 6px; font-size: 13px; }
+.sidebar input[type=range] { accent-color: #10b981; margin: 4px 0; }
+.slider-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.slider-row .s-label { font-size: 12px; color: #cbd5e1; min-width: 95px; white-space: nowrap; }
+.slider-row .s-val { font-size: 13px; color: #34d399; font-weight: 600; min-width: 40px; text-align: right; }
+.slider-row input[type=range] { flex: 1; }
+.coefficient-row { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+.coefficient-row .c-label { font-size: 11px; color: #64748b; min-width: 95px; }
+.coefficient-row .c-val { font-size: 11px; color: #f59e0b; font-weight: 600; }
+.coeff-slider-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.coeff-slider-row .cs-label { font-size: 11px; color: #fbbf24; min-width: 95px; white-space: nowrap; }
+.coeff-slider-row .cs-val { font-size: 12px; color: #fbbf24; font-weight: 700; min-width: 32px; text-align: right; }
+.coeff-slider-row input[type=range] { flex: 1; accent-color: #f59e0b; }
+.formula-box { background: #0d1824; border-radius: 8px; padding: 10px 14px; font-size: 12px; line-height: 1.8; margin-top: 8px; }
+.formula-box code { background: #1a2a3e; padding: 1px 5px; border-radius: 3px; color: #34d399; font-size: 11px; }
+.ratio-bar { margin-top: 10px; background: #0d1824; border-radius: 6px; overflow: hidden; height: 32px; display: flex; }
+.ratio-bar .seg { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: white; transition: width 0.3s; overflow: hidden; white-space: nowrap; }
+.ratio-bar .seg.input-seg { background: linear-gradient(90deg,#3b82f6,#60a5fa); }
+.ratio-bar .seg.cache-seg { background: linear-gradient(90deg,#10b981,#34d399); }
+.ratio-bar .seg.output-seg { background: linear-gradient(90deg,#f59e0b,#fbbf24); }
+.content { flex: 1; padding: 24px; overflow-y: auto; }
+.viz-area { display: flex; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; }
+.viz-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.triangle-card { flex: 1; min-width: 420px; }
+.info-card { width: 320px; display: flex; flex-direction: column; gap: 16px; }
+.profit-big { text-align: center; padding: 16px; border-radius: 10px; transition: all 0.3s; }
+.profit-big .value { font-size: 36px; font-weight: 800; }
+.profit-big .label { font-size: 13px; margin-top: 4px; }
+.breakdown-bar { height: 24px; border-radius: 6px; overflow: hidden; display: flex; margin: 6px 0; }
+.breakdown-bar .seg { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; font-weight: 600; transition: width 0.3s; }
+.metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.metric-item { background: #f8fafc; border-radius: 8px; padding: 10px; text-align: center; }
+.metric-item .m-val { font-size: 18px; font-weight: 700; color: #1e2a3a; }
+.metric-item .m-label { font-size: 11px; color: #64748b; margin-top: 2px; }
+.insight-box { background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 0 8px 8px 0; padding: 10px 14px; font-size: 12px; line-height: 1.8; margin-top: 8px; }
+.insight-box strong { color: #92400e; }
+.cache-effect { background: #f0fdf4; border-left: 4px solid #10b981; border-radius: 0 8px 8px 0; padding: 10px 14px; font-size: 12px; line-height: 1.8; margin-top: 8px; }
+.cache-effect strong { color: #065f46; }
+.model-profit-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px; }
+.model-profit-card h3 { font-size: 15px; margin-bottom: 12px; color: #1e2a3a; }
+.model-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
+.model-bar-row .mb-label { min-width: 110px; color: #475569; }
+.model-bar-row .mb-bar-bg { flex: 1; height: 18px; background: #f1f5f9; border-radius: 4px; overflow: hidden; position: relative; }
+.model-bar-row .mb-bar { height: 100%; border-radius: 4px; transition: width 0.3s; display: flex; align-items: center; padding-left: 6px; font-size: 10px; color: white; font-weight: 600; white-space: nowrap; }
+.model-bar-row .mb-val { min-width: 65px; text-align: right; font-weight: 600; }
+.table-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow-x: auto; }
+.table-card h3 { font-size: 16px; margin-bottom: 12px; color: #1e2a3a; }
+.filter-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; padding: 12px 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e5e7eb; }
+.filter-bar label { font-size: 13px; color: #64748b; font-weight: 600; white-space: nowrap; }
+.filter-bar select, .filter-bar input { font-size: 13px; padding: 5px 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: white; color: #1e2a3a; }
+.filter-bar select:focus, .filter-bar input:focus { outline: none; border-color: #10b981; box-shadow: 0 0 0 2px rgba(16,185,129,0.15); }
+.filter-bar .filter-group { display: flex; align-items: center; gap: 6px; }
+.filter-bar .btn-clear { padding: 5px 12px; font-size: 12px; background: #e2e8f0; border: none; border-radius: 6px; cursor: pointer; color: #475569; font-weight: 600; }
+.filter-bar .btn-clear:hover { background: #cbd5e1; }
+.filter-bar .result-count { font-size: 12px; color: #94a3b8; margin-left: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: #1e2a3a; color: white; padding: 10px 8px; text-align: center; font-weight: 600; white-space: nowrap; cursor: pointer; user-select: none; }
+th:hover { background: #2d4a6a; }
+th .sort-icon { font-size: 10px; margin-left: 2px; opacity: 0.4; }
+th.sorted .sort-icon { opacity: 1; }
+td { padding: 7px 8px; text-align: center; border-bottom: 1px solid #e5e7eb; }
+tr:hover td { background: #f0f7ff; }
+.risk-high { background: #fee2e2 !important; color: #991b1b; font-weight: 600; }
+.risk-mid { background: #fef3c7 !important; color: #92400e; font-weight: 600; }
+.risk-low { background: #d1fae5 !important; color: #065f46; font-weight: 600; }
+.current-row td { background: #eff6ff !important; font-weight: 600; }
+.legend { display: flex; gap: 16px; margin-top: 10px; justify-content: center; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+.legend-color { width: 24px; height: 12px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📊 多模型组合包 · 收益临界分析</h1>
+  <span class="badge">缓存命中率模式</span>
+</div>
+<div class="layout">
+  <div class="sidebar">
+    <div class="section">
+      <h2>📦 套餐包选择</h2>
+      <label>选择套餐包</label>
+      <select id="pkgSelect"></select>
+    </div>
+
+    <div class="section">
+      <h2>🤖 模型使用分布</h2>
+      <div style="font-size:11px;color:#64748b;margin-bottom:8px">按实际Token消耗量设定各模型使用比例</div>
+      <div id="modelSliders"></div>
+      <div class="ratio-bar" id="modelDistBar" style="height:24px;margin-top:8px"></div>
+      <div class="formula-box" style="margin-top:8px">
+	        有效消费系数 F = Σ(s<sub>i</sub> × f<sub>i</sub>) = <code id="effCoeffDisplay">-</code><br>
+	        <span style="color:#6bb0f5;font-size:10px">用户1实际Token抵扣f<sub>i</sub>额度Token → 1额度Token = 1/F 实际Token</span><br>
+	        <span style="color:#f59e0b;font-size:10px">系数越高→用户可用实际Token越少→我们成本越低→越有利</span>
+	      </div>
+    </div>
+
+    <div class="section">
+      <h2>📊 缓存命中率 & 输出比例</h2>
+      <div style="font-size:11px;color:#64748b;margin-bottom:6px">输入比例自动计算 = (1-输出%)×(1-缓存命中率)</div>
+      <div class="slider-row">
+        <span class="s-label">💾 缓存命中率</span>
+        <input type="range" id="cacheRateSlider" min="0" max="80" value="40">
+        <span class="s-val" id="cacheRateVal">40%</span>
+      </div>
+      <div class="slider-row">
+        <span class="s-label">📤 输出比例</span>
+        <input type="range" id="outputSlider" min="0" max="100" value="50">
+        <span class="s-val" id="outputVal">50%</span>
+      </div>
+      <div class="slider-row" style="opacity:0.7">
+        <span class="s-label">📥 输入比例</span>
+        <span class="s-val" id="inputAutoVal" style="color:#60a5fa">30%</span>
+        <span style="font-size:11px;color:#64748b">（自动计算）</span>
+      </div>
+      <div class="ratio-bar" id="ratioBar"></div>
+    </div>
+
+    <div class="section">
+	      <h2>💰 加权供货价</h2>
+	      <div class="formula-box">
+	        P<sub>in</sub> = Σ(s<sub>i</sub>×p<sub>in,i</sub>) = <code id="pInDisp">-</code> 元/M实际Token<br>
+	        P<sub>cache</sub> = Σ(s<sub>i</sub>×p<sub>cache,i</sub>) = <code id="pCacheDisp">-</code> 元/M实际Token<br>
+	        P<sub>out</sub> = Σ(s<sub>i</sub>×p<sub>out,i</sub>) = <code id="pOutDisp">-</code> 元/M实际Token<br>
+	        <span style="color:#64748b;font-size:10px">与供货商按实际Token结算，消费系数不影响供货价</span>
+	      </div>
+	    </div>
+  </div>
+
+  <div class="content">
+    <div class="viz-area">
+      <div class="viz-card triangle-card">
+        <canvas id="simplexCanvas" width="520" height="460"></canvas>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-color" style="background:rgba(239,68,68,0.3)"></div>亏损</div>
+          <div class="legend-item"><div class="legend-color" style="background:rgba(251,191,36,0.35)"></div>0~10%盈利</div>
+          <div class="legend-item"><div class="legend-color" style="background:rgba(34,197,94,0.3)"></div>≥10%盈利</div>
+          <div class="legend-item"><div class="legend-color" style="background:repeating-linear-gradient(45deg,#ef4444,#ef4444 3px,transparent 3px,transparent 6px)"></div>保本线</div>
+          <div class="legend-item"><div class="legend-color" style="background:repeating-linear-gradient(45deg,#3b82f6,#3b82f6 3px,transparent 3px,transparent 6px)"></div>10%盈利线</div>
+          <div class="legend-item"><div class="legend-color" style="background:#10b981"></div>缓存约束线</div>
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="profit-big" id="profitBig">
+          <div class="value" id="profitValue">0%</div>
+          <div class="label" id="profitStatus">计算中</div>
+        </div>
+        <canvas id="gaugeCanvas" width="260" height="140"></canvas>
+        <div class="metric-grid">
+	          <div class="metric-item"><div class="m-val" id="mEffCoeff">-</div><div class="m-label">有效系数F</div></div>
+	          <div class="metric-item"><div class="m-val" id="mPkgRevenue">-</div><div class="m-label">售价(元)</div></div>
+	          <div class="metric-item"><div class="m-val" id="mTotalCost">-</div><div class="m-label">供货成本(元)</div></div>
+	          <div class="metric-item"><div class="m-val" id="mTotalProfit">-</div><div class="m-label">利润(元)</div></div>
+	        </div>
+        <div class="insight-box" id="insightBox"></div>
+        <div class="cache-effect" id="cacheEffectBox"></div>
+      </div>
+    </div>
+
+    <div class="model-profit-card">
+      <h3>🤖 各模型盈亏分析（若用户只使用该模型耗尽全部额度）</h3>
+      <div style="font-size:11px;color:#64748b;margin-bottom:10px">供货成本 = (额度/系数) × 加权供货价，利润 = 售价 - 供货成本</div>
+      <div id="modelProfitBars"></div>
+    </div>
+
+    <div class="table-card">
+      <h3>📋 多模型组合包收益临界分析</h3>
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label>风险：</label>
+          <select id="filterRisk"><option value="">全部</option><option value="高">高风险</option><option value="中">中风险</option><option value="低">低风险</option></select>
+        </div>
+        <div class="filter-group">
+          <label>利润率：</label>
+          <select id="filterProfit"><option value="">全部</option><option value="loss">亏损(&lt;0%)</option><option value="low">微利(0~10%)</option><option value="mid">盈利(10~20%)</option><option value="high">高盈利(≥20%)</option></select>
+        </div>
+        <div class="filter-group">
+          <label>搜索：</label>
+          <input type="text" id="filterSearch" placeholder="套餐名..." style="width:140px">
+        </div>
+        <button class="btn-clear" onclick="clearFilters()">清除筛选</button>
+        <span class="result-count" id="resultCount"></span>
+      </div>
+      <table id="resultTable">
+        <thead><tr>
+          <th data-col="name" onclick="sortTable('name')">套餐包 <span class="sort-icon">↕</span></th>
+          <th data-col="spec" onclick="sortTable('spec')">规格(M) <span class="sort-icon">↕</span></th>
+          <th data-col="price" onclick="sortTable('price')">售价 <span class="sort-icon">↕</span></th>
+          <th data-col="R" onclick="sortTable('R')">R(元/M额度) <span class="sort-icon">↕</span></th>
+          <th data-col="totalCost" onclick="sortTable('totalCost')">供货成本(元) <span class="sort-icon">↕</span></th>
+          <th data-col="profit" onclick="sortTable('profit')">利润率 <span class="sort-icon">↕</span></th>
+          <th data-col="beNoCache" onclick="sortTable('beNoCache')">保本%<br><small style="font-weight:400;opacity:.7">无缓存</small> <span class="sort-icon">↕</span></th>
+          <th data-col="beCurrent" onclick="sortTable('beCurrent')">保本%<br><small style="font-weight:400;opacity:.7">当前缓存率</small> <span class="sort-icon">↕</span></th>
+          <th data-col="be10" onclick="sortTable('be10')">10%盈%<br><small style="font-weight:400;opacity:.7">当前缓存率</small> <span class="sort-icon">↕</span></th>
+          <th data-col="risk" onclick="sortTable('risk')">风险 <span class="sort-icon">↕</span></th>
+        </tr></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const models = {
+  "DeepSeek-V4-Flash": { p_input:1, p_cache:0.2, p_output:2, coeff:1, color:"#3b82f6" },
+  "MiniMax-M3":        { p_input:2.1, p_cache:1.2, p_output:8.4, coeff:3, color:"#8b5cf6" },
+  "GLM-5.2":           { p_input:8, p_cache:2, p_output:28, coeff:8, color:"#ec4899" },
+  "GLM-5.1":           { p_input:6, p_cache:1.3, p_output:24, coeff:5, color:"#f97316" },
+  "Kimi-K2.6":         { p_input:6.5, p_cache:1.1, p_output:27, coeff:5, color:"#14b8a6" },
+  "Kimi-K2.7-Code":    { p_input:6.5, p_cache:1.3, p_output:27, coeff:8, color:"#6366f1" }
+};
+const modelNames = Object.keys(models);
+
+const packages = [
+  { name:"文本模型基础套餐-个人版", spec:50, price:149 },
+  { name:"文本模型进阶套餐-个人版", spec:100, price:289 },
+  { name:"文本模型专业套餐-个人版", spec:500, price:1249 },
+  { name:"文本模型加量包-个人版", spec:50, price:139 },
+  { name:"文本模型基础套餐-企业版", spec:1000, price:2449 },
+  { name:"文本模型进阶套餐-企业版", spec:2500, price:5999 },
+  { name:"文本模型专业套餐-企业版", spec:10000, price:23499 },
+  { name:"文本模型加量包-企业版", spec:1000, price:2399 }
+];
+
+let currentPkg = 0;
+let cacheRate = 0.4; // cache hit rate as fraction of input (0~0.8)
+let c_ratio = 0.5;   // output ratio
+let a_ratio, b_ratio; // auto-calculated
+let modelWeights = [1/6, 1/6, 1/6, 1/6, 1/6, 1/6]; // initial equal
+
+function recalcRatios() {
+  a_ratio = (1 - c_ratio) * (1 - cacheRate);
+  b_ratio = (1 - c_ratio) * cacheRate;
+}
+
+function init() {
+  // Package selector
+  const sel = document.getElementById('pkgSelect');
+  packages.forEach((p,i) => { const o = document.createElement('option'); o.value=i; o.textContent=`${p.name} (${p.spec}M/${p.price}元)`; sel.appendChild(o); });
+  sel.addEventListener('change', () => { currentPkg = parseInt(sel.value); update(); });
+
+  // Model sliders
+  const mc = document.getElementById('modelSliders');
+  modelNames.forEach((mn,i) => {
+    const m = models[mn];
+    const row = document.createElement('div');
+    row.innerHTML = `
+      <div class="slider-row">
+        <span class="s-label" style="color:${m.color}">${mn}</span>
+        <input type="range" id="modelSlider${i}" min="0" max="100" value="${modelWeights[i]*100}" data-idx="${i}">
+        <span class="s-val" id="modelVal${i}">${Math.round(modelWeights[i]*100)}%</span>
+      </div>
+      <div class="coeff-slider-row">
+        <span class="cs-label">🔢 消费系数 f</span>
+        <input type="number" id="coeffInput${i}" min="0.5" max="15" step="0.5" value="${m.coeff}" data-idx="${i}" style="flex:1;width:60px;background:#0d1824;color:#fbbf24;border:1px solid #f59e0b;border-radius:4px;padding:3px 6px;font-size:12px;font-weight:600;text-align:center">
+      </div>
+      <div class="coefficient-row"><span class="c-label">供货价</span><span class="c-val">in=${m.p_input} cache=${m.p_cache} out=${m.p_output}</span></div>`;
+    mc.appendChild(row);
+    row.querySelector(`#modelSlider${i}`).addEventListener('input', onModelSliderChange);
+    row.querySelector(`#coeffInput${i}`).addEventListener('input', onCoeffInputChange);
+    row.querySelector(`#coeffInput${i}`).addEventListener('change', onCoeffInputChange);
+  });
+
+  // Cache rate & output sliders
+  document.getElementById('cacheRateSlider').addEventListener('input', onCacheRateChange);
+  document.getElementById('outputSlider').addEventListener('input', onOutputChange);
+
+  recalcRatios();
+  update();
+}
+
+function onModelSliderChange() {
+  modelWeights = modelNames.map((_,i) => parseFloat(document.getElementById(`modelSlider${i}`).value) || 0);
+  // Normalize
+  const total = modelWeights.reduce((a,b) => a+b, 0);
+  if (total > 0) modelWeights = modelWeights.map(w => w/total);
+  else modelWeights = modelNames.map(() => 1/modelNames.length);
+  modelNames.forEach((_,i) => {
+    document.getElementById(`modelVal${i}`).textContent = Math.round(modelWeights[i]*100) + '%';
+  });
+  updateModelDistBar();
+  update();
+}
+
+function onCoeffInputChange() {
+  modelNames.forEach((mn,i) => {
+    let newCoeff = parseFloat(document.getElementById(`coeffInput${i}`).value);
+    if (isNaN(newCoeff) || newCoeff < 0.5) newCoeff = 0.5;
+    if (newCoeff > 15) newCoeff = 15;
+    models[mn].coeff = newCoeff;
+  });
+  update();
+}
+
+function onCacheRateChange() {
+  cacheRate = parseInt(document.getElementById('cacheRateSlider').value) / 100;
+  document.getElementById('cacheRateVal').textContent = Math.round(cacheRate*100) + '%';
+  recalcRatios();
+  updateRatioDisplay();
+  update();
+}
+
+function onOutputChange() {
+  c_ratio = parseInt(document.getElementById('outputSlider').value) / 100;
+  document.getElementById('outputVal').textContent = Math.round(c_ratio*100) + '%';
+  recalcRatios();
+  updateRatioDisplay();
+  update();
+}
+
+function updateRatioDisplay() {
+  document.getElementById('inputAutoVal').textContent = Math.round(a_ratio*100) + '%';
+  updateRatioBar();
+}
+
+function updateModelDistBar() {
+  const bar = document.getElementById('modelDistBar');
+  bar.innerHTML = modelNames.map((mn,i) => {
+    const pct = Math.round(modelWeights[i]*100);
+    const m = models[mn];
+    return `<div class="seg" style="width:${pct}%;background:${m.color}">${pct>5?mn.split('-')[0]+' '+pct+'%':''}</div>`;
+  }).join('');
+}
+
+function updateRatioBar() {
+  const bar = document.getElementById('ratioBar');
+  const aP = Math.round(a_ratio*100), bP = Math.round(b_ratio*100), cP = Math.round(c_ratio*100);
+  bar.innerHTML = `
+    <div class="seg input-seg" style="width:${aP}%">${aP>8?'输入 '+aP+'%':''}</div>
+    <div class="seg cache-seg" style="width:${bP}%">${bP>8?'缓存 '+bP+'%':''}</div>
+    <div class="seg output-seg" style="width:${cP}%">${cP>8?'输出 '+cP+'%':''}</div>`;
+}
+
+function getEffectivePrices() {
+  let P_in = 0, P_cache = 0, P_out = 0, F = 0;
+  modelNames.forEach((mn,i) => {
+    const m = models[mn];
+    const s = modelWeights[i];
+    P_in += s * m.p_input;
+    P_cache += s * m.p_cache;
+    P_out += s * m.p_output;
+    F += s * m.coeff;
+  });
+  return { P_in, P_cache, P_out, F };
+}
+
+function update() {
+  const pkg = packages[currentPkg];
+  const R = pkg.price / pkg.spec;
+  const { P_in, P_cache, P_out, F } = getEffectivePrices();
+  const effR = R * F; // effective revenue per actual token
+  const costPerActual = a_ratio * P_in + b_ratio * P_cache + c_ratio * P_out;
+  const costPerQuota = costPerActual / F;
+
+  // 利润 = 售价 - 供货成本（按实际Token结算）
+  const totalActualTokens = pkg.spec / F; // 用户耗尽额度时的实际Token数(M)
+  const totalCost = totalActualTokens * costPerActual; // 供货成本(元)
+  const totalProfit = pkg.price - totalCost; // 利润(元) = 售价 - 供货成本
+  const profitRate = totalCost > 0 ? totalProfit / totalCost : 0; // 利润率
+
+  // Cost without cache: treat all cache as regular input
+  const costPerActualNoCache = (a_ratio + b_ratio) * P_in + c_ratio * P_out;
+
+  // Update sidebar
+  document.getElementById('effCoeffDisplay').textContent = F.toFixed(2);
+  document.getElementById('pInDisp').textContent = P_in.toFixed(4);
+  document.getElementById('pCacheDisp').textContent = P_cache.toFixed(4);
+  document.getElementById('pOutDisp').textContent = P_out.toFixed(4);
+  document.getElementById('inputAutoVal').textContent = Math.round(a_ratio*100) + '%';
+
+  // Profit display
+  const pd = document.getElementById('profitBig');
+  const pv = document.getElementById('profitValue');
+  pv.textContent = (profitRate * 100).toFixed(2) + '%';
+  let profitColor, bgColor, status;
+  if (profitRate < 0) { profitColor = '#dc2626'; bgColor = '#fef2f2'; status = '🔴 亏损'; }
+  else if (profitRate < 0.1) { profitColor = '#d97706'; bgColor = '#fffbeb'; status = '🟡 微利(<10%)'; }
+  else { profitColor = '#059669'; bgColor = '#f0fdf4'; status = '🟢 盈利(≥10%)'; }
+  pv.style.color = profitColor;
+  pd.style.background = bgColor;
+  document.getElementById('profitStatus').textContent = status;
+
+  // Breakeven calculations
+  // No-cache breakeven: effR = (1-c)*P_in + c*P_out => c = (effR - P_in)/(P_out - P_in)
+  let beNoCache; if(effR>=P_out)beNoCache=1;else if(effR<=P_in)beNoCache=0;else beNoCache=(effR-P_in)/(P_out-P_in);
+  // Current cache rate breakeven: w = (1-r)*P_in + r*P_cache; beCurrent = (effR - w)/(P_out - w)
+  const w = (1 - cacheRate) * P_in + cacheRate * P_cache;
+  let beCurrent; if(effR>=P_out)beCurrent=1;else if(effR<=w)beCurrent=0;else beCurrent=(effR-w)/(P_out-w);
+  // 10% profit with current cache rate: be10 = (effR/1.1 - w)/(P_out - w)
+  let be10; if(effR/1.1>=P_out)be10=1;else if(effR/1.1<=w)be10=0;else be10=(effR/1.1-w)/(P_out-w);
+
+  // Metrics
+  document.getElementById('mEffCoeff').textContent = F.toFixed(2);
+  document.getElementById('mPkgRevenue').textContent = pkg.price;
+  document.getElementById('mTotalCost').textContent = totalCost.toFixed(1);
+  document.getElementById('mTotalProfit').textContent = totalProfit.toFixed(1);
+
+  // Insight
+  const ib = document.getElementById('insightBox');
+  const currentOutputPct = Math.round(c_ratio*100);
+  let html = `<strong>售价${pkg.price}元 - 供货成本${totalCost.toFixed(1)}元 = 利润${totalProfit.toFixed(1)}元</strong><br>`;
+  html += `<strong>消费系数F=${F.toFixed(2)}</strong>：用户耗尽额度可用${totalActualTokens.toFixed(2)}M实际Token<br>`;
+  html += `<strong>保本输出%(当前缓存率)：${(beCurrent*100).toFixed(1)}%</strong> | 无缓存：${(beNoCache*100).toFixed(1)}%<br>`;
+  if (profitRate < 0) html += `⚠️ <strong>当前亏损！</strong>输出${currentOutputPct}%需超过保本线${(beCurrent*100).toFixed(1)}%`;
+  else if (profitRate < 0.1) html += `⚡ 微利，距10%盈利线(${(be10*100).toFixed(1)}%输出)还差${((be10-c_ratio)*100).toFixed(1)}%`;
+  else html += `✅ 盈利超10%，距保本线还有${((c_ratio-beCurrent)*100).toFixed(1)}%的输出空间`;
+  ib.innerHTML = html;
+
+  // Cache effect box
+  const ceb = document.getElementById('cacheEffectBox');
+  const totalActualNoCache = pkg.spec / F; // same F, same actual tokens
+  const totalCostNoCache = totalActualNoCache * costPerActualNoCache; // 无缓存供货成本
+  const costSaving = totalCostNoCache - totalCost;
+  const savingPct = totalCostNoCache > 0 ? (costSaving / totalCostNoCache * 100) : 0;
+  const beImprovement = (beNoCache - beCurrent) * 100;
+  let cacheHtml = `<strong>💾 缓存命中效果分析</strong><br>`;
+  cacheHtml += `<strong>供货成本节省</strong>：${costSaving.toFixed(1)}元（降${savingPct.toFixed(1)}%）<br>`;
+  cacheHtml += `无缓存供货成本 = ${totalCostNoCache.toFixed(1)}元，当前 = ${totalCost.toFixed(1)}元<br>`;
+  cacheHtml += `<strong>保本线改善</strong>：无缓存需输出${(beNoCache*100).toFixed(1)}%，当前缓存率仅需${(beCurrent*100).toFixed(1)}%（改善${beImprovement.toFixed(1)}%）<br>`;
+  if (cacheRate < 0.01) {
+    cacheHtml += `<span style="color:#94a3b8">💡 缓存命中率为0，与无缓存场景一致，请调高缓存命中率查看效果</span>`;
+  } else {
+    const savingRatio = (P_in - P_cache) / P_in * cacheRate * 100;
+    cacheHtml += `💡 缓存命中率${Math.round(cacheRate*100)}%使输入部分价格降低${savingRatio.toFixed(1)}%（P_cache/P_in = ${(P_cache/P_in*100).toFixed(0)}%）`;
+  }
+  ceb.innerHTML = cacheHtml;
+
+  // Model profit bars
+  updateModelProfitBars(R);
+  updateRatioBar();
+  updateModelDistBar();
+  drawSimplex(P_in, P_cache, P_out, effR);
+  drawGauge(profitRate);
+  updateTable();
+}
+
+function updateModelProfitBars(R) {
+  const container = document.getElementById('modelProfitBars');
+  const pkg = packages[currentPkg];
+  let html = '';
+  modelNames.forEach((mn,i) => {
+    const m = models[mn];
+    const s = modelWeights[i];
+    // 若用户只用该模型耗尽全部额度
+    const actualTokens = pkg.spec / m.coeff; // 可用实际Token(M)
+    const cost_i = a_ratio * m.p_input + b_ratio * m.p_cache + c_ratio * m.p_output; // 供货价/实际Token
+    const totalCost_i = actualTokens * cost_i; // 供货成本
+    const profit_i = pkg.price - totalCost_i; // 利润 = 售价 - 供货成本
+    const profitRate_i = totalCost_i > 0 ? profit_i / totalCost_i : 0;
+    const barWidth = Math.min(Math.abs(profitRate_i) * 150, 100);
+    const barColor = profitRate_i >= 0 ? '#22c55e' : '#ef4444';
+    html += `<div class="model-bar-row">
+      <span class="mb-label" style="color:${m.color}">${mn} <small style="color:#94a3b8">f=${m.coeff}</small></span>
+      <div class="mb-bar-bg"><div class="mb-bar" style="width:${barWidth}%;background:${barColor}">${(profitRate_i*100).toFixed(0)}%</div></div>
+      <span class="mb-val" style="color:${profitRate_i>=0?'#059669':'#dc2626'}">${profit_i>=0?'+':''}${profit_i.toFixed(0)}元(${(profitRate_i*100).toFixed(1)}%)</span>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function drawSimplex(P_in, P_cache, P_out, effR) {
+  const canvas = document.getElementById('simplexCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const pad = 60;
+  const triW = W - 2*pad, triH = H - 2*pad - 30;
+  ctx.clearRect(0, 0, W, H);
+
+  const Ax = pad, Ay = pad + triH;
+  const Bx = pad + triW, By = pad + triH;
+  const Cx = pad + triW/2, Cy = pad;
+
+  function toPixel(a, b, c) { return [ a*Ax + b*Bx + c*Cx, a*Ay + b*By + c*Cy ]; }
+
+  // Color fill
+  for (let py = Math.floor(Cy); py <= Math.ceil(Ay); py++) {
+    for (let px = Math.floor(Ax); px <= Math.ceil(Bx); px++) {
+      const vv = (py - Ay) / (Cy - Ay);
+      const cc = vv;
+      const hh = (px - Ax) / (Bx - Ax);
+      const bb = hh * (1 - cc);
+      const aa = 1 - bb - cc;
+      if (aa < -0.01 || bb < -0.01 || cc < -0.01) continue;
+      const ca = Math.max(0,aa), cb = Math.max(0,bb), cc2 = Math.max(0,cc);
+      const sum = ca+cb+cc2; if(sum<0.01)continue;
+      const na=ca/sum, nb=cb/sum, nc=cc2/sum;
+      const cost = na*P_in + nb*P_cache + nc*P_out;
+      const profit = (effR - cost) / cost;
+      if (profit < 0) ctx.fillStyle = 'rgba(239,68,68,0.25)';
+      else if (profit < 0.1) ctx.fillStyle = 'rgba(251,191,36,0.3)';
+      else ctx.fillStyle = 'rgba(34,197,94,0.25)';
+      ctx.fillRect(px, py, 1, 1);
+    }
+  }
+
+  // Triangle border
+  ctx.beginPath(); ctx.moveTo(Ax,Ay); ctx.lineTo(Bx,By); ctx.lineTo(Cx,Cy); ctx.closePath();
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Cache constraint line (green, solid)
+  // Line from (0, 0, 1) [pure output] to (1-cacheRate, cacheRate, 0) [input with cache hit]
+  const p1 = toPixel(0, 0, 1);
+  const p2 = toPixel(1 - cacheRate, cacheRate, 0);
+  ctx.save();
+  ctx.strokeStyle = '#10b981';
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(p1[0], p1[1]);
+  ctx.lineTo(p2[0], p2[1]);
+  ctx.stroke();
+  // Label
+  ctx.font = 'bold 11px Microsoft YaHei';
+  ctx.fillStyle = '#10b981';
+  const labelX = (p1[0] + p2[0]) / 2 + 10;
+  const labelY = (p1[1] + p2[1]) / 2 - 8;
+  ctx.fillText('缓存约束线', labelX, labelY);
+  ctx.font = '10px Microsoft YaHei';
+  ctx.fillText(`b/(a+b)=${Math.round(cacheRate*100)}%`, labelX, labelY + 14);
+  ctx.restore();
+
+  // Breakeven line
+  drawLine(ctx, P_in, P_cache, P_out, effR, Ax,Ay,Bx,By,Cx,Cy, '#ef4444', '保本线');
+  // 10% profit line
+  drawLine(ctx, P_in, P_cache, P_out, effR/1.1, Ax,Ay,Bx,By,Cx,Cy, '#3b82f6', '10%盈利线');
+
+  // Current point
+  const [px2, py2] = toPixel(a_ratio, b_ratio, c_ratio);
+  ctx.beginPath(); ctx.arc(px2, py2, 8, 0, Math.PI*2);
+  ctx.fillStyle = '#1e2a3a'; ctx.fill();
+  ctx.beginPath(); ctx.arc(px2, py2, 5, 0, Math.PI*2);
+  ctx.fillStyle = '#10b981'; ctx.fill();
+  ctx.beginPath(); ctx.arc(px2, py2, 3, 0, Math.PI*2);
+  ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.save(); ctx.font = 'bold 11px Microsoft YaHei'; ctx.fillStyle = '#1e2a3a';
+  ctx.fillText(`(${Math.round(a_ratio*100)}%/${Math.round(b_ratio*100)}%/${Math.round(c_ratio*100)}%)`, px2+12, py2-8);
+  ctx.restore();
+
+  // Labels
+  ctx.save(); ctx.font = 'bold 13px Microsoft YaHei';
+  ctx.fillStyle = '#3b82f6'; ctx.fillText('📥 输入(a)', Ax-10, Ay+22);
+  ctx.fillStyle = '#10b981'; ctx.fillText('💾 缓存(b)', Bx-40, By+22);
+  ctx.fillStyle = '#f59e0b'; ctx.fillText('📤 输出(c)', Cx-20, Cy-12);
+  ctx.restore();
+  ctx.save(); ctx.font = '11px Microsoft YaHei'; ctx.fillStyle = '#666';
+  ctx.fillText('a=1', Ax-5, Ay+36); ctx.fillText('b=1', Bx-10, By+36); ctx.fillText('c=1', Cx-8, Cy-26);
+  ctx.restore();
+}
+
+function drawLine(ctx, p_in, p_cache, p_out, target, Ax,Ay,Bx,By,Cx,Cy, color, label) {
+  const intersections = [];
+  // Edge a=0 (b+c=1)
+  if (Math.abs(p_out - p_cache) > 0.001) {
+    const c = (target - p_cache) / (p_out - p_cache);
+    if (c >= 0 && c <= 1) intersections.push([0, 1-c, c]);
+  }
+  // Edge b=0 (a+c=1)
+  if (Math.abs(p_out - p_in) > 0.001) {
+    const c = (target - p_in) / (p_out - p_in);
+    if (c >= 0 && c <= 1) intersections.push([1-c, 0, c]);
+  }
+  // Edge c=0 (a+b=1)
+  if (Math.abs(p_cache - p_in) > 0.001) {
+    const b = (target - p_in) / (p_cache - p_in);
+    if (b >= 0 && b <= 1) intersections.push([1-b, b, 0]);
+  }
+  if (intersections.length >= 2) {
+    const [p1, p2] = intersections;
+    const x1 = p1[0]*Ax+p1[1]*Bx+p1[2]*Cx, y1 = p1[0]*Ay+p1[1]*By+p1[2]*Cy;
+    const x2 = p2[0]*Ax+p2[1]*Bx+p2[2]*Cx, y2 = p2[0]*Ay+p2[1]*By+p2[2]*Cy;
+    ctx.save(); ctx.setLineDash([6,4]); ctx.strokeStyle = color; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = '11px Microsoft YaHei'; ctx.fillStyle = color;
+    ctx.fillText(label, (x1+x2)/2 + 8, (y1+y2)/2 - 6);
+    ctx.restore();
+  }
+}
+
+function drawGauge(profitRate) {
+  const canvas = document.getElementById('gaugeCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  const cx = W/2, cy = H - 15, r = 80;
+  const startAngle = Math.PI, endAngle = 2*Math.PI;
+
+  ctx.beginPath(); ctx.arc(cx, cy, r, startAngle, endAngle);
+  ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 16; ctx.lineCap = 'round'; ctx.stroke();
+
+  const segments = [{from:-0.3,to:0,color:'#ef4444'},{from:0,to:0.1,color:'#fbbf24'},{from:0.1,to:0.5,color:'#22c55e'}];
+  const minVal = -0.3, maxVal = 0.5;
+  segments.forEach(seg => {
+    const a1 = startAngle + (seg.from-minVal)/(maxVal-minVal)*Math.PI;
+    const a2 = startAngle + (seg.to-minVal)/(maxVal-minVal)*Math.PI;
+    ctx.beginPath(); ctx.arc(cx, cy, r, a1, a2);
+    ctx.strokeStyle = seg.color; ctx.lineWidth = 16; ctx.lineCap = 'butt'; ctx.stroke();
+  });
+
+  const clampedVal = Math.max(minVal, Math.min(maxVal, profitRate));
+  const needleAngle = startAngle + (clampedVal-minVal)/(maxVal-minVal)*Math.PI;
+  const nx = cx + (r-5)*Math.cos(needleAngle), ny = cy + (r-5)*Math.sin(needleAngle);
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(nx,ny);
+  ctx.strokeStyle = '#1e2a3a'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,5,0,Math.PI*2); ctx.fillStyle='#1e2a3a'; ctx.fill();
+
+  ctx.save(); ctx.font = '10px Microsoft YaHei'; ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center';
+  ctx.fillText('-30%', cx-r-8, cy+14); ctx.fillText('0%', cx, cy-r+5); ctx.fillText('+50%', cx+r+8, cy+14);
+  ctx.restore();
+}
+
+function updateTable() {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  const { P_in, P_cache, P_out, F } = getEffectivePrices();
+  const costPerActual = a_ratio * P_in + b_ratio * P_cache + c_ratio * P_out;
+
+  const rows = [];
+  packages.forEach((pkg, idx) => {
+    const R = pkg.price / pkg.spec;
+    const effR = R * F;
+    const totalActual = pkg.spec / F;
+    const totalCostPkg = totalActual * costPerActual; // 供货成本(元)
+    const totalProfitPkg = pkg.price - totalCostPkg; // 利润(元)
+    const profit = totalCostPkg > 0 ? totalProfitPkg / totalCostPkg : 0;
+
+    // No-cache breakeven
+    let beNoCache; if(effR>=P_out)beNoCache=1;else if(effR<=P_in)beNoCache=0;else beNoCache=(effR-P_in)/(P_out-P_in);
+    // Current cache rate breakeven: w = (1-cacheRate)*P_in + cacheRate*P_cache
+    const w = (1 - cacheRate) * P_in + cacheRate * P_cache;
+    let beCurrent; if(effR>=P_out)beCurrent=1;else if(effR<=w)beCurrent=0;else beCurrent=(effR-w)/(P_out-w);
+    // 10% profit with current cache rate
+    let be10; if(effR/1.1>=P_out)be10=1;else if(effR/1.1<=w)be10=0;else be10=(effR/1.1-w)/(P_out-w);
+
+    let risk, riskClass;
+    if(profit<0.05){risk='高';riskClass='risk-high';}else if(profit<0.15){risk='中';riskClass='risk-mid';}else{risk='低';riskClass='risk-low';}
+    rows.push({ pkg, idx, R, totalCost: totalCostPkg, profit, beCurrent, beNoCache, be10, risk, riskClass,
+      profitClass: profit<0?'#dc2626':profit<0.1?'#d97706':'#059669' });
+  });
+
+  if (sortCol) {
+    rows.sort((a,b) => {
+      let va = a[sortCol], vb = b[sortCol];
+      if (typeof va === 'string') { va=va.toLowerCase(); vb=vb.toLowerCase(); }
+      if (sortCol==='risk'){const o={'高':0,'中':1,'低':2};va=o[va]??9;vb=o[vb]??9;}
+      if (va < vb) return sortDir==='asc'?-1:1;
+      if (va > vb) return sortDir==='asc'?1:-1;
+      return 0;
+    });
+  }
+
+  let visibleCount = 0;
+  rows.forEach(r => {
+    const frVal = document.getElementById('filterRisk').value;
+    const fpVal = document.getElementById('filterProfit').value;
+    const fsVal = document.getElementById('filterSearch').value.toLowerCase();
+    if(frVal && r.risk!==frVal) return;
+    if(fpVal==='loss' && r.profit>=0) return;
+    if(fpVal==='low' && (r.profit<0||r.profit>=0.1)) return;
+    if(fpVal==='mid' && (r.profit<0.1||r.profit>=0.2)) return;
+    if(fpVal==='high' && r.profit<0.2) return;
+    if(fsVal && !r.pkg.name.toLowerCase().includes(fsVal)) return;
+
+    visibleCount++;
+    const tr = document.createElement('tr');
+    if(r.idx===currentPkg) tr.className = 'current-row';
+    const outputExceedsBeCurrent = c_ratio > r.beCurrent;
+    tr.innerHTML = `
+      <td>${r.pkg.name}</td><td>${r.pkg.spec}</td><td>${r.pkg.price}</td>
+      <td>${r.R.toFixed(4)}</td><td>${r.totalCost.toFixed(1)}</td>
+      <td style="color:${r.profitClass};font-weight:600">${(r.profit*100).toFixed(2)}%</td>
+      <td style="color:#94a3b8">${(r.beNoCache*100).toFixed(1)}%</td>
+      <td style="color:${outputExceedsBeCurrent?'#dc2626':'#059669'};font-weight:600">${(r.beCurrent*100).toFixed(1)}%</td>
+      <td style="color:#3b82f6">${(r.be10*100).toFixed(1)}%</td>
+      <td class="${r.riskClass}">${r.risk}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('resultCount').textContent = `显示 ${visibleCount} / ${rows.length} 条`;
+}
+
+let sortCol = '', sortDir = 'asc';
+function sortTable(col) {
+  if(sortCol===col){sortDir=sortDir==='asc'?'desc':'asc';}else{sortCol=col;sortDir='asc';}
+  document.querySelectorAll('th').forEach(th=>{th.classList.remove('sorted');const ic=th.querySelector('.sort-icon');if(ic)ic.textContent='↕';});
+  const at=document.querySelector(`th[data-col="${col}"]`);
+  if(at){at.classList.add('sorted');const ic=at.querySelector('.sort-icon');if(ic)ic.textContent=sortDir==='asc'?'↑':'↓';}
+  updateTable();
+}
+function clearFilters(){document.getElementById('filterRisk').value='';document.getElementById('filterProfit').value='';document.getElementById('filterSearch').value='';updateTable();}
+['filterRisk','filterProfit','filterSearch'].forEach(id=>{document.getElementById(id).addEventListener('input',updateTable);document.getElementById(id).addEventListener('change',updateTable);});
+
+window.onload = init;
+</script>
+</body>
+</html>

@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大模型资源包收益临界分析 - 自由调节模式</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; background: #f0f2f5; color: #333; }
+.header { background: linear-gradient(135deg, #1a3a5c 0%, #2d5f8a 100%); color: white; padding: 16px 32px; display: flex; align-items: center; gap: 16px; }
+.header h1 { font-size: 20px; font-weight: 600; }
+.header .badge { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; font-size: 12px; }
+.main { display: flex; min-height: calc(100vh - 56px); }
+.sidebar { width: 320px; background: #1e2a3a; color: #e0e6ed; padding: 24px; flex-shrink: 0; overflow-y: auto; }
+.sidebar h3 { font-size: 14px; color: #8b9eb0; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; margin-top: 20px; }
+.sidebar h3:first-child { margin-top: 0; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 13px; color: #8b9eb0; margin-bottom: 6px; }
+.form-group select, .form-group input[type="range"] { width: 100%; }
+.form-group select { background: #2a3a4e; color: #e0e6ed; border: 1px solid #3a4e66; padding: 8px 12px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+.form-group select:focus { outline: none; border-color: #4a9eff; }
+.slider-row { display: flex; align-items: center; gap: 10px; }
+.slider-row input[type="range"] { flex: 1; accent-color: #4a9eff; }
+.slider-val { min-width: 52px; text-align: right; font-size: 14px; font-weight: 600; color: #fff; }
+.ratio-bar { margin-top: 16px; background: #0d1824; border-radius: 8px; overflow: hidden; height: 36px; display: flex; position: relative; }
+.ratio-bar .seg { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: white; transition: width 0.3s; min-width: 0; overflow: hidden; white-space: nowrap; }
+.ratio-bar .seg.input-seg { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+.ratio-bar .seg.cache-seg { background: linear-gradient(90deg, #10b981, #34d399); }
+.ratio-bar .seg.output-seg { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.content { flex: 1; padding: 24px; overflow-y: auto; }
+.viz-area { display: flex; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; }
+.viz-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.triangle-card { flex: 1; min-width: 400px; }
+.gauge-card { width: 280px; display: flex; flex-direction: column; gap: 16px; }
+canvas { display: block; }
+.profit-display { text-align: center; padding: 16px; border-radius: 10px; }
+.profit-display .label { font-size: 13px; color: #8b9eb0; margin-bottom: 4px; }
+.profit-display .value { font-size: 36px; font-weight: 700; }
+.profit-display .sub { font-size: 12px; color: #8b9eb0; margin-top: 4px; }
+.cost-breakdown { background: #f8fafc; border-radius: 8px; padding: 12px 16px; }
+.cost-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 13px; }
+.cost-row .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+.cost-row .val { font-weight: 600; }
+.breakdown-bar { height: 24px; border-radius: 6px; overflow: hidden; display: flex; margin: 8px 0; }
+.breakdown-bar .seg { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; font-weight: 600; transition: width 0.3s; }
+.insight-box { background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 0 8px 8px 0; padding: 12px 16px; font-size: 13px; line-height: 1.8; margin-top: 12px; }
+.insight-box strong { color: #92400e; }
+.table-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow-x: auto; }
+.table-card h3 { font-size: 16px; margin-bottom: 12px; color: #1e2a3a; }
+.filter-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; padding: 12px 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e5e7eb; }
+.filter-bar label { font-size: 13px; color: #64748b; font-weight: 600; white-space: nowrap; }
+.filter-bar select, .filter-bar input { font-size: 13px; padding: 5px 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: white; color: #1e2a3a; }
+.filter-bar select:focus, .filter-bar input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+.filter-bar .filter-group { display: flex; align-items: center; gap: 6px; }
+.filter-bar .btn-clear { padding: 5px 12px; font-size: 12px; background: #e2e8f0; border: none; border-radius: 6px; cursor: pointer; color: #475569; font-weight: 600; }
+.filter-bar .btn-clear:hover { background: #cbd5e1; }
+.filter-bar .result-count { font-size: 12px; color: #94a3b8; margin-left: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: #1e2a3a; color: white; padding: 10px 12px; text-align: center; font-weight: 600; position: sticky; top: 0; cursor: pointer; user-select: none; white-space: nowrap; }
+th:hover { background: #2d4a6a; }
+th .sort-icon { font-size: 10px; margin-left: 2px; opacity: 0.4; }
+th.sorted .sort-icon { opacity: 1; }
+td { padding: 8px 12px; text-align: center; border-bottom: 1px solid #e5e7eb; }
+tr:hover td { background: #f0f7ff; }
+tr.hidden-row { display: none; }
+.risk-high { background: #fee2e2 !important; color: #991b1b; font-weight: 600; }
+.risk-mid { background: #fef3c7 !important; color: #92400e; font-weight: 600; }
+.risk-low { background: #d1fae5 !important; color: #065f46; font-weight: 600; }
+.current-row td { background: #eff6ff !important; font-weight: 600; }
+.legend { display: flex; gap: 16px; margin-top: 12px; justify-content: center; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.legend-color { width: 24px; height: 12px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📊 大模型资源包收益临界分析</h1>
+  <span class="badge">模式一：自由调节输入/输出/缓存比例</span>
+</div>
+<div class="main">
+  <div class="sidebar">
+    <h3>选择模型</h3>
+    <div class="form-group">
+      <label>模型名称</label>
+      <select id="modelSelect"></select>
+    </div>
+    <div class="form-group">
+      <label>套餐包</label>
+      <select id="pkgSelect"></select>
+    </div>
+    <h3>调节比例</h3>
+    <div class="form-group">
+      <label>输入比例（未命中缓存）</label>
+      <div class="slider-row">
+        <input type="range" id="inputSlider" min="0" max="100" value="30" step="1">
+        <span class="slider-val" id="inputVal">30%</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>输出比例</label>
+      <div class="slider-row">
+        <input type="range" id="outputSlider" min="0" max="100" value="50" step="1">
+        <span class="slider-val" id="outputVal">50%</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>缓存命中比例 <span style="color:#4a9eff">（自动计算）</span></label>
+      <div class="slider-row">
+        <input type="range" id="cacheSlider" min="0" max="100" value="20" step="1" disabled>
+        <span class="slider-val" id="cacheVal" style="color:#4a9eff">20%</span>
+      </div>
+    </div>
+    <div class="ratio-bar" id="ratioBar">
+      <div class="seg input-seg" style="width:30%">输入 30%</div>
+      <div class="seg cache-seg" style="width:20%">缓存 20%</div>
+      <div class="seg output-seg" style="width:50%">输出 50%</div>
+    </div>
+    <h3>供货价（元/百万Token）</h3>
+    <div style="font-size:13px; line-height: 2;">
+      <div>📥 输入单价：<span id="pInDisplay" style="color:#60a5fa;font-weight:600">-</span></div>
+      <div>💾 缓存命中单价：<span id="pCacheDisplay" style="color:#34d399;font-weight:600">-</span></div>
+      <div>📤 输出单价：<span id="pOutDisplay" style="color:#fbbf24;font-weight:600">-</span></div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="viz-area">
+      <div class="viz-card triangle-card">
+        <canvas id="simplexCanvas" width="500" height="450"></canvas>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-color" style="background:#ef4444"></div>亏损区域</div>
+          <div class="legend-item"><div class="legend-color" style="background:#fbbf24"></div>盈利0~10%</div>
+          <div class="legend-item"><div class="legend-color" style="background:#22c55e"></div>盈利≥10%</div>
+          <div class="legend-item"><div class="legend-color" style="background:transparent;border:2px dashed #ef4444"></div>保本线</div>
+          <div class="legend-item"><div class="legend-color" style="background:transparent;border:2px dashed #3b82f6"></div>10%盈利线</div>
+          <div class="legend-item"><div class="legend-color" style="background:#000;border-radius:50%;width:12px;height:12px"></div>当前比例</div>
+        </div>
+      </div>
+      <div class="viz-card gauge-card">
+        <div class="profit-display" id="profitDisplay">
+          <div class="label">当前利润率</div>
+          <div class="value" id="profitValue">-</div>
+          <div class="sub" id="profitSub"></div>
+        </div>
+        <canvas id="gaugeCanvas" width="240" height="150"></canvas>
+        <div class="cost-breakdown">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#1e2a3a">成本构成</div>
+          <div class="cost-row"><span><span class="dot" style="background:#3b82f6"></span>输入成本</span><span class="val" id="costInput">-</span></div>
+          <div class="cost-row"><span><span class="dot" style="background:#10b981"></span>缓存命中成本</span><span class="val" id="costCache">-</span></div>
+          <div class="cost-row"><span><span class="dot" style="background:#f59e0b"></span>输出成本</span><span class="val" id="costOutput">-</span></div>
+          <div style="border-top:1px solid #e5e7eb;margin:6px 0"></div>
+          <div class="cost-row"><span style="font-weight:600">总成本/M</span><span class="val" id="costTotal" style="color:#1e2a3a">-</span></div>
+          <div class="cost-row"><span style="font-weight:600">售价/M</span><span class="val" id="revenuePerM" style="color:#1e2a3a">-</span></div>
+          <div class="breakdown-bar" id="breakdownBar"></div>
+        </div>
+        <div class="insight-box" id="insightBox"></div>
+      </div>
+    </div>
+    <div class="table-card">
+      <h3>📋 所有模型套餐包收益临界分析</h3>
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label>模型：</label>
+          <select id="filterModel"><option value="">全部</option></select>
+        </div>
+        <div class="filter-group">
+          <label>风险：</label>
+          <select id="filterRisk">
+            <option value="">全部</option>
+            <option value="高">高风险</option>
+            <option value="中">中风险</option>
+            <option value="低">低风险</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>利润率：</label>
+          <select id="filterProfit">
+            <option value="">全部</option>
+            <option value="loss">亏损(&lt;0%)</option>
+            <option value="low">微利(0~10%)</option>
+            <option value="mid">盈利(10~20%)</option>
+            <option value="high">高盈利(≥20%)</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>搜索：</label>
+          <input type="text" id="filterSearch" placeholder="模型/套餐名..." style="width:140px">
+        </div>
+        <button class="btn-clear" onclick="clearFilters()">清除筛选</button>
+        <span class="result-count" id="resultCount"></span>
+      </div>
+      <table id="resultTable">
+        <thead>
+          <tr>
+            <th data-col="model" onclick="sortTable('model')">模型 <span class="sort-icon">↕</span></th>
+            <th data-col="pkg" onclick="sortTable('pkg')">套餐包 <span class="sort-icon">↕</span></th>
+            <th data-col="spec" onclick="sortTable('spec')">规格(M) <span class="sort-icon">↕</span></th>
+            <th data-col="price" onclick="sortTable('price')">售价 <span class="sort-icon">↕</span></th>
+            <th data-col="R" onclick="sortTable('R')">R(元/M) <span class="sort-icon">↕</span></th>
+            <th data-col="cost" onclick="sortTable('cost')">加权成本 <span class="sort-icon">↕</span></th>
+            <th data-col="profit" onclick="sortTable('profit')">当前利润率 <span class="sort-icon">↕</span></th>
+            <th data-col="beCurrentO" onclick="sortTable('beCurrentO')">保本输出%<br><small style="font-weight:400;opacity:.7">当前比例</small> <span class="sort-icon">↕</span></th>
+            <th data-col="p10CurrentO" onclick="sortTable('p10CurrentO')">10%盈输出%<br><small style="font-weight:400;opacity:.7">当前比例</small> <span class="sort-icon">↕</span></th>
+            <th data-col="beO" onclick="sortTable('beO')">保本输出%<br><small style="font-weight:400;opacity:.7">无缓存</small> <span class="sort-icon">↕</span></th>
+            <th data-col="risk" onclick="sortTable('risk')">风险 <span class="sort-icon">↕</span></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const models = {
+  "DeepSeek-V4-Flash": { p_input: 1, p_cache: 0.2, p_output: 2,
+    packages: [
+      {name:"10M Token资源包",spec:10,price:18},{name:"50M Token资源包",spec:50,price:85},
+      {name:"100M Token资源包",spec:100,price:165},{name:"5亿 Token资源包（企业版）",spec:500,price:799},
+      {name:"25亿 Token资源包（企业版）",spec:2500,price:3849},{name:"100亿 Token资源包（企业版）",spec:10000,price:14900}
+    ]},
+  "GLM-5.1": { p_input: 6, p_cache: 1.3, p_output: 24,
+    packages: [
+      {name:"10M Token资源包",spec:10,price:169},{name:"50M Token资源包",spec:50,price:819},
+      {name:"100M Token资源包",spec:100,price:1599},{name:"5亿 Token资源包（企业版）",spec:500,price:7749},
+      {name:"25亿 Token资源包（企业版）",spec:2500,price:37499},{name:"100亿 Token资源包（企业版）",spec:10000,price:144999}
+    ]},
+  "GLM-5.2": { p_input: 8, p_cache: 2, p_output: 28,
+    packages: [
+      {name:"10M Token资源包",spec:10,price:199},{name:"50M Token资源包",spec:50,price:969},
+      {name:"100M Token资源包",spec:100,price:1899},{name:"5亿 Token资源包（企业版）",spec:500,price:9249},
+      {name:"25亿 Token资源包（企业版）",spec:2500,price:44900},{name:"100亿 Token资源包（企业版）",spec:10000,price:174999}
+    ]},
+  "Kimi-K2.6": { p_input: 6.5, p_cache: 1.1, p_output: 27,
+    packages: [
+      {name:"10M Token资源包",spec:10,price:189},{name:"50M Token资源包",spec:50,price:899},
+      {name:"100M Token资源包",spec:100,price:1749},{name:"5亿 Token资源包（企业版）",spec:500,price:8699},
+      {name:"25亿 Token资源包（企业版）",spec:2500,price:42499},{name:"100亿 Token资源包（企业版）",spec:10000,price:164999}
+    ]},
+  "Kimi-K2.7-Code": { p_input: 6.5, p_cache: 1.3, p_output: 27,
+    packages: [
+      {name:"10M Token资源包",spec:10,price:189},{name:"50M Token资源包",spec:50,price:899},
+      {name:"100M Token资源包",spec:100,price:1749},{name:"5亿 Token资源包（企业版）",spec:500,price:8699},
+      {name:"25亿 Token资源包（企业版）",spec:2500,price:42499},{name:"100亿 Token资源包（企业版）",spec:10000,price:164999}
+    ]},
+  "MiniMax-M3": { p_input: 2.1, p_cache: 1.2, p_output: 8.4,
+    packages: [
+      {name:"10M Token资源包",spec:10,price:59},{name:"50M Token资源包",spec:50,price:295},
+      {name:"100M Token资源包",spec:100,price:589},{name:"5亿 Token资源包（企业版）",spec:500,price:2899},
+      {name:"25亿 Token资源包（企业版）",spec:2500,price:14299},{name:"100亿 Token资源包（企业版）",spec:10000,price:54999}
+    ]}
+};
+
+let currentModel, currentPkg, a_ratio=0.3, b_ratio=0.2, c_ratio=0.5;
+
+function init() {
+  const modelSel = document.getElementById('modelSelect');
+  Object.keys(models).forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; modelSel.appendChild(o); });
+  currentModel = Object.keys(models)[0];
+  modelSel.value = currentModel;
+  updatePackages();
+  modelSel.addEventListener('change', () => { currentModel = modelSel.value; updatePackages(); update(); });
+  document.getElementById('pkgSelect').addEventListener('change', () => { currentPkg = parseInt(document.getElementById('pkgSelect').value); update(); });
+  document.getElementById('inputSlider').addEventListener('input', onSliderChange);
+  document.getElementById('outputSlider').addEventListener('input', onSliderChange);
+  update();
+}
+
+function updatePackages() {
+  const sel = document.getElementById('pkgSelect');
+  sel.innerHTML = '';
+  models[currentModel].packages.forEach((p,i) => { const o = document.createElement('option'); o.value = i; o.textContent = p.name; sel.appendChild(o); });
+  currentPkg = 0;
+  update();
+}
+
+function onSliderChange() {
+  let inputPct = parseInt(document.getElementById('inputSlider').value);
+  let outputPct = parseInt(document.getElementById('outputSlider').value);
+  if (inputPct + outputPct > 100) {
+    if (this.id === 'inputSlider') outputPct = 100 - inputPct;
+    else inputPct = 100 - outputPct;
+  }
+  document.getElementById('inputSlider').value = inputPct;
+  document.getElementById('outputSlider').value = outputPct;
+  a_ratio = inputPct / 100;
+  c_ratio = outputPct / 100;
+  b_ratio = 1 - a_ratio - c_ratio;
+  document.getElementById('inputVal').textContent = inputPct + '%';
+  document.getElementById('outputVal').textContent = outputPct + '%';
+  document.getElementById('cacheVal').textContent = Math.round(b_ratio*100) + '%';
+  document.getElementById('cacheSlider').value = Math.round(b_ratio*100);
+  updateRatioBar();
+  update();
+}
+
+function updateRatioBar() {
+  const bar = document.getElementById('ratioBar');
+  const aP = Math.round(a_ratio*100), bP = Math.round(b_ratio*100), cP = Math.round(c_ratio*100);
+  bar.innerHTML = `
+    <div class="seg input-seg" style="width:${aP}%">${aP>8?'输入 '+aP+'%':aP>0?'入':''}</div>
+    <div class="seg cache-seg" style="width:${bP}%">${bP>8?'缓存 '+bP+'%':bP>0?'缓':''}</div>
+    <div class="seg output-seg" style="width:${cP}%">${cP>8?'输出 '+cP+'%':cP>0?'出':''}</div>`;
+}
+
+function update() {
+  const m = models[currentModel];
+  const pkg = m.packages[currentPkg];
+  const R = pkg.price / pkg.spec;
+  const cost = a_ratio * m.p_input + b_ratio * m.p_cache + c_ratio * m.p_output;
+  const profitRate = (R - cost) / cost;
+  const cInput = a_ratio * m.p_input, cCache = b_ratio * m.p_cache, cOutput = c_ratio * m.p_output;
+
+  document.getElementById('pInDisplay').textContent = m.p_input;
+  document.getElementById('pCacheDisplay').textContent = m.p_cache;
+  document.getElementById('pOutDisplay').textContent = m.p_output;
+
+  // Profit display
+  const pd = document.getElementById('profitDisplay');
+  const pv = document.getElementById('profitValue');
+  pv.textContent = (profitRate * 100).toFixed(2) + '%';
+  let profitColor, profitStatus, bgColor;
+  if (profitRate < 0) { profitColor = '#dc2626'; bgColor = '#fef2f2'; profitStatus = '🔴 亏损'; }
+  else if (profitRate < 0.1) { profitColor = '#d97706'; bgColor = '#fffbeb'; profitStatus = '🟡 微利（<10%）'; }
+  else { profitColor = '#059669'; bgColor = '#f0fdf4'; profitStatus = '🟢 盈利（≥10%）'; }
+  pv.style.color = profitColor;
+  pd.style.background = bgColor;
+  document.getElementById('profitSub').textContent = profitStatus;
+
+  // Cost breakdown
+  document.getElementById('costInput').textContent = cInput.toFixed(4);
+  document.getElementById('costCache').textContent = cCache.toFixed(4);
+  document.getElementById('costOutput').textContent = cOutput.toFixed(4);
+  document.getElementById('costTotal').textContent = cost.toFixed(4);
+  document.getElementById('revenuePerM').textContent = R.toFixed(4);
+
+  const maxCost = Math.max(cInput, cCache, cOutput, 0.001);
+  const bb = document.getElementById('breakdownBar');
+  const total = cInput + cCache + cOutput;
+  bb.innerHTML = `
+    <div class="seg" style="width:${cInput/total*100}%;background:#3b82f6">${(cInput/total*100).toFixed(0)}%</div>
+    <div class="seg" style="width:${cCache/total*100}%;background:#10b981">${(cCache/total*100).toFixed(0)}%</div>
+    <div class="seg" style="width:${cOutput/total*100}%;background:#f59e0b">${(cOutput/total*100).toFixed(0)}%</div>`;
+
+  // Breakeven output (no cache)
+  let beOutput, p10Output;
+  if (R >= m.p_output) { beOutput = 1; }
+  else if (R <= m.p_input) { beOutput = 0; }
+  else { beOutput = (R - m.p_input) / (m.p_output - m.p_input); }
+  const tc10 = R / 1.1;
+  if (tc10 >= m.p_output) p10Output = 1;
+  else if (tc10 <= m.p_input) p10Output = 0;
+  else p10Output = (tc10 - m.p_input) / (m.p_output - m.p_input);
+
+  // Insight
+  const ib = document.getElementById('insightBox');
+  const currentOutputPct = Math.round(c_ratio * 100);
+  const beOutputPct = (beOutput * 100).toFixed(1);
+  const p10OutputPct = (p10Output * 100).toFixed(1);
+  let insightHtml = `<strong>保本输出比例：</strong>${beOutputPct}%（无缓存时）<br>`;
+  insightHtml += `<strong>10%盈利输出比例：</strong>${p10OutputPct}%（无缓存时）<br>`;
+  if (profitRate < 0) insightHtml += `⚠️ <strong>当前亏损！</strong>输出比例${currentOutputPct}%超过保本线${beOutputPct}%`;
+  else if (profitRate < 0.1) insightHtml += `⚡ 当前微利，距10%盈利线还差${(p10Output*100 - c_ratio*100).toFixed(1)}%的输出空间`;
+  else insightHtml += `✅ 当前盈利超过10%，距保本线还有${(c_ratio*100 - beOutput*100).toFixed(1)}%的输出空间`;
+  ib.innerHTML = insightHtml;
+
+  drawSimplex(m, R);
+  drawGauge(profitRate);
+  updateTable();
+}
+
+function drawSimplex(m, R) {
+  const canvas = document.getElementById('simplexCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const pad = 60;
+  const triW = W - 2*pad, triH = H - 2*pad - 30;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Triangle vertices
+  const Ax = pad, Ay = pad + triH;           // bottom-left = pure input
+  const Bx = pad + triW, By = pad + triH;    // bottom-right = pure cache
+  const Cx = pad + triW/2, Cy = pad;         // top = pure output
+
+  // Barycentric to pixel
+  function toPixel(a, b, c) {
+    return [ a*Ax + b*Bx + c*Cx, a*Ay + b*By + c*Cy ];
+  }
+
+  // Draw colored regions by scanning
+  const res = 2;
+  for (let py = pad; py < pad + triH; py += res) {
+    for (let px = pad; px < pad + triW; px += res) {
+      // Pixel to barycentric: inverse of toPixel(a,b,c) = [a*Ax+b*Bx+c*Cx, a*Ay+b*By+c*Cy]
+      // vv = c coordinate: 1 at top (pure output), 0 at bottom
+      const vv = (py - Ay) / (Cy - Ay);
+      const cc = vv;  // c = output ratio (1 at top, 0 at bottom) — FIXED: was 1-vv
+      const hh = (px - Ax) / (Bx - Ax); // horizontal fraction
+      const bb = hh * (1 - cc);
+      const aa = 1 - bb - cc;
+
+      if (aa < -0.01 || bb < -0.01 || cc < -0.01) continue;
+
+      const ca = Math.max(0,aa), cb = Math.max(0,bb), cc2 = Math.max(0,cc);
+      const cost = ca*m.p_input + cb*m.p_cache + cc2*m.p_output;
+      const profit = (R - cost) / cost;
+
+      if (profit < 0) ctx.fillStyle = 'rgba(239,68,68,0.25)';
+      else if (profit < 0.1) ctx.fillStyle = 'rgba(251,191,36,0.3)';
+      else ctx.fillStyle = 'rgba(34,197,94,0.25)';
+      ctx.fillRect(px, py, res, res);
+    }
+  }
+
+  // Draw triangle border
+  ctx.beginPath();
+  ctx.moveTo(Ax, Ay); ctx.lineTo(Bx, By); ctx.lineTo(Cx, Cy); ctx.closePath();
+  ctx.strokeStyle = '#1e2a3a'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Draw breakeven line
+  function drawConstraintLine(targetR, color, dash) {
+    // Find intersections with triangle edges
+    const p_in = m.p_input, p_cache = m.p_cache, p_out = m.p_output;
+    const points = [];
+
+    // Edge c=0 (bottom): a*p_in + b*p_cache = targetR, a+b=1
+    const a_bottom = (targetR - p_cache) / (p_in - p_cache);
+    if (a_bottom >= 0 && a_bottom <= 1) points.push(toPixel(a_bottom, 1-a_bottom, 0));
+
+    // Edge b=0 (left): a*p_in + c*p_out = targetR, a+c=1
+    const a_left = (targetR - p_out) / (p_in - p_out);
+    if (a_left >= 0 && a_left <= 1) points.push(toPixel(a_left, 0, 1-a_left));
+
+    // Edge a=0 (right): b*p_cache + c*p_out = targetR, b+c=1
+    const b_right = (targetR - p_out) / (p_cache - p_out);
+    if (b_right >= 0 && b_right <= 1) points.push(toPixel(0, b_right, 1-b_right));
+
+    if (points.length >= 2) {
+      ctx.beginPath();
+      ctx.setLineDash(dash);
+      ctx.moveTo(points[0][0], points[0][1]);
+      ctx.lineTo(points[1][0], points[1][1]);
+      ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Label
+      const mx = (points[0][0]+points[1][0])/2, my = (points[0][1]+points[1][1])/2;
+      ctx.save(); ctx.font = '11px Microsoft YaHei'; ctx.fillStyle = color;
+      const labelText = targetR === R ? '保本线' : '10%盈利线';
+      ctx.fillText(labelText, mx+6, my-6);
+      ctx.restore();
+    }
+  }
+
+  drawConstraintLine(R, '#dc2626', [6,4]);
+  drawConstraintLine(R/1.1, '#3b82f6', [6,4]);
+
+  // Draw current point
+  const [px, py] = toPixel(a_ratio, b_ratio, c_ratio);
+  ctx.beginPath();
+  ctx.arc(px, py, 8, 0, Math.PI*2);
+  ctx.fillStyle = '#1e2a3a'; ctx.fill();
+  ctx.beginPath();
+  ctx.arc(px, py, 5, 0, Math.PI*2);
+  ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.beginPath();
+  ctx.arc(px, py, 3, 0, Math.PI*2);
+  ctx.fillStyle = '#1e2a3a'; ctx.fill();
+
+  // Label current point
+  ctx.save(); ctx.font = 'bold 12px Microsoft YaHei'; ctx.fillStyle = '#1e2a3a';
+  ctx.fillText(`当前(${Math.round(a_ratio*100)}%/${Math.round(b_ratio*100)}%/${Math.round(c_ratio*100)}%)`, px+12, py-8);
+  ctx.restore();
+
+  // Axis labels
+  ctx.save(); ctx.font = 'bold 13px Microsoft YaHei';
+  ctx.fillStyle = '#3b82f6'; ctx.fillText('📥 输入(a)', Ax-10, Ay+22);
+  ctx.fillStyle = '#10b981'; ctx.fillText('💾 缓存(b)', Bx-40, By+22);
+  ctx.fillStyle = '#f59e0b'; ctx.fillText('📤 输出(c)', Cx-20, Cy-12);
+  ctx.restore();
+
+  // Corner labels
+  ctx.save(); ctx.font = '11px Microsoft YaHei'; ctx.fillStyle = '#666';
+  ctx.fillText('a=1', Ax-5, Ay+36);
+  ctx.fillText('b=1', Bx-10, By+36);
+  ctx.fillText('c=1', Cx-8, Cy-26);
+  ctx.restore();
+}
+
+function drawGauge(profitRate) {
+  const canvas = document.getElementById('gaugeCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const cx = W/2, cy = H - 20;
+  const r = 90;
+  const startAngle = Math.PI;
+  const endAngle = 2 * Math.PI;
+
+  // Background arc
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, startAngle, endAngle);
+  ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 18; ctx.lineCap = 'round'; ctx.stroke();
+
+  // Color arc segments
+  const segments = [
+    { from: -0.3, to: 0, color: '#ef4444' },
+    { from: 0, to: 0.1, color: '#fbbf24' },
+    { from: 0.1, to: 0.5, color: '#22c55e' },
+  ];
+  const minVal = -0.3, maxVal = 0.5;
+
+  segments.forEach(seg => {
+    const a1 = startAngle + (seg.from - minVal)/(maxVal - minVal) * Math.PI;
+    const a2 = startAngle + (seg.to - minVal)/(maxVal - minVal) * Math.PI;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, a1, a2);
+    ctx.strokeStyle = seg.color; ctx.lineWidth = 18; ctx.lineCap = 'butt'; ctx.stroke();
+  });
+
+  // Needle
+  const clampedVal = Math.max(minVal, Math.min(maxVal, profitRate));
+  const needleAngle = startAngle + (clampedVal - minVal)/(maxVal - minVal) * Math.PI;
+  const nx = cx + (r-5) * Math.cos(needleAngle);
+  const ny = cy + (r-5) * Math.sin(needleAngle);
+  ctx.beginPath();
+  ctx.moveTo(cx, cy); ctx.lineTo(nx, ny);
+  ctx.strokeStyle = '#1e2a3a'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx, cy, 6, 0, Math.PI*2);
+  ctx.fillStyle = '#1e2a3a'; ctx.fill();
+
+  // Labels
+  ctx.save(); ctx.font = '10px Microsoft YaHei'; ctx.fillStyle = '#888'; ctx.textAlign = 'center';
+  ctx.fillText('-30%', cx - r - 5, cy + 16);
+  ctx.fillText('0%', cx - 10, cy - r + 5);
+  ctx.fillText('+50%', cx + r + 5, cy + 16);
+  ctx.restore();
+}
+
+function updateTable() {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  // Populate model filter
+  const fmSel = document.getElementById('filterModel');
+  const prevModel = fmSel.value;
+  fmSel.innerHTML = '<option value="">全部</option>';
+  Object.keys(models).forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; fmSel.appendChild(o); });
+  fmSel.value = prevModel || '';
+
+  const rows = [];
+  Object.entries(models).forEach(([name, m]) => {
+    m.packages.forEach((pkg, idx) => {
+      const R = pkg.price / pkg.spec;
+      const cost = a_ratio * m.p_input + b_ratio * m.p_cache + c_ratio * m.p_output;
+      const profit = (R - cost) / cost;
+      // No-cache breakeven (fixed per package)
+      let beO; if (R >= m.p_output) beO=1; else if (R <= m.p_input) beO=0; else beO=(R-m.p_input)/(m.p_output-m.p_input);
+      let p10O; const tc=R/1.1; if(tc>=m.p_output)p10O=1;else if(tc<=m.p_input)p10O=0;else p10O=(tc-m.p_input)/(m.p_output-m.p_input);
+      // Current-setting breakeven: given current cache ratio b_ratio, what output ratio would break even?
+      // Cost = (1-c)*w + c*p_out, where w = weighted input price = (a/(a+b))*p_in + (b/(a+b))*p_cache
+      // If a+b > 0: w = (a_ratio*p_in + b_ratio*p_cache)/(a_ratio+b_ratio)
+      let beCurrentO = beO, p10CurrentO = p10O; // default to no-cache
+      const inputSum = a_ratio + b_ratio;
+      if (inputSum > 0.001) {
+        const w = (a_ratio * m.p_input + b_ratio * m.p_cache) / inputSum; // weighted input-side price
+        if (R >= m.p_output) beCurrentO = 1;
+        else if (R <= w) beCurrentO = 0;
+        else beCurrentO = (R - w) / (m.p_output - w);
+        const tc10 = R / 1.1;
+        if (tc10 >= m.p_output) p10CurrentO = 1;
+        else if (tc10 <= w) p10CurrentO = 0;
+        else p10CurrentO = (tc10 - w) / (m.p_output - w);
+      }
+      let risk, riskClass;
+      if(profit<0.05){risk='高';riskClass='risk-high';}else if(profit<0.15){risk='中';riskClass='risk-mid';}else{risk='低';riskClass='risk-low';}
+      const isCurrent = name===currentModel && idx===currentPkg;
+      rows.push({ name, pkg, idx, R, cost, profit, beO, p10O, beCurrentO, p10CurrentO, risk, riskClass, isCurrent,
+        profitClass: profit<0?'#dc2626':profit<0.1?'#d97706':'#059669' });
+    });
+  });
+
+  // Sort
+  if (sortCol) {
+    rows.sort((a, b) => {
+      let va = a[sortCol], vb = b[sortCol];
+      if (typeof va === 'string') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+      if (sortCol === 'risk') { const order = {'高':0,'中':1,'低':2}; va = order[va]??9; vb = order[vb]??9; }
+      if (sortCol === 'pkg') { va = a.pkg.name.toLowerCase(); vb = b.pkg.name.toLowerCase(); }
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }
+
+  let visibleCount = 0;
+  rows.forEach(r => {
+    // Filter logic
+    const fmVal = document.getElementById('filterModel').value;
+    const frVal = document.getElementById('filterRisk').value;
+    const fpVal = document.getElementById('filterProfit').value;
+    const fsVal = document.getElementById('filterSearch').value.toLowerCase();
+
+    if (fmVal && r.name !== fmVal) return;
+    if (frVal && r.risk !== frVal) return;
+    if (fpVal === 'loss' && r.profit >= 0) return;
+    if (fpVal === 'low' && (r.profit < 0 || r.profit >= 0.1)) return;
+    if (fpVal === 'mid' && (r.profit < 0.1 || r.profit >= 0.2)) return;
+    if (fpVal === 'high' && r.profit < 0.2) return;
+    if (fsVal && !r.name.toLowerCase().includes(fsVal) && !r.pkg.name.toLowerCase().includes(fsVal)) return;
+
+    visibleCount++;
+    const tr = document.createElement('tr');
+    if(r.isCurrent) tr.className = 'current-row';
+    // Highlight if current output exceeds breakeven
+    const outputExceeds = c_ratio > r.beCurrentO;
+    tr.innerHTML = `
+      <td>${r.name}</td><td>${r.pkg.name}</td><td>${r.pkg.spec}</td><td>${r.pkg.price}</td>
+      <td>${r.R.toFixed(4)}</td><td>${r.cost.toFixed(4)}</td>
+      <td style="color:${r.profitClass};font-weight:600">${(r.profit*100).toFixed(2)}%</td>
+      <td style="color:${outputExceeds?'#dc2626':'#059669'};font-weight:600">${(r.beCurrentO*100).toFixed(1)}%</td>
+      <td>${(r.p10CurrentO*100).toFixed(1)}%</td>
+      <td style="color:#94a3b8">${(r.beO*100).toFixed(1)}%</td>
+      <td class="${r.riskClass}">${r.risk}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('resultCount').textContent = `显示 ${visibleCount} / ${rows.length} 条`;
+}
+
+// Sort state
+let sortCol = '', sortDir = 'asc';
+function sortTable(col) {
+  if (sortCol === col) { sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
+  else { sortCol = col; sortDir = 'asc'; }
+  // Update header styles
+  document.querySelectorAll('th').forEach(th => {
+    th.classList.remove('sorted');
+    const icon = th.querySelector('.sort-icon');
+    if (icon) icon.textContent = '↕';
+  });
+  const activeTh = document.querySelector(`th[data-col="${col}"]`);
+  if (activeTh) {
+    activeTh.classList.add('sorted');
+    const icon = activeTh.querySelector('.sort-icon');
+    if (icon) icon.textContent = sortDir === 'asc' ? '↑' : '↓';
+  }
+  updateTable();
+}
+
+function clearFilters() {
+  document.getElementById('filterModel').value = '';
+  document.getElementById('filterRisk').value = '';
+  document.getElementById('filterProfit').value = '';
+  document.getElementById('filterSearch').value = '';
+  updateTable();
+}
+
+// Bind filter events
+['filterModel','filterRisk','filterProfit','filterSearch'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateTable);
+  document.getElementById(id).addEventListener('change', updateTable);
+});
+
+window.onload = init;
+</script>
+</body>
+</html>

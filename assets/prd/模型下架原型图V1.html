@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Token工场 — 模型下架 交互原型</title>
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-hover: #4338CA;
+    --danger: #DC2626;
+    --danger-hover: #B91C1C;
+    --success: #059669;
+    --warning: #D97706;
+    --bg: #F8FAFC;
+    --card: #FFFFFF;
+    --border: #E2E8F0;
+    --text: #1E293B;
+    --text-secondary: #64748B;
+    --text-muted: #94A3B8;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --shadow: 0 1px 3px 0 rgba(0,0,0,0.06), 0 1px 2px -1px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  /* Header */
+  .header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow);
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo { font-size: 18px; font-weight: 700; color: var(--primary); }
+  .header-tag { font-size: 12px; color: var(--text-muted); background: var(--bg); padding: 2px 8px; border-radius: 4px; }
+  .view-switcher { display: flex; gap: 4px; background: var(--bg); border-radius: var(--radius); padding: 3px; }
+  .view-btn {
+    padding: 6px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    background: transparent;
+    color: var(--text-secondary);
+    transition: all .15s;
+  }
+  .view-btn.active {
+    background: var(--primary);
+    color: white;
+    box-shadow: var(--shadow);
+  }
+  .view-btn:hover:not(.active) { color: var(--text); }
+
+  /* Main */
+  .main { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+  /* Section Title */
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::before {
+    content: '';
+    width: 3px;
+    height: 14px;
+    background: var(--primary);
+    border-radius: 2px;
+  }
+
+  /* Flow Steps Visual */
+  .flow-steps {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 20px 0;
+    margin-bottom: 24px;
+  }
+  .flow-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .flow-step-num {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .flow-step-label { font-size: 13px; font-weight: 500; white-space: nowrap; }
+  .flow-arrow {
+    margin: 0 16px;
+    color: var(--text-muted);
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  /* Card */
+  .card {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .card-body { padding: 20px; }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    text-align: left;
+    padding: 10px 14px;
+    background: #F8FAFC;
+    color: var(--text-secondary);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #FAFBFC; }
+
+  /* Badge */
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .badge-online { background: #ECFDF5; color: var(--success); }
+  .badge-offline { background: #FEF2F2; color: var(--danger); }
+  .badge-draft { background: #F1F5F9; color: var(--text-muted); }
+  .badge-pending { background: #FEF9C3; color: #A16207; }
+
+  /* Buttons */
+  .btn {
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    background: var(--card);
+    color: var(--text);
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: #F8FAFC; }
+  .btn-primary { background: var(--primary); color: white; border-color: var(--primary); }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-danger { background: var(--danger); color: white; border-color: var(--danger); }
+  .btn-danger:hover { background: var(--danger-hover); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-lg { padding: 10px 24px; font-size: 15px; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+  /* Modal Overlay */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(15,23,42,0.5);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 640px;
+    max-height: 85vh;
+    overflow-y: auto;
+    animation: modalIn .2s ease;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(-10px) scale(.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .modal-close {
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 18px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-close:hover { background: var(--bg); }
+  .modal-body { padding: 24px; }
+  .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  /* Form */
+  .form-group { margin-bottom: 18px; }
+  .form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .form-label .required { color: var(--danger); margin-left: 2px; }
+  .form-label .hint { font-weight: 400; color: var(--text-muted); margin-left: 6px; font-size: 12px; }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-family: inherit;
+    transition: border-color .15s;
+    background: var(--card);
+    color: var(--text);
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.08);
+  }
+  .form-textarea { resize: vertical; min-height: 80px; }
+  .form-select { cursor: pointer; }
+
+  /* Scene cards */
+  .scene-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .scene-card {
+    padding: 14px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .scene-card:hover { border-color: #C7D2FE; background: #F5F3FF; }
+  .scene-card.selected { border-color: var(--primary); background: #EEF2FF; }
+  .scene-card-title { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+  .scene-card-desc { font-size: 12px; color: var(--text-muted); }
+  .scene-card-badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 1px 8px;
+    border-radius: 10px;
+    margin-top: 6px;
+  }
+  .scene-card-badge.fast { background: #FEF2F2; color: var(--danger); }
+  .scene-card-badge.normal { background: #FEF9C3; color: #A16207; }
+  .scene-card-badge.slow { background: #ECFDF5; color: var(--success); }
+
+  /* Impact Preview */
+  .impact-box {
+    background: #FFFBEB;
+    border: 1px solid #FDE68A;
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-top: 16px;
+  }
+  .impact-box h4 { font-size: 13px; color: #92400E; margin-bottom: 8px; }
+  .impact-stats { display: flex; gap: 24px; }
+  .impact-stat { text-align: center; }
+  .impact-stat .num { font-size: 24px; font-weight: 700; color: #92400E; }
+  .impact-stat .label { font-size: 12px; color: #A16207; margin-top: 2px; }
+
+  /* Confirm Dialog */
+  .confirm-box {
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .confirm-box .warning-icon { font-size: 20px; }
+  .confirm-box h4 { color: var(--danger); font-size: 14px; margin: 8px 0 4px; }
+  .confirm-box p { color: #7F1D1D; font-size: 13px; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--success);
+    color: white;
+    padding: 12px 20px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: var(--shadow-lg);
+    z-index: 300;
+    animation: toastIn .3s ease, toastOut .3s ease 2.5s forwards;
+    display: none;
+  }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
+
+  /* User-side notice banner */
+  .notice-banner {
+    background: #FEF2F2;
+    border-left: 3px solid var(--danger);
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #991B1B;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .notice-banner .notice-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  .text-muted { color: var(--text-muted); font-size: 12px; }
+  .mt-2 { margin-top: 8px; }
+  .mt-4 { margin-top: 16px; }
+  .mb-2 { margin-bottom: 8px; }
+  .gap-2 { display: flex; gap: 8px; }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+  }
+
+  .step-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .step-dot {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--border);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .step-dot.active { background: var(--primary); color: white; }
+  .step-dot.done { background: var(--success); color: white; }
+  .step-line { width: 40px; height: 2px; background: var(--border); }
+  .step-line.done { background: var(--success); }
+
+  /* Compensation */
+  .compensation-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all .15s;
+    position: relative;
+  }
+  .compensation-card:hover { border-color: #C7D2FE; background: #FAFBFF; }
+  .compensation-card.selected {
+    border-color: var(--primary);
+    background: #EEF2FF;
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.08);
+  }
+  .compensation-card.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #F8FAFC;
+  }
+  .compensation-card-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .compensation-card-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+  .compensation-card-value {
+    margin-top: 8px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+  .compensation-card-value .unit {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+  .compensation-card .radio {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 18px; height: 18px;
+    border: 2px solid var(--border);
+    border-radius: 50%;
+  }
+  .compensation-card.selected .radio {
+    border-color: var(--primary);
+    background: var(--primary);
+    box-shadow: inset 0 0 0 3px white;
+  }
+  .compensation-product-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+    background: #FAFBFC;
+  }
+  .compensation-product-card h4 {
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  .compensation-product-card .meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .compensation-product-card .deadline {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--danger);
+    font-weight: 500;
+  }
+  .compensation-product-card .compensated {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--success);
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <span class="logo">武汉算力公共服务平台</span>
+    <span class="header-tag">运营后台</span>
+  </div>
+  <div class="view-switcher">
+    <button class="view-btn active" onclick="switchView('admin')" id="btn-admin">运营后台（管理员）</button>
+    <button class="view-btn" onclick="switchView('user')" id="btn-user">用户空间</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ==================== ADMIN VIEW ==================== -->
+<div class="main" id="view-admin">
+
+  <!-- Flow -->
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="flow-step-num">1</div>
+      <div class="flow-step-label">选择模型</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-step-num">2</div>
+      <div class="flow-step-label">填写下架信息</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-step-num">3</div>
+      <div class="flow-step-label">预览影响范围</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-step-num">4</div>
+      <div class="flow-step-label">二次确认</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-step-num">✓</div>
+      <div class="flow-step-label">完成下架+通知</div>
+    </div>
+  </div>
+
+  <!-- Model List Card -->
+  <div class="card" id="model-list-card">
+    <div class="card-header">
+      <span>模型管理 · 已上架模型</span>
+      <span class="text-muted">共 6 个模型</span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>模型名称</th>
+              <th>模型ID</th>
+              <th>供应商</th>
+              <th>状态</th>
+              <th>订购用户数</th>
+              <th>上架时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="model-table-body">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== USER VIEW ==================== -->
+<div class="main" id="view-user" style="display:none;">
+  <div class="section-title">我的Token包</div>
+
+  <div class="notice-banner" id="user-notice-banner" style="display:none;">
+    <span class="notice-icon">⚠️</span>
+    <div>
+      <strong>部分模型即将下架</strong>
+      <div style="margin-top:4px;">您订购的以下模型已发布下架通知，请在生效日期前使用剩余额度。</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span>Token包列表</span>
+      <span class="text-muted">共 4 个Token包</span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>模型名称</th>
+              <th>Token包ID</th>
+              <th>总量</th>
+              <th>剩余</th>
+              <th>有效期</th>
+              <th>状态</th>
+              <th>权益</th>
+            </tr>
+          </thead>
+          <tbody id="user-token-table-body">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-top:32px;">我的Token Plane</div>
+
+  <div class="card">
+    <div class="card-header">
+      <span>套餐列表</span>
+      <span class="text-muted">共 2 个组合套餐</span>
+    </div>
+    <div class="card-body" id="user-plane-body" style="padding:0;">
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MODAL: 下架操作 ==================== -->
+<div class="modal-overlay" id="offline-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="modal-title">模型下架</span>
+      <button class="modal-close" onclick="closeOfflineModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body">
+    </div>
+    <div class="modal-footer" id="modal-footer">
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MODAL: 权益补偿 ==================== -->
+<div class="modal-overlay" id="compensation-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="compensation-modal-title">处理权益补偿</span>
+      <button class="modal-close" onclick="closeCompensationModal()">✕</button>
+    </div>
+    <div class="modal-body" id="compensation-modal-body">
+    </div>
+    <div class="modal-footer" id="compensation-modal-footer">
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== DATA =====================
+const models = [
+  { id: 'm_001', name: 'DeepSeek-R1-671B', supplier: '深度求索', status: 'ONLINE', users: 358, onlineDate: '2026-03-15' },
+  { id: 'm_002', name: 'Qwen3-235B-Instruct', supplier: '阿里云', status: 'ONLINE', users: 142, onlineDate: '2026-04-10' },
+  { id: 'm_003', name: 'GPT-4o-Mini', supplier: 'OpenAI', status: 'ONLINE', users: 89, onlineDate: '2026-05-22' },
+  { id: 'm_004', name: 'Llama-4-400B', supplier: 'Meta', status: 'ONLINE', users: 3, onlineDate: '2026-06-01' },
+  { id: 'm_005', name: 'Claude-3.5-Sonnet', supplier: 'Anthropic', status: 'ONLINE', users: 201, onlineDate: '2026-02-20' },
+  { id: 'm_006', name: 'ERNIE-4.0-Turbo', supplier: '百度', status: 'ONLINE', users: 0, onlineDate: '2026-07-01' },
+];
+
+// Track offline status locally (simulating backend)
+const offlineMap = {}; // modelId -> offlineInfo
+
+// Track user compensation state: productId -> { status, option, voucherCode, ... }
+const compensationState = {};
+
+// Token Plane data
+const userPlanes = [
+  {
+    planeId: 'pln_001',
+    name: '文本模型组合包 · 进阶版',
+    totalTokens: '1亿',
+    remainingTokens: '6200万',
+    expire: '2026-09-30',
+    models: ['m_001', 'm_002', 'm_003', 'm_004', 'm_005'],
+    price: 149
+  },
+  {
+    planeId: 'pln_002',
+    name: '文本模型组合包 · 基础版',
+    totalTokens: '5000万',
+    remainingTokens: '2800万',
+    expire: '2026-08-15',
+    models: ['m_001', 'm_002', 'm_003'],
+    price: 89
+  }
+];
+
+let currentStep = 1;
+let selectedModelId = null;
+let offlineData = {};
+
+// Compensation flow state
+let currentCompensationProduct = null;
+let selectedCompensationOption = null;
+let selectedTransferModel = null;
+
+// Available target models for transfer (simulated)
+const transferTargetModels = [
+  { id: 'm_002', name: 'Qwen3-235B-Instruct', supplier: '阿里云', tags: ['文本生成', '多轮对话'], ratio: 0.95, apiUrl: 'https://whsuanli.com/docs/model/m_002', recommended: true },
+  { id: 'm_005', name: 'Claude-3.5-Sonnet', supplier: 'Anthropic', tags: ['文本生成'], ratio: 0.80, apiUrl: 'https://whsuanli.com/docs/model/m_005', recommended: false },
+  { id: 'm_006', name: 'ERNIE-4.0-Turbo', supplier: '百度', tags: ['文本生成', '中文优化'], ratio: 1.10, apiUrl: 'https://whsuanli.com/docs/model/m_006', recommended: false },
+];
+
+// ===================== RENDER =====================
+function renderModelTable() {
+  const tbody = document.getElementById('model-table-body');
+  tbody.innerHTML = models.map(m => {
+    const offline = offlineMap[m.id];
+    const isOffline = offline && m.status === 'ONLINE'; // after offline, we treat as offline
+    const statusClass = offline ? 'badge-offline' : 'badge-online';
+    const statusText = offline ? '已下架' : '已上架';
+    const actionBtn = offline
+      ? '<span class="text-muted">已下架</span>'
+      : `<button class="btn btn-danger btn-sm" onclick="startOffline('${m.id}')">下架</button>`;
+    return `
+      <tr>
+        <td><strong>${m.name}</strong></td>
+        <td><span class="text-muted">${m.id}</span></td>
+        <td>${m.supplier}</td>
+        <td><span class="badge ${statusClass}">${statusText}</span></td>
+        <td>${m.users}</td>
+        <td>${m.onlineDate}</td>
+        <td>${actionBtn}</td>
+      </tr>`;
+  }).join('');
+
+  // Also render user token table
+  renderUserTokenTable();
+}
+
+function renderUserTokenTable() {
+  const tbody = document.getElementById('user-token-table-body');
+  const hasOffline = Object.keys(offlineMap).length > 0;
+  const banner = document.getElementById('user-notice-banner');
+  banner.style.display = hasOffline ? 'flex' : 'none';
+
+  // Simulated user token packages
+  const userTokens = [
+    { modelId: 'm_001', modelName: 'DeepSeek-R1-671B', pkgId: 'tk_1001', total: '500万', remaining: '120万', expire: '2026-08-30' },
+    { modelId: 'm_002', modelName: 'Qwen3-235B-Instruct', pkgId: 'tk_1002', total: '200万', remaining: '85万', expire: '2026-09-15' },
+    { modelId: 'm_003', modelName: 'GPT-4o-Mini', pkgId: 'tk_1003', total: '50万', remaining: '32万', expire: '2026-08-10' },
+    { modelId: 'm_005', modelName: 'Claude-3.5-Sonnet', pkgId: 'tk_1004', total: '100万', remaining: '8万', expire: '2026-08-05' },
+  ];
+
+  tbody.innerHTML = userTokens.map(tk => {
+    const offline = offlineMap[tk.modelId];
+    const comp = compensationState[tk.pkgId];
+    let statusHtml = '<span class="badge badge-online">使用中</span>';
+    let actionHtml = '<span class="text-muted">—</span>';
+
+    if (offline) {
+      const effDate = new Date(offline.effectiveDate);
+      const now = new Date();
+      if (comp) {
+        statusHtml = `<span class="badge badge-offline">已补偿</span>`;
+        let compText = '';
+        if (comp.option === 'VOUCHER') compText = '已发放代金券 ¥' + comp.voucherAmount;
+        else if (comp.option === 'TRANSFER') compText = '已转移额度 → ' + (comp.targetModel?.name || '其他模型');
+        actionHtml = `<span style="font-size:12px;color:var(--success);">${compText}</span>`;
+      } else if (now > effDate) {
+        statusHtml = '<span class="badge badge-offline">已停止</span>';
+        actionHtml = `<button class="btn btn-primary btn-sm" onclick="openCompensation('${tk.pkgId}', 'TOKEN_PACKAGE')">处理权益</button>`;
+      } else {
+        statusHtml = `<span class="badge badge-pending">${offline.effectiveDate} 停止</span>`;
+        actionHtml = `<span class="text-muted" style="font-size:12px;">生效后可处理</span>`;
+      }
+    }
+
+    const nameHtml = offline
+      ? `<span>${tk.modelName}</span> <span class="badge badge-offline" style="margin-left:6px;font-size:10px;">即将下架</span>`
+      : tk.modelName;
+    return `
+      <tr>
+        <td>${nameHtml}</td>
+        <td><span class="text-muted">${tk.pkgId}</span></td>
+        <td>${tk.total}</td>
+        <td><strong>${tk.remaining}</strong></td>
+        <td>${tk.expire}</td>
+        <td>${statusHtml}</td>
+        <td>${actionHtml}</td>
+      </tr>`;
+  }).join('');
+
+  renderUserPlanes();
+}
+
+function renderUserPlanes() {
+  const container = document.getElementById('user-plane-body');
+  if (!container) return;
+
+  container.innerHTML = userPlanes.map(plane => {
+    const offlineModels = plane.models.map(mid => offlineMap[mid]).filter(Boolean);
+    const offlineModelIds = plane.models.filter(mid => offlineMap[mid]);
+    const comp = compensationState[plane.planeId];
+
+    let statusHtml = '<span class="badge badge-online">使用中</span>';
+    let actionHtml = '';
+    let alertHtml = '';
+
+    if (offlineModels.length > 0) {
+      const now = new Date();
+      const allExpired = offlineModelIds.every(mid => new Date(offlineMap[mid].effectiveDate) < now);
+
+      if (comp) {
+        statusHtml = '<span class="badge badge-offline">已补偿</span>';
+        actionHtml = `<span style="font-size:12px;color:var(--success);">${comp.option === 'VOUCHER' ? '已发放代金券 ¥' + comp.voucherAmount : '已处理'}</span>`;
+      } else if (allExpired) {
+        statusHtml = '<span class="badge badge-offline">部分模型已下架</span>';
+        actionHtml = `<button class="btn btn-primary btn-sm" onclick="openCompensation('${plane.planeId}', 'TOKEN_PLANE')">处理权益</button>`;
+      } else {
+        statusHtml = '<span class="badge badge-pending">部分模型即将下架</span>';
+        actionHtml = `<span class="text-muted" style="font-size:12px;">生效后可处理</span>`;
+      }
+
+      alertHtml = `
+        <div style="margin-top:10px;padding:8px 10px;background:#FEF2F2;border-radius:6px;font-size:12px;color:#991B1B;">
+          ⚠️ 套餐内 ${offlineModelIds.map(mid => models.find(m => m.id === mid)?.name || mid).join('、')} 将下架
+        </div>
+      `;
+    }
+
+    return `
+      <div class="compensation-product-card" style="border-left:3px solid ${offlineModels.length ? 'var(--danger)' : 'var(--primary)'};">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <h4>${plane.name}</h4>
+            <div class="meta">套餐ID：${plane.planeId} · 包含 ${plane.models.length} 个模型 · 总价 ¥${plane.price}</div>
+            <div class="meta">剩余 Token：<strong>${plane.remainingTokens}</strong> / ${plane.totalTokens} · 有效期至 ${plane.expire}</div>
+            ${alertHtml}
+          </div>
+          <div style="text-align:right;">
+            ${statusHtml}
+            <div style="margin-top:8px;">${actionHtml}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ===================== VIEW SWITCH =====================
+function switchView(view) {
+  document.getElementById('view-admin').style.display = view === 'admin' ? 'block' : 'none';
+  document.getElementById('view-user').style.display = view === 'user' ? 'block' : 'none';
+  document.getElementById('btn-admin').classList.toggle('active', view === 'admin');
+  document.getElementById('btn-user').classList.toggle('active', view === 'user');
+}
+
+// ===================== OFFLINE FLOW =====================
+function startOffline(modelId) {
+  selectedModelId = modelId;
+  currentStep = 1;
+  const model = models.find(m => m.id === modelId);
+  document.getElementById('modal-title').textContent = `模型下架 — ${model.name}`;
+  renderStep1();
+  document.getElementById('offline-modal').classList.add('active');
+}
+
+function closeOfflineModal() {
+  document.getElementById('offline-modal').classList.remove('active');
+  currentStep = 1;
+  selectedModelId = null;
+  offlineData = {};
+}
+
+// --- STEP 1: Select Scene ---
+function renderStep1() {
+  const body = document.getElementById('modal-body');
+  body.innerHTML = `
+    <div class="step-indicator">
+      <div class="step-dot active">1</div><div class="step-line"></div>
+      <div class="step-dot">2</div><div class="step-line"></div>
+      <div class="step-dot">3</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">选择下架场景<span class="required">*</span></label>
+      <div class="scene-cards" id="scene-cards">
+        <div class="scene-card" onclick="selectScene('COMPLIANCE_RECTIFY', this)" data-scene="COMPLIANCE_RECTIFY">
+          <div class="scene-card-title">S1 · 合规整改</div>
+          <div class="scene-card-desc">监管要求或平台自查发现合规问题</div>
+          <div class="scene-card-badge fast">建议缓停 0-7 天</div>
+        </div>
+        <div class="scene-card" onclick="selectScene('PERFORMANCE_ITERATION', this)" data-scene="PERFORMANCE_ITERATION">
+          <div class="scene-card-title">S2 · 性能迭代</div>
+          <div class="scene-card-desc">模型性能升级/架构调整，旧版汰换</div>
+          <div class="scene-card-badge slow">建议缓停 14-30 天</div>
+        </div>
+        <div class="scene-card" onclick="selectScene('PLATFORM_ADJUST', this)" data-scene="PLATFORM_ADJUST">
+          <div class="scene-card-title">S3 · 平台运营调整</div>
+          <div class="scene-card-desc">运营策略变化、模型线优化调整</div>
+          <div class="scene-card-badge normal">建议缓停 7-14 天</div>
+        </div>
+        <div class="scene-card" onclick="selectScene('MODEL_ANOMALY', this)" data-scene="MODEL_ANOMALY">
+          <div class="scene-card-title">S4 · 模型能力异常</div>
+          <div class="scene-card-desc">模型输出质量严重下降或功能异常</div>
+          <div class="scene-card-badge fast">建议缓停 0-3 天</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('modal-footer').innerHTML = `
+    <button class="btn" onclick="closeOfflineModal()">取消</button>
+    <button class="btn btn-primary" id="btn-step1-next" disabled onclick="goStep2()">下一步</button>
+  `;
+}
+
+function selectScene(scene, el) {
+  document.querySelectorAll('.scene-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  offlineData.scene = scene;
+  sceneLabelMap = {
+    'COMPLIANCE_RECTIFY': '合规整改',
+    'PERFORMANCE_ITERATION': '性能迭代，旧版汰换',
+    'PLATFORM_ADJUST': '平台运营调整',
+    'MODEL_ANOMALY': '模型能力异常'
+  };
+  offlineData.sceneLabel = sceneLabelMap[scene];
+  document.getElementById('btn-step1-next').disabled = false;
+}
+
+// --- STEP 2: Fill Details ---
+function goStep2() {
+  currentStep = 2;
+  const body = document.getElementById('modal-body');
+
+  // default effective date: today (for immediate demo visibility of compensation flow)
+  const d = new Date();
+  const defaultDate = d.toISOString().split('T')[0];
+
+  body.innerHTML = `
+    <div class="step-indicator">
+      <div class="step-dot done">✓</div><div class="step-line done"></div>
+      <div class="step-dot active">2</div><div class="step-line"></div>
+      <div class="step-dot">3</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">下架场景<span class="hint">（已选择）</span></label>
+      <div class="form-input" style="background:#F8FAFC;color:var(--text-secondary);">${offlineData.sceneLabel}</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">下架生效日期<span class="required">*</span><span class="hint">到期后用户将无法调用。默认当天，可立即测试权益流程</span></label>
+      <input type="date" class="form-input" id="offline-date" value="${defaultDate}" min="${new Date().toISOString().split('T')[0]}" onchange="updateOfflineData()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">内部原因说明<span class="required">*</span><span class="hint">仅运营后台可见</span></label>
+      <textarea class="form-textarea" id="offline-reason" placeholder="填写下架原因（内部记录用）" oninput="updateOfflineData()"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">用户通知内容<span class="required">*</span><span class="hint">将推送给已购用户</span></label>
+      <textarea class="form-textarea" id="offline-notice" placeholder="填写对用户公开的下架说明……" oninput="updateOfflineData()">尊敬的各位用户，该模型因${offlineData.sceneLabel}，将于指定日期起停止服务。已购Token包可在生效日期前正常使用，请您合理安排。带来不便敬请谅解。</textarea>
+    </div>
+  `;
+
+  updateOfflineData();
+
+  document.getElementById('modal-footer').innerHTML = `
+    <button class="btn" onclick="goStep1Back()">上一步</button>
+    <button class="btn btn-primary" id="btn-step2-next" onclick="goStep3()">下一步：预览影响</button>
+  `;
+}
+
+function goStep1Back() {
+  currentStep = 1;
+  renderStep1();
+  if (offlineData.scene) {
+    const el = document.querySelector(`.scene-card[data-scene="${offlineData.scene}"]`);
+    if (el) el.classList.add('selected');
+    document.getElementById('btn-step1-next').disabled = false;
+  }
+}
+
+function updateOfflineData() {
+  const dateEl = document.getElementById('offline-date');
+  const reasonEl = document.getElementById('offline-reason');
+  const noticeEl = document.getElementById('offline-notice');
+  if (dateEl) offlineData.effectiveDate = dateEl.value;
+  if (reasonEl) offlineData.reason = reasonEl.value;
+  if (noticeEl) offlineData.notice = noticeEl.value;
+}
+
+// --- STEP 3: Preview Impact ---
+function goStep3() {
+  updateOfflineData();
+  currentStep = 3;
+  const model = models.find(m => m.id === selectedModelId);
+  const body = document.getElementById('modal-body');
+
+  const effDate = new Date(offlineData.effectiveDate);
+  const daysLeft = Math.ceil((effDate - new Date()) / (1000 * 60 * 60 * 24));
+
+  body.innerHTML = `
+    <div class="step-indicator">
+      <div class="step-dot done">✓</div><div class="step-line done"></div>
+      <div class="step-dot done">✓</div><div class="step-line done"></div>
+      <div class="step-dot active">3</div>
+    </div>
+
+    <h4 style="margin-bottom:12px;">下架信息确认</h4>
+    <table style="margin-bottom:16px;">
+      <tr><td style="color:var(--text-muted);width:100px;">模型名称</td><td><strong>${model.name}</strong></td></tr>
+      <tr><td style="color:var(--text-muted);">模型ID</td><td>${model.id}</td></tr>
+      <tr><td style="color:var(--text-muted);">下架场景</td><td><span class="badge badge-pending">${offlineData.sceneLabel}</span></td></tr>
+      <tr><td style="color:var(--text-muted);">生效日期</td><td><strong style="color:var(--danger);">${offlineData.effectiveDate} 23:59:59</strong>（${daysLeft}天后）</td></tr>
+      <tr><td style="color:var(--text-muted);">内部原因</td><td>${offlineData.reason || '(未填写)'}</td></tr>
+      <tr><td style="color:var(--text-muted);">用户通知</td><td style="max-width:300px;">${offlineData.notice || '(未填写)'}</td></tr>
+    </table>
+
+    <div class="impact-box">
+      <h4>⚠️ 影响范围</h4>
+      <div class="impact-stats">
+        <div class="impact-stat">
+          <div class="num">${model.users}</div>
+          <div class="label">受影响用户</div>
+        </div>
+        <div class="impact-stat">
+          <div class="num">${Math.floor(model.users * 1.3)}</div>
+          <div class="label">有效Token包</div>
+        </div>
+        <div class="impact-stat">
+          <div class="num">${daysLeft} 天</div>
+          <div class="label">缓停期</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:#92400E;">
+        下架后将向 <strong>${model.users} 个用户</strong>发送站内通知。${model.users === 0 ? '该模型目前无已购用户，将跳过通知发送。' : ''}
+      </div>
+    </div>
+
+    <div class="confirm-box" style="margin-top:16px;">
+      <div><span class="warning-icon">⚠️</span></div>
+      <h4>请再次确认以下事项</h4>
+      <p>
+        · 下架后模型将<strong>永久不可恢复</strong>（需重新走完整上架流程）<br>
+        · 已购用户的Token包可使用至生效日期 23:59:59<br>
+        · 生效日期后所有调用将被拒绝<br>
+        · 此操作<strong>不可撤销</strong>
+      </p>
+    </div>
+  `;
+
+  document.getElementById('modal-footer').innerHTML = `
+    <button class="btn" onclick="goStep2Back()">上一步</button>
+    <button class="btn btn-danger btn-lg" onclick="executeOffline()">确认下架</button>
+  `;
+}
+
+function goStep2Back() {
+  currentStep = 2;
+  goStep2();
+}
+
+// --- EXECUTE ---
+function executeOffline() {
+  const model = models.find(m => m.id === selectedModelId);
+
+  // Simulate backend: mark as offline
+  offlineMap[selectedModelId] = {
+    scene: offlineData.scene,
+    sceneLabel: offlineData.sceneLabel,
+    effectiveDate: offlineData.effectiveDate,
+    reason: offlineData.reason,
+    notice: offlineData.notice,
+    operator: 'admin_zhang',
+    offlineTime: new Date().toISOString(),
+  };
+
+  // Close modal
+  document.getElementById('offline-modal').classList.remove('active');
+
+  // Show toast
+  showToast(`模型"${model.name}"已成功下架，已通知 ${model.users} 位用户`);
+
+  // Refresh tables
+  renderModelTable();
+
+  // Reset
+  currentStep = 1;
+  selectedModelId = null;
+  offlineData = {};
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  toast.style.animation = 'none';
+  toast.offsetHeight;
+  toast.style.animation = 'toastIn .3s ease, toastOut .3s ease 2.5s forwards';
+  setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
+
+// ===================== COMPENSATION FLOW =====================
+function openCompensation(productId, productType) {
+  currentCompensationProduct = { productId, productType };
+  selectedCompensationOption = null;
+  selectedTransferModel = null;
+
+  let productName, deadline, remaining, optionDetails = [], sharedQuotaNote = '';
+
+  if (productType === 'TOKEN_PACKAGE') {
+    const tokenMap = {
+      'tk_1001': { name: 'DeepSeek-R1-671B Token包', remaining: '120万', voucher: 45.00 },
+      'tk_1002': { name: 'Qwen3-235B-Instruct Token包', remaining: '85万', voucher: 32.00 },
+      'tk_1003': { name: 'GPT-4o-Mini Token包', remaining: '32万', voucher: 28.00 },
+      'tk_1004': { name: 'Claude-3.5-Sonnet Token包', remaining: '8万', voucher: 12.00 },
+    };
+    const p = tokenMap[productId];
+    productName = p.name;
+    remaining = p.remaining;
+    deadline = '2026-09-14 23:59:59';
+    optionDetails = [
+      { type: 'TRANSFER', title: '转移额度', desc: '将剩余 Token 额度转移至您选择的其他有效模型', value: remaining, unit: 'Token', available: true },
+      { type: 'VOUCHER', title: '发放代金券', desc: '按剩余 Token 价值折算为平台通用代金券', value: p.voucher.toFixed(2), unit: '元', available: true }
+    ];
+  } else {
+    const plane = userPlanes.find(p => p.planeId === productId);
+    productName = plane.name;
+    remaining = plane.remainingTokens;
+    deadline = '2026-09-14 23:59:59';
+    sharedQuotaNote = `
+      <div style="margin-top:12px;padding:10px 12px;background:#ECFDF5;border-radius:6px;font-size:12px;color:#065F46;">
+        <strong>额度共享说明</strong>：Token Plane 内所有模型共用 Token 总额度。该模型下架后，您仍可继续使用套餐内其他模型消耗剩余额度。
+      </div>
+    `;
+    optionDetails = [
+      { type: 'VOUCHER', title: '发放代金券', desc: '按下架模型在套餐中的价值比例折算', value: '35.00', unit: '元', available: true }
+    ];
+  }
+
+  document.getElementById('compensation-modal-title').textContent = '处理权益补偿';
+  document.getElementById('compensation-modal-body').innerHTML = `
+    <div class="compensation-product-card" style="background:#F5F3FF;border-color:#C7D2FE;">
+      <h4>${productName}</h4>
+      <div class="meta">产品类型：${productType === 'TOKEN_PACKAGE' ? 'Token资源包' : 'Token Plane 组合套餐'}</div>
+      <div class="meta">剩余权益：<strong>${remaining}</strong></div>
+      <div class="deadline">请在 ${deadline} 前处理，逾期将自动发放代金券</div>
+      ${sharedQuotaNote}
+    </div>
+
+    <h4 style="margin:20px 0 12px;font-size:14px;">请选择补偿方案</h4>
+    <div id="compensation-options">
+      ${optionDetails.map(opt => `
+        <div class="compensation-card ${opt.available ? '' : 'disabled'}" onclick="${opt.available ? `selectCompensationOption('${opt.type}', this)` : ''}" data-option="${opt.type}">
+          <div class="radio"></div>
+          <div class="compensation-card-title">${opt.title}</div>
+          <div class="compensation-card-desc">${opt.desc}</div>
+          <div class="compensation-card-value">${opt.value} <span class="unit">${opt.unit}</span></div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div id="transfer-model-selection" style="display:none;margin-top:16px;"></div>
+
+    <div class="confirm-box" style="margin-top:16px;">
+      <div><span class="warning-icon">⚠️</span></div>
+      <h4>确认后不可更改</h4>
+      <p>权益补偿一经选择并确认，将立即执行，且无法撤销或重新选择其他方案。</p>
+    </div>
+  `;
+
+  document.getElementById('compensation-modal-footer').innerHTML = `
+    <button class="btn" onclick="closeCompensationModal()">取消</button>
+    <button class="btn btn-primary btn-lg" id="btn-confirm-compensation" disabled onclick="confirmCompensation()">确认选择</button>
+  `;
+
+  document.getElementById('compensation-modal').classList.add('active');
+}
+
+function selectCompensationOption(option, el) {
+  document.querySelectorAll('#compensation-options .compensation-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedCompensationOption = option;
+  selectedTransferModel = null;
+
+  if (option === 'TRANSFER' && currentCompensationProduct.productType === 'TOKEN_PACKAGE') {
+    renderTransferModelSelection();
+    document.getElementById('btn-confirm-compensation').disabled = true;
+  } else {
+    document.getElementById('transfer-model-selection').style.display = 'none';
+    document.getElementById('transfer-model-selection').innerHTML = '';
+    document.getElementById('btn-confirm-compensation').disabled = false;
+  }
+}
+
+function renderTransferModelSelection() {
+  const container = document.getElementById('transfer-model-selection');
+  container.style.display = 'block';
+  container.innerHTML = `
+    <h4 style="margin-bottom:10px;font-size:14px;">选择目标模型</h4>
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;">系统已按同供应商、同能力标签为您推荐可替换模型</div>
+    <div id="transfer-model-list">
+      ${transferTargetModels.map(m => `
+        <div class="compensation-card" onclick="selectTransferModel('${m.id}', this)" data-model="${m.id}" style="padding:12px;">
+          <div class="radio"></div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div class="compensation-card-title" style="font-size:13px;">
+                ${m.name}
+                ${m.recommended ? '<span class="badge badge-online" style="margin-left:6px;font-size:10px;">推荐</span>' : ''}
+              </div>
+              <div class="compensation-card-desc" style="margin-top:4px;">
+                供应商：${m.supplier} · 标签：${m.tags.join('、')}
+              </div>
+              <div style="margin-top:6px;font-size:12px;color:var(--text-secondary);">
+                换算比例：<strong style="color:var(--primary);">1 : ${m.ratio}</strong>
+                <span style="margin-left:12px;">转移后约得 <strong>${Math.round(120 * m.ratio)}万</strong> Token</span>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <a href="${m.apiUrl}" target="_blank" class="btn btn-sm" style="text-decoration:none;" onclick="event.stopPropagation();">📄 查看 API 文档</a>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div id="selected-model-api-note" style="display:none;margin-top:12px;padding:10px 12px;background:#EFF6FF;border-radius:6px;font-size:12px;color:#1E40AF;"></div>
+  `;
+}
+
+function selectTransferModel(modelId, el) {
+  document.querySelectorAll('#transfer-model-list .compensation-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedTransferModel = transferTargetModels.find(m => m.id === modelId);
+
+  const note = document.getElementById('selected-model-api-note');
+  note.style.display = 'block';
+  note.innerHTML = `
+    您选择了 <strong>${selectedTransferModel.name}</strong>（模型ID：${selectedTransferModel.id}）。<br>
+    下架生效后，请将调用参数中的 model_id 替换为 <code>${selectedTransferModel.id}</code>。
+    <a href="${selectedTransferModel.apiUrl}" target="_blank" style="color:var(--primary);margin-left:6px;">查看完整 API 文档 →</a>
+  `;
+
+  document.getElementById('btn-confirm-compensation').disabled = false;
+}
+
+function closeCompensationModal() {
+  document.getElementById('compensation-modal').classList.remove('active');
+  currentCompensationProduct = null;
+  selectedCompensationOption = null;
+  selectedTransferModel = null;
+}
+
+function confirmCompensation() {
+  const { productId, productType } = currentCompensationProduct;
+
+  // Simulate backend compensation
+  if (selectedCompensationOption === 'VOUCHER') {
+    const amount = productType === 'TOKEN_PACKAGE' ? 45.00 : 35.00;
+    compensationState[productId] = { option: 'VOUCHER', voucherAmount: amount, voucherCode: 'VC' + Date.now() };
+  } else if (selectedCompensationOption === 'TRANSFER') {
+    compensationState[productId] = { option: 'TRANSFER', targetModel: selectedTransferModel };
+  }
+
+  document.getElementById('compensation-modal').classList.remove('active');
+
+  const optionLabels = {
+    'TRANSFER': `额度转移 → ${selectedTransferModel?.name || ''}`,
+    'VOUCHER': '代金券发放'
+  };
+  showToast(`权益补偿已确认：${optionLabels[selectedCompensationOption]}`);
+
+  renderUserTokenTable();
+
+  currentCompensationProduct = null;
+  selectedCompensationOption = null;
+  selectedTransferModel = null;
+}
+
+// ===================== INIT =====================
+renderModelTable();
+</script>
+
+</body>
+</html>

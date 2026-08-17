@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>企业发票管理 - 开具发票（原型 v4·多账户）</title>
+<style>
+  :root{
+    --blue:#1677d6; --blue-dark:#0f5bab; --blue-light:#eaf3fd;
+    --orange:#ff7a1a; --green:#2fa84f; --red:#e6483f; --grey:#9aa3af;
+    --text:#333; --text-light:#666; --text-faint:#9aa3af; --border:#e6e9ee; --bg:#f5f7fa;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"PingFang SC","Microsoft YaHei",Arial,sans-serif;background:var(--bg);color:var(--text);}
+
+  .topbar{background:#fff;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);}
+  .tabs-space{display:flex;gap:10px;}
+  .space-tab{display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;font-size:13px;color:#888;cursor:pointer;}
+  .space-tab.active{background:var(--blue);color:#fff;}
+  body.space-personal .enterprise-only{display:none !important;}
+  body.space-enterprise .personal-only{display:none !important;}
+  .user{display:flex;align-items:center;gap:8px;font-size:13px;color:#555;}
+  .user .avatar{width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;}
+
+  .page{max-width:1180px;margin:0 auto;padding:20px 24px 60px;}
+  .h1-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+  .h1{font-size:19px;font-weight:700;color:#222;display:flex;align-items:center;gap:8px;}
+  .h1::before{content:"";width:4px;height:16px;background:var(--blue);border-radius:2px;}
+
+  .role-switch{display:flex;gap:4px;background:#eef1f4;border-radius:20px;padding:3px;font-size:12.5px;}
+  .role-chip{padding:6px 14px;border-radius:16px;cursor:pointer;color:#666;}
+  .role-chip.active{background:#fff;color:var(--blue);font-weight:600;box-shadow:0 1px 3px rgba(20,40,80,0.12);}
+
+  .subtabs{display:flex;gap:28px;border-bottom:1px solid var(--border);margin-bottom:20px;font-size:14px;color:#666;}
+  .subtabs span{padding-bottom:10px;cursor:default;}
+  .subtabs span.active{color:var(--blue);font-weight:600;border-bottom:2px solid var(--blue);}
+
+  .notice{
+    display:flex;gap:10px;align-items:flex-start;
+    background:var(--blue-light);border:1px solid #cfe3fb;border-radius:8px;
+    padding:12px 16px;font-size:12.5px;color:#3d668f;line-height:1.9;margin-bottom:20px;
+  }
+  .notice .ico{flex-shrink:0;font-size:15px;}
+
+  .card{background:#fff;border-radius:10px;padding:22px 24px;margin-bottom:18px;box-shadow:0 1px 4px rgba(20,40,80,0.05);}
+  .card-title{font-size:14px;font-weight:600;color:#333;margin-bottom:14px;}
+  .card-title .hint{font-weight:400;font-size:12px;color:var(--text-faint);margin-left:6px;}
+
+  .no-access{background:#fff;border-radius:10px;padding:44px 24px;text-align:center;box-shadow:0 1px 4px rgba(20,40,80,0.05);}
+  .no-access .ico{font-size:30px;margin-bottom:12px;}
+  .no-access .t1{font-size:15px;color:#333;font-weight:600;margin-bottom:8px;}
+  .no-access .t2{font-size:13px;color:var(--text-light);line-height:1.8;max-width:420px;margin:0 auto;}
+
+  .invoice-split{display:flex;gap:20px;margin-bottom:16px;font-size:13px;}
+  .split-opt{display:flex;align-items:center;gap:6px;color:#666;cursor:pointer;}
+  .split-opt .radio{width:15px;height:15px;border-radius:50%;border:1.5px solid #cfd6de;display:inline-flex;align-items:center;justify-content:center;}
+  .split-opt.active{color:var(--blue);}
+  .split-opt.active .radio{border-color:var(--blue);}
+  .split-opt.active .radio::after{content:"";width:7px;height:7px;border-radius:50%;background:var(--blue);}
+
+  .acct-dropdown{position:relative;max-width:460px;}
+  .acct-trigger{
+    display:flex;align-items:center;justify-content:space-between;
+    border:1px solid var(--border);border-radius:6px;padding:9px 12px;font-size:13.5px;color:#333;
+    cursor:pointer;background:#fff;
+  }
+  .acct-trigger:hover{border-color:#c3cad3;}
+  .acct-dropdown.open .acct-trigger{border-color:var(--blue);}
+  .acct-trigger-chev{color:#999;font-size:12px;transition:transform .15s;}
+  .acct-dropdown.open .acct-trigger-chev{transform:rotate(180deg);}
+  .acct-panel{
+    display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:20;
+    background:#fff;border:1px solid var(--border);border-radius:8px;
+    box-shadow:0 8px 24px rgba(20,30,50,0.14);padding:14px;
+  }
+  .acct-dropdown.open .acct-panel{display:block;}
+  .acct-panel-foot{display:flex;justify-content:flex-end;margin-top:10px;}
+  .acct-panel-foot .btn-search{padding:7px 20px;}
+
+  .account-search{margin-bottom:10px;}
+  .account-search input{width:100%;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;outline:none;}
+  .account-search input:focus{border-color:var(--blue);}
+  .account-batch{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+
+  .account-list{border:1px solid var(--border);border-radius:8px;max-height:220px;overflow-y:auto;}
+  .account-row{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border);font-size:13.5px;cursor:pointer;}
+  .account-row:last-child{border-bottom:none;}
+  .account-row:hover{background:#fafbfc;}
+  .account-row .left{display:flex;align-items:center;gap:10px;}
+  .account-row .chk{width:16px;height:16px;border-radius:4px;border:1.5px solid #cfd6de;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .account-row .chk.checked{background:var(--blue);border-color:var(--blue);}
+  .account-row .chk.checked::after{content:"";width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);margin-bottom:2px;}
+  .account-row .name{color:#222;}
+  .account-tag{font-size:11px;padding:2px 7px;border-radius:9px;margin-left:8px;}
+  .account-tag.main{background:#eaf3fd;color:var(--blue);}
+  .account-tag.sub{background:#f1f2f4;color:#888;}
+  .account-row .amt{color:var(--text-light);font-size:12.5px;}
+
+  .mode-switch{display:flex;gap:12px;}
+  .mode-card{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:16px 18px;cursor:pointer;display:flex;gap:12px;align-items:flex-start;transition:border-color .15s,box-shadow .15s;}
+  .mode-card:hover{box-shadow:0 2px 8px rgba(20,40,80,0.06);}
+  .mode-card.active{border-color:var(--blue);box-shadow:0 0 0 2px rgba(22,119,214,0.10);}
+  .mode-card .radio{width:16px;height:16px;border-radius:50%;border:1.5px solid #cfd6de;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;}
+  .mode-card.active .radio{border-color:var(--blue);}
+  .mode-card.active .radio::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--blue);}
+  .mode-card .m-title{font-size:14px;font-weight:600;color:#222;margin-bottom:4px;}
+  .mode-card .m-desc{font-size:12px;color:var(--text-light);line-height:1.7;}
+
+  .period-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .period-chip{padding:8px 18px;border-radius:20px;font-size:13px;border:1px solid var(--border);color:#888;cursor:pointer;}
+  .period-chip.disabled{background:#f5f6f8;color:var(--text-faint);cursor:not-allowed;}
+  .period-chip.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .period-hint{font-size:12px;color:var(--text-faint);}
+
+  .filter-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+  .filter-item label{display:block;font-size:12px;color:var(--text-light);margin-bottom:5px;}
+  .filter-item input[type=text], .filter-item input[type=date], .filter-item select{
+    border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;color:#333;background:#fff;outline:none;
+  }
+  .filter-item input[type=text]{width:190px;}
+  .filter-item input[type=date]{width:140px;}
+  .filter-item select{width:140px;}
+  .filter-item input:focus, .filter-item select:focus{border-color:var(--blue);}
+  .filter-actions{display:flex;gap:8px;align-self:flex-end;}
+  .btn-search{background:var(--blue);color:#fff;border:none;padding:8px 22px;border-radius:6px;font-size:13px;cursor:pointer;}
+  .btn-search:hover{background:var(--blue-dark);}
+  .btn-reset{background:#fff;color:#666;border:1px solid var(--border);padding:8px 18px;border-radius:6px;font-size:13px;cursor:pointer;}
+  .btn-reset:hover{background:#f2f4f7;}
+
+  .hero-row{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+  .hero-item .label{font-size:12.5px;color:var(--text-light);margin-bottom:6px;}
+  .hero-item .value-big{font-size:30px;font-weight:700;color:var(--orange);}
+  .hero-item .sub{font-size:12px;color:var(--text-faint);margin-top:4px;}
+  .hero-link{font-size:13px;color:var(--blue);cursor:pointer;user-select:none;}
+  .hero-link:hover{text-decoration:underline;}
+
+  .limit-warning{display:none;margin-top:14px;background:#fff6ea;border:1px solid #ffd8a8;border-radius:8px;padding:11px 14px;font-size:12.5px;color:#9a5b12;line-height:1.8;}
+  .limit-warning.show{display:block;}
+
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(20,26,35,0.45);align-items:center;justify-content:center;z-index:100;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:#fff;border-radius:12px;padding:26px 30px;width:min(92vw,940px);box-shadow:0 12px 40px rgba(20,30,50,0.18);max-height:86vh;overflow-y:auto;}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;}
+  .modal-title{font-size:16px;font-weight:700;color:#222;}
+  .modal-close{cursor:pointer;font-size:20px;color:#999;line-height:1;}
+  .modal-close:hover{color:#555;}
+  .formula-row{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;}
+  .formula-item{min-width:150px;position:relative;}
+  .formula-item.result{padding-top:22px;}
+  .f-label{font-size:12.5px;color:var(--text-light);display:flex;align-items:center;gap:5px;white-space:nowrap;}
+  .f-value{font-size:20px;font-weight:700;color:#222;margin-top:8px;}
+  .f-value.orange{color:var(--orange);font-size:24px;}
+  .f-op{font-size:20px;color:var(--text-faint);padding-top:26px;}
+  .qmark{width:14px;height:14px;border-radius:50%;border:1px solid #c3cad3;color:#9aa3af;font-size:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+  .qmark:hover{border-color:var(--blue);color:var(--blue);}
+  .tip{display:none;position:absolute;top:100%;left:0;margin-top:6px;width:220px;background:#333;color:#fff;font-size:11.5px;line-height:1.7;padding:9px 11px;border-radius:6px;z-index:10;}
+  .tip.open{display:block;}
+  .detail-link{font-size:12px;color:var(--blue);cursor:pointer;margin-top:8px;}
+  .detail-link:hover{text-decoration:underline;}
+  .mini-list{display:none;margin-top:8px;background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;color:#555;max-width:230px;}
+  .mini-list.open{display:block;}
+  .mini-list .m-row{display:flex;justify-content:space-between;padding:3px 0;gap:8px;}
+  .modal-foot{display:flex;justify-content:flex-end;margin-top:24px;}
+
+  .by-account{margin-top:20px;border-top:1px solid var(--border);padding-top:14px;}
+  .by-account .bt-title-link{font-size:12.5px;color:var(--blue);cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:4px;}
+  .by-account .bt-title-link:hover{text-decoration:underline;}
+  .by-account-list{display:none;margin-top:10px;}
+  .by-account-list.open{display:block;}
+  .by-account .b-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;color:#444;border-bottom:1px dashed var(--border);}
+  .by-account .b-row:last-child{border-bottom:none;}
+  .by-account .b-row .b-amt{color:var(--orange);font-weight:600;}
+
+  .result-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+  .result-hint{font-size:12.5px;color:var(--text-light);}
+  .result-hint b{color:var(--orange);}
+  .batch-actions{display:flex;align-items:center;gap:8px;}
+  .batch-actions .sep{color:var(--border);font-size:12px;}
+  .btn-link{background:none;border:none;color:var(--blue);font-size:12.5px;cursor:pointer;padding:0;}
+  .btn-link:hover{text-decoration:underline;}
+
+  .order-list{border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .order-header-row{display:grid;grid-template-columns:26px 1.15fr .85fr .7fr .8fr .85fr .85fr 90px 28px;padding:11px 14px;background:#fafbfc;font-size:12px;color:var(--text-light);border-bottom:1px solid var(--border);}
+  .order-header-row.no-period{grid-template-columns:26px 1.15fr .85fr .8fr .85fr .85fr 90px 28px;}
+  .order-row{display:grid;grid-template-columns:26px 1.15fr .85fr .7fr .8fr .85fr .85fr 90px 28px;align-items:center;padding:13px 14px;font-size:13px;border-bottom:1px solid var(--border);}
+  .order-row.no-period{grid-template-columns:26px 1.15fr .85fr .8fr .85fr .85fr 90px 28px;}
+  .order-row:last-child{border-bottom:none;}
+  .order-row .chk{width:16px;height:16px;border-radius:4px;border:1.5px solid #cfd6de;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .order-row .chk.checked{background:var(--blue);border-color:var(--blue);}
+  .order-row .chk.checked::after{content:"";width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);margin-bottom:2px;}
+  .order-row .chk.disabled{background:#f0f1f3;border-color:#e2e5ea;cursor:not-allowed;}
+  .order-row .orderno{color:#222;font-weight:600;}
+  .order-row .ordertype{color:var(--text-light);font-size:11.5px;margin-top:2px;}
+  .order-row .amt-invoiceable{color:var(--orange);font-weight:600;}
+  .order-row .amt-invoiceable.zero{color:var(--text-faint);font-weight:400;}
+  .period-col, .acct-col{color:var(--text-light);font-size:12px;}
+  .tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:3px 8px;border-radius:12px;white-space:nowrap;}
+  .tag .dot{width:6px;height:6px;border-radius:50%;}
+  .tag.ok{background:#eaf7ee;color:var(--green);}
+  .tag.ok .dot{background:var(--green);}
+  .tag.partial{background:#fff6ea;color:var(--orange);}
+  .tag.partial .dot{background:var(--orange);}
+  .tag.no{background:#fdeceb;color:var(--red);}
+  .tag.no .dot{background:var(--red);}
+  .tag.pending{background:#eef1f4;color:var(--grey);}
+  .tag.pending .dot{background:var(--grey);}
+  .expand-btn{width:20px;height:20px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#999;font-size:11px;background:#fff;}
+  .empty-state{padding:40px 20px;text-align:center;color:var(--text-faint);font-size:13px;}
+
+  .detail-panel{display:none;background:#fbfbfc;border-bottom:1px solid var(--border);padding:8px 14px 12px 46px;}
+  .detail-panel.open{display:block;}
+  .detail-row{display:grid;grid-template-columns:1fr 1fr 1fr 90px;padding:6px 0;font-size:12.5px;color:var(--text-light);align-items:center;}
+  .detail-row .d-amt{color:#444;}
+
+  .footer-bar{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:10px;padding:16px 24px;margin-top:16px;box-shadow:0 1px 4px rgba(20,40,80,0.05);flex-wrap:wrap;gap:12px;}
+  .footer-left{font-size:13.5px;color:#555;display:flex;gap:24px;flex-wrap:wrap;}
+  .footer-left b{color:var(--orange);font-size:16px;}
+  .footer-left .split-note{font-size:12px;color:var(--text-faint);}
+  .btn{padding:10px 30px;border-radius:6px;font-size:14px;cursor:pointer;border:none;background:var(--blue);color:#fff;}
+  .btn:hover{background:var(--blue-dark);}
+  .btn:disabled{background:#cfd6de;cursor:not-allowed;}
+</style>
+</head>
+<body class="space-personal">
+
+<div class="topbar">
+  <div class="tabs-space">
+    <div class="space-tab active" id="spaceTabPersonal" onclick="switchSpace('personal')">👤 个人空间</div>
+    <div class="space-tab" id="spaceTabEnterprise" onclick="switchSpace('enterprise')">🏢 企业空间</div>
+  </div>
+  <div class="user"><div class="avatar">徐</div>徐远洋</div>
+</div>
+
+<div class="page">
+  <div class="h1-row">
+    <div class="h1" id="pageTitle">发票管理</div>
+    <div class="role-switch enterprise-only">
+      <div class="role-chip active" id="roleAdmin" onclick="switchRole('admin')">企业管理员视角</div>
+      <div class="role-chip" id="roleSub" onclick="switchRole('sub')">子账户用户视角</div>
+    </div>
+  </div>
+  <div class="subtabs">
+    <span class="active">开具发票</span><span>已开具列表</span><span>发票信息（抬头）</span>
+  </div>
+
+  <div class="no-access" id="noAccessBlock" style="display:none;">
+    <div class="ico">🔒</div>
+    <div class="t1">你的消费需要企业管理员统一申请开票</div>
+    <div class="t2">你可以在"我的账单"中查看自己的消费明细，如需开票，请联系企业管理员统一提交申请，管理员可以合并企业整体或名下子账户的消费开具发票。</div>
+  </div>
+
+  <div id="contentBlock">
+    <div class="notice">
+      <span class="ico">ℹ️</span>
+      <div>充值金额、体验金/虚拟货币部分、交易未完成的账单均不可开票；已开过票的部分不会重复出现在可开票范围内。开票金额按选中订单的实付金额汇总计算，金额计算到分，分以下部分舍弃。
+      </div>
+    </div>
+
+    <div class="card enterprise-only">
+      <div class="card-title">账户范围<span class="hint">选择本次开票要包含哪些账户的消费</span></div>
+
+      <div class="invoice-split">
+        <div class="split-opt active" id="splitMerge" onclick="setSplitMode('merge')"><span class="radio"></span>合并为一张发票</div>
+        <div class="split-opt" id="splitByAccount" onclick="setSplitMode('byAccount')"><span class="radio"></span>按账户分别开票</div>
+      </div>
+
+      <div class="acct-dropdown" id="acctDropdown">
+        <div class="acct-trigger" onclick="toggleAcctDropdown(event)">
+          <span id="acctTriggerText">请选择账户</span>
+          <span class="acct-trigger-chev">⌄</span>
+        </div>
+        <div class="acct-panel" id="acctPanel">
+          <div class="account-search"><input type="text" id="acctKeyword" placeholder="搜索账户名称" oninput="renderAccountList()"></div>
+          <div class="account-batch">
+            <button class="btn-link" onclick="selectAllAccounts()">全选</button>
+            <span class="sep" style="color:var(--border)">|</span>
+            <button class="btn-link" onclick="clearAllAccounts()">清空</button>
+          </div>
+          <div class="account-list" id="accountList"></div>
+          <div class="acct-panel-foot"><button class="btn-search" onclick="closeAcctDropdown()">确定</button></div>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="card">
+      <div class="card-title">选择开票方式</div>
+      <div class="mode-switch">
+        <div class="mode-card" id="modeOrderCard" onclick="switchMode('order')">
+          <span class="radio"></span>
+          <div>
+            <div class="m-title">按订单开票</div>
+            <div class="m-desc">适合一次性消费场景，或需要针对某几笔具体订单单独开票、对账的情况。可跨月份搜索并勾选任意符合条件的订单。</div>
+          </div>
+        </div>
+        <div class="mode-card active" id="modePeriodCard" onclick="switchMode('period')">
+          <span class="radio"></span>
+          <div>
+            <div class="m-title">按月周期开票</div>
+            <div class="m-desc">适合按量付费场景，按已完结的自然月汇总账单，一次性把整月可开票金额合并开出，无需逐笔选择。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="periodModeBlock">
+      <div class="card">
+        <div class="card-title">选择开票周期</div>
+        <div class="period-row">
+          <div class="period-chip disabled">2026年07月（本月未汇总完成）</div>
+          <div class="period-chip active" id="chipJun" onclick="selectPeriod('06')">2026年06月</div>
+          <div class="period-chip" id="chipMay" onclick="selectPeriod('05')">2026年05月</div>
+          <span class="period-hint">仅可选择已完结的自然月，最多可回溯 12 个月</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">本周期汇总</div>
+        <div class="hero-row">
+          <div class="hero-item">
+            <div class="label">可开票金额</div>
+            <div class="value-big" id="periodInvoiceable">¥ 0.00</div>
+            <div class="sub" id="periodSub">共 0 笔订单，0 笔可开票</div>
+          </div>
+          <div class="hero-link" onclick="openFormulaModal()">查看计算明细 ›</div>
+        </div>
+        <div class="limit-warning" id="limitWarning"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">筛选本周期内的订单（可选）</div>
+        <div class="filter-row">
+          <div class="filter-item"><label>订单号/关键字</label><input type="text" id="pKeyword" placeholder="输入订单号或商品名称"></div>
+          <div class="filter-item"><label>开票状态</label>
+            <select id="pStatus">
+              <option value="">全部</option>
+              <option value="ok">可开票</option>
+              <option value="partial">部分可开票</option>
+              <option value="no">不可开票</option>
+            </select>
+          </div>
+          <div class="filter-actions">
+            <button class="btn-search" onclick="renderPeriodOrders()">查询</button>
+            <button class="btn-reset" onclick="resetPeriodFilter()">重置</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="orderModeBlock" style="display:none;">
+      <div class="card">
+        <div class="card-title">筛选订单</div>
+        <div class="filter-row">
+          <div class="filter-item"><label>订单号/商品名称</label><input type="text" id="oKeyword" placeholder="输入订单号或商品名称"></div>
+          <div class="filter-item"><label>消费开始日期</label><input type="date" id="oStart" value="2026-05-01"></div>
+          <div class="filter-item"><label>消费结束日期</label><input type="date" id="oEnd" value="2026-06-30"></div>
+          <div class="filter-item"><label>开票状态</label>
+            <select id="oStatus">
+              <option value="">全部</option>
+              <option value="ok">可开票</option>
+              <option value="partial">部分可开票</option>
+              <option value="no">不可开票</option>
+              <option value="pending">未汇总完成</option>
+            </select>
+          </div>
+          <div class="filter-actions">
+            <button class="btn-search" onclick="renderOrderList()">查询</button>
+            <button class="btn-reset" onclick="resetOrderFilter()">重置</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" id="listTitle">选择要开票的订单</div>
+      <div class="result-bar">
+        <div class="result-hint" id="resultHint"></div>
+        <div class="batch-actions">
+          <button class="btn-link" onclick="selectAllFiltered()">全选筛选结果</button>
+          <span class="sep">|</span>
+          <button class="btn-link" onclick="clearAllFiltered()">清空本次选择</button>
+        </div>
+      </div>
+      <div class="order-list" id="orderListContainer"></div>
+    </div>
+
+    <div class="footer-bar">
+      <div class="footer-left">
+        <div class="enterprise-only">已选账户：<b id="selAcctCount">0</b> 个</div>
+        <div>已选订单：<b id="selCount">0</b> 笔</div>
+        <div>已选开票金额：<b id="selAmt">¥0.00</b></div>
+        <div class="split-note" id="splitNote"></div>
+      </div>
+      <button class="btn" onclick="apply()" id="applyBtn">申请开票</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="formulaModal" onclick="closeFormulaModal()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <span class="modal-title">可开票金额</span>
+        <span class="modal-close" onclick="closeFormulaModal()">×</span>
+      </div>
+      <div class="formula-row">
+        <div class="formula-item result">
+          <div class="f-label">可开票金额</div>
+          <div class="f-value orange" id="fResult">¥0.00</div>
+        </div>
+        <div class="f-op">=</div>
+        <div class="formula-item">
+          <div class="f-label">总计消费可开票金额 <span class="qmark" onclick="toggleTip(event,'tip1')">?</span></div>
+          <div class="f-value" id="fTotal">¥0.00</div>
+          <div class="tip" id="tip1">本周期内选中账户产生的全部消费金额（不含充值部分），是计算可开票金额的基数，还未扣减历史已开票和本月不可开票的部分。</div>
+        </div>
+        <div class="f-op">−</div>
+        <div class="formula-item">
+          <div class="f-label">历史已开票金额 <span class="qmark" onclick="toggleTip(event,'tip2')">?</span></div>
+          <div class="f-value" id="fInvoiced">¥0.00</div>
+          <div class="tip" id="tip2">该笔消费此前已经申请并开具过发票的金额，扣除后避免同一笔消费被重复开票。</div>
+          <div class="detail-link" onclick="toggleDetailList('detailInvoiced')">查看明细</div>
+          <div class="mini-list" id="detailInvoiced"></div>
+        </div>
+        <div class="f-op">−</div>
+        <div class="formula-item">
+          <div class="f-label">本月不可开票金额 <span class="qmark" onclick="toggleTip(event,'tip3')">?</span></div>
+          <div class="f-value" id="fExcluded">¥0.00</div>
+          <div class="tip" id="tip3">因体验金/虚拟货币抵扣、交易未完成等原因，本身不符合开票条件而被排除的金额。</div>
+          <div class="detail-link" onclick="toggleDetailList('detailExcluded')">查看明细</div>
+          <div class="mini-list" id="detailExcluded"></div>
+        </div>
+      </div>
+
+      <div class="by-account enterprise-only" id="byAccountBlock">
+        <div class="bt-title-link" onclick="toggleByAccount()">按账户拆分明细 <span id="byAccountChev">›</span></div>
+        <div id="byAccountList" class="by-account-list"></div>
+      </div>
+
+      <div class="modal-foot"><button class="btn-reset" onclick="closeFormulaModal()">关闭</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const ACCOUNTS = [
+    { id:'main', name:'思特企业（主账户）', type:'main' },
+    { id:'sub1', name:'子账户 · 真',       type:'sub' },
+    { id:'sub2', name:'子账户 · 李千颖',    type:'sub' },
+    { id:'sub3', name:'子账户 · 张丽阳',    type:'sub' },
+    { id:'sub4', name:'子账户 · 田跃东',    type:'sub' }
+  ];
+
+  const ALL_ORDERS = [
+    { id:1, orderNo:'ORD20260601003', name:'算力券采购',         accountId:'main', period:'06', date:'2026-06-01', typeLabel:'买断/资源包', amount:3200.00, invoicedAmt:0,  excludedAmt:0,   status:'ok',
+      details:[] },
+    { id:2, orderNo:'ORD20260614017', name:'GPU算力租用·A100',   accountId:'sub1', period:'06', date:'2026-06-14', typeLabel:'按量计费',    amount:560.00,  invoicedAmt:20, excludedAmt:60,  status:'partial',
+      details:[
+        {d:'06-03', amt:18.00, tag:'ok', label:'可开票'},
+        {d:'06-09', amt:60.00, tag:'no', label:'体验金'},
+        {d:'06-15', amt:20.00, tag:'pending', label:'已开票'}
+      ] },
+    { id:3, orderNo:'ORD20260622044', name:'GPU算力租用·H100',   accountId:'sub1', period:'06', date:'2026-06-22', typeLabel:'按量计费',    amount:120.00,  invoicedAmt:0,  excludedAmt:120, status:'no',
+      details:[{d:'06-22', amt:120.00, tag:'no', label:'体验金'}] },
+    { id:4, orderNo:'ORD20260503009', name:'Token工厂采购',       accountId:'main', period:'05', date:'2026-05-03', typeLabel:'买断/资源包', amount:860.00,  invoicedAmt:0,  excludedAmt:0,   status:'ok',
+      details:[] },
+    { id:5, orderNo:'ORD20260517022', name:'GPU算力租用·RTX4090', accountId:'sub2', period:'05', date:'2026-05-17', typeLabel:'按量计费',    amount:340.00,  invoicedAmt:0,  excludedAmt:0,   status:'ok',
+      details:[] },
+    { id:6, orderNo:'ORD20260528031', name:'GPU算力租用·A100',    accountId:'sub3', period:'05', date:'2026-05-28', typeLabel:'按量计费',    amount:90.00,   invoicedAmt:90, excludedAmt:0,   status:'no',
+      details:[{d:'05-28', amt:90.00, tag:'pending', label:'已开票'}] },
+    { id:7, orderNo:'ORD20260703002', name:'算力券采购',          accountId:'main', period:'07', date:'2026-07-03', typeLabel:'买断/资源包', amount:500.00,  invoicedAmt:0,  excludedAmt:500, status:'pending',
+      details:[] },
+    { id:8, orderNo:'ORD20260610008', name:'算力券采购',          accountId:'sub4', period:'06', date:'2026-06-10', typeLabel:'买断/资源包', amount:200.00,  invoicedAmt:0,  excludedAmt:0,   status:'ok',
+      details:[] }
+  ];
+  ALL_ORDERS.forEach(o => { o.invoiceable = Math.max(0, o.amount - o.invoicedAmt - o.excludedAmt); });
+
+  // ---- 个人空间（ToC 个人用户）自己的消费订单，独立于企业账户体系 ----
+  const PERSONAL_ORDERS = [
+    { id:101, orderNo:'2078269878073602050', name:'Kimi-K2.7-Code · 10M Token资源包', period:'06', date:'2026-06-18', typeLabel:'Token包',    amount:199.00, invoicedAmt:0,  excludedAmt:0,  status:'ok',
+      details:[] },
+    { id:102, orderNo:'2078201122334455667', name:'GPU算力租用·RTX4090（个人）',       period:'06', date:'2026-06-05', typeLabel:'按量计费',   amount:88.00,  invoicedAmt:0,  excludedAmt:28.00, status:'partial',
+      details:[
+        {d:'06-05', amt:60.00, tag:'ok', label:'可开票'},
+        {d:'06-05', amt:28.00, tag:'no', label:'体验金'}
+      ] },
+    { id:103, orderNo:'2077980099887766554', name:'算力券采购（体验装）',             period:'05', date:'2026-05-20', typeLabel:'买断/资源包', amount:50.00,  invoicedAmt:50.00, excludedAmt:0, status:'no',
+      details:[{d:'05-20', amt:50.00, tag:'pending', label:'已开票'}] },
+    { id:104, orderNo:'2078300011223344556', name:'Kimi-K2.7-Code月度订阅',           period:'07', date:'2026-07-05', typeLabel:'Token包',    amount:199.00, invoicedAmt:0,  excludedAmt:199.00, status:'pending',
+      details:[] }
+  ];
+  PERSONAL_ORDERS.forEach(o => { o.invoiceable = Math.max(0, o.amount - o.invoicedAmt - o.excludedAmt); });
+
+  const STATUS_META = {
+    ok:{cls:'ok', text:'可开票'},
+    partial:{cls:'partial', text:'部分可开票'},
+    no:{cls:'no', text:'不可开票'},
+    pending:{cls:'pending', text:'未汇总完成'}
+  };
+
+  const INVOICE_LIMIT = 5000.00; // 示例阈值：企业专票单张核定限额，实际数值需由财务/税务配置，此处仅作演示
+
+  let currentSpace = 'personal';   // 'personal' | 'enterprise'
+  let currentRole = 'admin';
+  let mode = 'period';
+  let currentPeriod = '06';
+  let splitMode = 'merge';
+  let selectedAccounts = {};
+  let selected = {};
+  let lastList = [];
+  let lastShowPeriodCol = true;
+
+  function findOrderById(id){
+    return PERSONAL_ORDERS.find(o=>o.id===id) || ALL_ORDERS.find(o=>o.id===id);
+  }
+
+  function switchSpace(space){
+    currentSpace = space;
+    document.body.classList.toggle('space-personal', space==='personal');
+    document.body.classList.toggle('space-enterprise', space==='enterprise');
+    document.getElementById('spaceTabPersonal').classList.toggle('active', space==='personal');
+    document.getElementById('spaceTabEnterprise').classList.toggle('active', space==='enterprise');
+    document.getElementById('pageTitle').textContent = space==='personal' ? '发票管理' : '企业发票管理';
+    selected = {};
+    if(space === 'enterprise'){
+      switchRole(currentRole); // 恢复企业空间内当前的管理员/子账户视角
+    } else {
+      document.getElementById('contentBlock').style.display = 'block';
+      document.getElementById('noAccessBlock').style.display = 'none';
+    }
+    if(mode === 'period'){ renderPeriodOrders(); } else { renderOrderList(); }
+  }
+
+  function switchRole(role){
+    currentRole = role;
+    document.getElementById('roleAdmin').classList.toggle('active', role==='admin');
+    document.getElementById('roleSub').classList.toggle('active', role==='sub');
+    const showContent = !(currentSpace === 'enterprise' && role === 'sub');
+    document.getElementById('contentBlock').style.display = showContent ? 'block' : 'none';
+    document.getElementById('noAccessBlock').style.display = showContent ? 'none' : 'block';
+  }
+
+  function accountRecentTotal(a){
+    return ALL_ORDERS.filter(o => o.accountId === a.id).reduce((s,o)=>s+o.amount,0);
+  }
+
+  function updateAcctTriggerText(){
+    const ids = selectedAccountIds();
+    const el = document.getElementById('acctTriggerText');
+    if(ids.length === 0){
+      el.textContent = '请选择账户';
+    } else if(ids.length === ACCOUNTS.length){
+      el.textContent = '全部账户（' + ids.length + ' 个）';
+    } else if(ids.length <= 2){
+      el.textContent = ids.map(accountNameOf).join('、');
+    } else {
+      el.textContent = accountNameOf(ids[0]) + ' 等 ' + ids.length + ' 个账户';
+    }
+  }
+
+  function toggleAcctDropdown(evt){
+    evt.stopPropagation();
+    document.getElementById('acctDropdown').classList.toggle('open');
+  }
+  function closeAcctDropdown(){
+    document.getElementById('acctDropdown').classList.remove('open');
+  }
+  document.addEventListener('click', function(evt){
+    const dropdown = document.getElementById('acctDropdown');
+    if(dropdown && !dropdown.contains(evt.target)) dropdown.classList.remove('open');
+  });
+
+  function renderAccountList(){
+    const kw = document.getElementById('acctKeyword').value.trim().toLowerCase();
+    const list = ACCOUNTS.filter(a => a.name.toLowerCase().includes(kw));
+    const container = document.getElementById('accountList');
+    if(list.length === 0){
+      container.innerHTML = '<div class="empty-state">没有匹配的账户</div>';
+    } else {
+      container.innerHTML = list.map(a=>{
+        const checked = !!selectedAccounts[a.id];
+        const tagCls = a.type === 'main' ? 'main' : 'sub';
+        const tagText = a.type === 'main' ? '主账户' : '子账户';
+        return '<div class="account-row" onclick="toggleAccount(\'' + a.id + '\')">'
+          + '<div class="left"><span class="chk' + (checked?' checked':'') + '"></span>'
+          + '<span class="name">' + a.name + '</span>'
+          + '<span class="account-tag ' + tagCls + '">' + tagText + '</span></div>'
+          + '<span class="amt">近两月消费 ¥' + accountRecentTotal(a).toLocaleString('zh-CN',{minimumFractionDigits:2}) + '</span>'
+          + '</div>';
+      }).join('');
+    }
+    updateAcctTriggerText();
+  }
+
+  function toggleAccount(id){
+    selectedAccounts[id] = !selectedAccounts[id];
+    renderAccountList();
+    onAccountScopeChanged();
+  }
+  function selectAllAccounts(){
+    ACCOUNTS.forEach(a => selectedAccounts[a.id] = true);
+    renderAccountList();
+    onAccountScopeChanged();
+  }
+  function clearAllAccounts(){
+    ACCOUNTS.forEach(a => selectedAccounts[a.id] = false);
+    renderAccountList();
+    onAccountScopeChanged();
+  }
+  function onAccountScopeChanged(){
+    selected = {};
+    if(mode === 'period'){ renderPeriodOrders(); } else { renderOrderList(); }
+  }
+
+  function setSplitMode(m){
+    splitMode = m;
+    document.getElementById('splitMerge').classList.toggle('active', m==='merge');
+    document.getElementById('splitByAccount').classList.toggle('active', m==='byAccount');
+    renderFooter();
+  }
+
+  function selectedAccountIds(){
+    return ACCOUNTS.filter(a => selectedAccounts[a.id]).map(a => a.id);
+  }
+
+  function switchMode(m){
+    mode = m;
+    document.getElementById('modeOrderCard').classList.toggle('active', m==='order');
+    document.getElementById('modePeriodCard').classList.toggle('active', m==='period');
+    document.getElementById('orderModeBlock').style.display = m==='order' ? 'block' : 'none';
+    document.getElementById('periodModeBlock').style.display = m==='period' ? 'block' : 'none';
+    document.getElementById('listTitle').textContent = m==='order' ? '筛选结果 · 选择要开票的订单' : '选择要开票的订单';
+    selected = {};
+    if(m === 'period'){ renderPeriodOrders(); } else { renderOrderList(); }
+  }
+
+  function selectPeriod(p){
+    currentPeriod = p;
+    document.getElementById('chipJun').classList.toggle('active', p==='06');
+    document.getElementById('chipMay').classList.toggle('active', p==='05');
+    selected = {};
+    renderPeriodOrders();
+  }
+
+  function resetPeriodFilter(){
+    document.getElementById('pKeyword').value = '';
+    document.getElementById('pStatus').value = '';
+    renderPeriodOrders();
+  }
+  function resetOrderFilter(){
+    document.getElementById('oKeyword').value = '';
+    document.getElementById('oStart').value = '2026-05-01';
+    document.getElementById('oEnd').value = '2026-06-30';
+    document.getElementById('oStatus').value = '';
+    renderOrderList();
+  }
+
+  function basePool(){
+    return currentSpace === 'personal' ? PERSONAL_ORDERS : ALL_ORDERS.filter(o => selectedAccountIds().includes(o.accountId));
+  }
+
+  function currentPeriodOrdersInScope(){
+    return basePool().filter(o => o.period === currentPeriod);
+  }
+
+  function updateFormulaValues(){
+    const orders = currentPeriodOrdersInScope();
+    const total = orders.reduce((s,o)=>s+o.amount,0);
+    const invoicedAmt = orders.reduce((s,o)=>s+o.invoicedAmt,0);
+    const excludedAmt = orders.reduce((s,o)=>s+o.excludedAmt,0);
+    const invoiceable = orders.reduce((s,o)=>s+o.invoiceable,0);
+
+    document.getElementById('fResult').textContent = '¥' + invoiceable.toLocaleString('zh-CN',{minimumFractionDigits:2});
+    document.getElementById('fTotal').textContent = '¥' + total.toLocaleString('zh-CN',{minimumFractionDigits:2});
+    document.getElementById('fInvoiced').textContent = '¥' + invoicedAmt.toLocaleString('zh-CN',{minimumFractionDigits:2});
+    document.getElementById('fExcluded').textContent = '¥' + excludedAmt.toLocaleString('zh-CN',{minimumFractionDigits:2});
+
+    const invoicedListEl = document.getElementById('detailInvoiced');
+    const invoicedRows = orders.filter(o=>o.invoicedAmt>0).map(o=>'<div class="m-row"><span>'+o.orderNo+'</span><span>¥'+o.invoicedAmt.toFixed(2)+'</span></div>').join('');
+    invoicedListEl.innerHTML = invoicedRows || '<div class="m-row"><span>本周期暂无历史已开票记录</span></div>';
+
+    const excludedListEl = document.getElementById('detailExcluded');
+    const excludedRows = orders.filter(o=>o.excludedAmt>0).map(o=>'<div class="m-row"><span>'+o.orderNo+'</span><span>¥'+o.excludedAmt.toFixed(2)+'</span></div>').join('');
+    excludedListEl.innerHTML = excludedRows || '<div class="m-row"><span>本周期没有不可开票的部分</span></div>';
+
+    if(currentSpace === 'enterprise'){
+      const ids = selectedAccountIds();
+      const byAccountEl = document.getElementById('byAccountList');
+      const rows = ids.map(id=>{
+        const acc = ACCOUNTS.find(a=>a.id===id);
+        const sum = orders.filter(o=>o.accountId===id).reduce((s,o)=>s+o.invoiceable,0);
+        return { name: acc.name, sum };
+      }).filter(r => r.sum > 0);
+      byAccountEl.innerHTML = rows.length
+        ? rows.map(r=>'<div class="b-row"><span>'+r.name+'</span><span class="b-amt">¥'+r.sum.toLocaleString('zh-CN',{minimumFractionDigits:2})+'</span></div>').join('')
+        : '<div class="b-row"><span>本周期选中的账户暂无可开票金额</span></div>';
+    }
+  }
+
+  function openFormulaModal(){
+    updateFormulaValues();
+    document.getElementById('formulaModal').classList.add('open');
+  }
+  function toggleByAccount(){
+    const el = document.getElementById('byAccountList');
+    const chev = document.getElementById('byAccountChev');
+    const isOpen = el.classList.toggle('open');
+    chev.textContent = isOpen ? '⌄' : '›';
+  }
+
+  function closeFormulaModal(){
+    document.getElementById('formulaModal').classList.remove('open');
+    document.querySelectorAll('.tip.open').forEach(el => el.classList.remove('open'));
+    document.querySelectorAll('.mini-list.open').forEach(el => el.classList.remove('open'));
+    document.getElementById('byAccountList').classList.remove('open');
+    document.getElementById('byAccountChev').textContent = '›';
+  }
+  function toggleTip(evt, id){
+    evt.stopPropagation();
+    const el = document.getElementById(id);
+    const wasOpen = el.classList.contains('open');
+    document.querySelectorAll('.tip.open').forEach(t => t.classList.remove('open'));
+    if(!wasOpen) el.classList.add('open');
+  }
+  function toggleDetailList(id){
+    document.getElementById(id).classList.toggle('open');
+  }
+
+  function renderPeriodSummary(){
+    const orders = currentPeriodOrdersInScope();
+    const invoiceable = orders.reduce((s,o)=>s+o.invoiceable,0);
+    const okCount = orders.filter(o=>o.status==='ok'||o.status==='partial').length;
+    document.getElementById('periodInvoiceable').textContent = '¥ ' + invoiceable.toLocaleString('zh-CN',{minimumFractionDigits:2});
+    document.getElementById('periodSub').textContent = '共 ' + orders.length + ' 笔订单，' + okCount + ' 笔可开票';
+    updateFormulaValues();
+  }
+
+  function renderPeriodOrders(){
+    renderPeriodSummary();
+    const kw = document.getElementById('pKeyword').value.trim().toLowerCase();
+    const st = document.getElementById('pStatus').value;
+    let list = currentPeriodOrdersInScope();
+    if(kw) list = list.filter(o => o.orderNo.toLowerCase().includes(kw) || o.name.toLowerCase().includes(kw));
+    if(st) list = list.filter(o => o.status === st);
+    document.getElementById('resultHint').innerHTML = '共 <b>' + list.length + '</b> 笔订单符合条件';
+    renderList(list, true);
+  }
+
+  function renderOrderList(){
+    const kw = document.getElementById('oKeyword').value.trim().toLowerCase();
+    const start = document.getElementById('oStart').value;
+    const end = document.getElementById('oEnd').value;
+    const st = document.getElementById('oStatus').value;
+    let list = basePool();
+    if(kw) list = list.filter(o => o.orderNo.toLowerCase().includes(kw) || o.name.toLowerCase().includes(kw));
+    if(start) list = list.filter(o => o.date >= start);
+    if(end) list = list.filter(o => o.date <= end);
+    if(st) list = list.filter(o => o.status === st);
+    const invoiceableSum = list.reduce((s,o)=>s+o.invoiceable,0);
+    document.getElementById('resultHint').innerHTML = '共 <b>' + list.length + '</b> 笔订单符合条件，其中可开票金额合计 <b>¥' + invoiceableSum.toLocaleString('zh-CN',{minimumFractionDigits:2}) + '</b>';
+    renderList(list, false);
+  }
+
+  function selectAllFiltered(){
+    lastList.forEach(o=>{ if(o.invoiceable > 0) selected[o.id] = true; });
+    renderList(lastList, lastShowPeriodCol);
+  }
+  function clearAllFiltered(){
+    lastList.forEach(o=>{ selected[o.id] = false; });
+    renderList(lastList, lastShowPeriodCol);
+  }
+
+  function accountNameOf(id){
+    const a = ACCOUNTS.find(a=>a.id===id);
+    return a ? a.name.replace('子账户 · ','').replace('思特企业（主账户）','企业主账户') : id;
+  }
+
+  function renderList(list, showPeriodCol){
+    lastList = list;
+    lastShowPeriodCol = showPeriodCol;
+    const showAcctCol = currentSpace === 'enterprise';
+    const container = document.getElementById('orderListContainer');
+    if(list.length === 0){
+      container.innerHTML = '<div class="empty-state">没有符合筛选条件的订单，试试调整筛选项或账户范围</div>';
+      renderFooter();
+      return;
+    }
+    const cols = ['26px','1.15fr'];
+    if(showAcctCol) cols.push('.85fr');
+    if(showPeriodCol) cols.push('.7fr');
+    cols.push('.8fr','.85fr','.85fr','90px','28px');
+    const gridStyle = 'grid-template-columns:' + cols.join(' ') + ';';
+
+    const acctColHeader = showAcctCol ? '<span>所属账户</span>' : '';
+    const periodColHeader = showPeriodCol ? '<span>账期</span>' : '';
+    let html = '<div class="order-header-row" style="' + gridStyle + '"><span></span><span>订单信息</span>' + acctColHeader + periodColHeader + '<span>计费方式</span><span>订单总额</span><span>可开票金额</span><span>状态</span><span></span></div>';
+
+    list.forEach(o=>{
+      const meta = STATUS_META[o.status];
+      const checked = !!selected[o.id];
+      const disabled = o.invoiceable === 0;
+      const chkClass = disabled ? 'chk disabled' : ('chk' + (checked ? ' checked' : ''));
+      const acctCol = showAcctCol ? '<div class="acct-col">' + accountNameOf(o.accountId) + '</div>' : '';
+      const periodCol = showPeriodCol ? '<div class="period-col">2026年' + o.period + '月</div>' : '';
+      const hasDetail = o.details && o.details.length > 0;
+      html += '<div class="order-row" style="' + gridStyle + '" data-id="' + o.id + '">'
+        + '<span class="' + chkClass + '" onclick="toggleOrder(' + o.id + ')"></span>'
+        + '<div><div class="orderno">' + o.orderNo + '</div><div class="ordertype">' + o.name + '</div></div>'
+        + acctCol
+        + periodCol
+        + '<div>' + o.typeLabel + '</div>'
+        + '<div>¥' + o.amount.toLocaleString('zh-CN',{minimumFractionDigits:2}) + '</div>'
+        + '<div class="amt-invoiceable' + (o.invoiceable===0?' zero':'') + '">¥' + o.invoiceable.toLocaleString('zh-CN',{minimumFractionDigits:2}) + '</div>'
+        + '<div class="tag ' + meta.cls + '"><span class="dot"></span>' + meta.text + '</div>'
+        + (hasDetail ? '<span class="expand-btn" onclick="toggleDetail(' + o.id + ')">⌄</span>' : '<span></span>')
+        + '</div>';
+      if(hasDetail){
+        html += '<div class="detail-panel" id="detail-' + o.id + '">';
+        o.details.forEach(d=>{
+          const dMeta = STATUS_META[d.tag] || STATUS_META.ok;
+          html += '<div class="detail-row"><span>' + d.d + ' 账单</span><span></span><span class="d-amt">¥' + d.amt.toFixed(2) + '</span><span class="tag ' + dMeta.cls + '" style="justify-self:start"><span class="dot"></span>' + d.label + '</span></div>';
+        });
+        html += '</div>';
+      }
+    });
+    container.innerHTML = html;
+
+    list.forEach(o=>{
+      if(o.invoiceable > 0 && !(o.id in selected)) selected[o.id] = true;
+    });
+    list.forEach(o=>{
+      const el = document.querySelector('.order-row[data-id="'+o.id+'"] .chk');
+      if(el && o.invoiceable > 0) el.classList.toggle('checked', !!selected[o.id]);
+    });
+    renderFooter();
+  }
+
+  function toggleOrder(id){
+    const order = findOrderById(id);
+    if(!order || order.invoiceable === 0) return;
+    selected[id] = !selected[id];
+    document.querySelector('.order-row[data-id="'+id+'"] .chk').classList.toggle('checked', selected[id]);
+    renderFooter();
+  }
+
+  function toggleDetail(id){
+    document.getElementById('detail-' + id).classList.toggle('open');
+  }
+
+  function renderFooter(){
+    let count = 0, amt = 0;
+    const acctSet = new Set();
+    PERSONAL_ORDERS.concat(ALL_ORDERS).forEach(o=>{
+      if(selected[o.id]){ count++; amt += o.invoiceable; acctSet.add(o.accountId); }
+    });
+    document.getElementById('selAcctCount').textContent = acctSet.size;
+    document.getElementById('selCount').textContent = count;
+    document.getElementById('selAmt').textContent = '¥' + amt.toLocaleString('zh-CN',{minimumFractionDigits:2});
+
+    const splitNote = document.getElementById('splitNote');
+    const applyBtn = document.getElementById('applyBtn');
+    const overLimit = amt > INVOICE_LIMIT;
+    const isEnterprise = currentSpace === 'enterprise';
+
+    if(isEnterprise && splitMode === 'byAccount' && acctSet.size > 0){
+      splitNote.textContent = '将按账户分别生成 ' + acctSet.size + ' 张发票申请';
+      applyBtn.textContent = '提交拆分开票申请';
+    } else {
+      splitNote.textContent = '';
+      applyBtn.textContent = '申请开票';
+    }
+
+    const warnEl = document.getElementById('limitWarning');
+    if(isEnterprise && overLimit && splitMode === 'merge'){
+      warnEl.classList.add('show');
+      warnEl.innerHTML = '已选可开票金额 ¥' + amt.toLocaleString('zh-CN',{minimumFractionDigits:2}) + ' 超过企业专票单张核定限额（示例值 ¥' + INVOICE_LIMIT.toLocaleString('zh-CN',{minimumFractionDigits:2}) + '），建议切换为「按账户分别开票」，或减少本次选择范围。';
+    } else {
+      warnEl.classList.remove('show');
+    }
+  }
+
+  function apply(){
+    alert('已提交开票申请：' + document.getElementById('selAmt').textContent + '\n' + (document.getElementById('splitNote').textContent || '将生成 1 张发票'));
+  }
+
+  ACCOUNTS.forEach(a => selectedAccounts[a.id] = true);
+  renderAccountList();
+  renderPeriodOrders();
+</script>
+
+</body>
+</html>
