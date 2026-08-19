@@ -319,7 +319,7 @@ footer{border-top:1px solid var(--border);padding:30px 0;color:var(--text-second
       </div>
       <div class="visual reveal" style="padding:28px;align-items:stretch;flex-direction:column;gap:16px;text-align:left">
         <div style="font-size:13px;color:var(--accent);font-weight:700;letter-spacing:.04em">DEMO PREVIEW</div>
-        <div style="font-size:20px;font-weight:700;line-height:1.2">供应链协同 RAG Agent<br>浏览器可运行原型</div>
+        <div style="font-size:20px;font-weight:700;line-height:1.2">供应链协同 RAG Agent<span style="display:inline-block;font-size:11px;font-weight:700;color:var(--amber);background:rgba(210,153,34,.15);border:1px solid rgba(210,153,34,.4);padding:2px 9px;border-radius:999px;margin-left:8px;vertical-align:middle">V1 · 关键词原型</span><br>浏览器可运行原型</div>
         <div style="font-size:14px;color:var(--text-secondary);line-height:1.7">
           内嵌 RAG 检索（TF-IDF + 同义词补检索）、7 个 MCP 数据工具、确定性意图路由与 21 条人工标注评测，全部离线可运行。
         </div>
@@ -332,6 +332,45 @@ footer{border-top:1px solid var(--border);padding:30px 0;color:var(--text-second
           <a href="assets/rag/rag-agent演示级原型.html" target="_blank" class="btn btn-primary" style="width:fit-content">▶ 打开演示原型</a>
           <a href="https://github.com/579lqy/rag-agent-portfolio" target="_blank" class="btn btn-ghost" style="width:fit-content">GitHub 仓库</a>
           <a href="assets/rag/supply-chain-rag-portfolio-V1.zip" download class="btn btn-ghost" style="width:fit-content">⬇ 下载源码</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="case">
+      <div class="reveal">
+        <div class="metrics">
+          <div class="m"><b>真·LLM</b><span>function calling 路由</span></div>
+          <div class="m"><b>向量</b><span>语义检索召回</span></div>
+          <div class="m"><b>防幻觉</b><span>忠实度评测</span></div>
+        </div>
+        <ul style="color:var(--text-secondary);font-size:15px;padding-left:18px">
+          <li>演进：在关键词原型基础上把"路由 / 抽参 / 答案合成"换成真正调用 LLM</li>
+          <li>双后端兜底：无 API Key 自动走规则，有 Key 立即变真 LLM</li>
+          <li>检索升级为离线向量（bge），真实数据计算仍由 7 个 MCP 工具完成</li>
+          <li>评测新增工具调用准确率 + 忠实度 + 成本时延，规则基线 90.5% / 100% / 100% 不变</li>
+        </ul>
+        <div class="links">
+          <a href="https://github.com/579lqy/supply-chain-llm-agent" target="_blank">GitHub 仓库</a>
+          <a href="https://579lqy.github.io/supply-chain-llm-agent/" target="_blank">在线演示</a>
+          <a href="https://github.com/579lqy/supply-chain-llm-agent#readme" target="_blank">README</a>
+          <a href="https://github.com/579lqy/supply-chain-llm-agent/blob/main/docs/%E6%93%8D%E4%BD%9C%E6%95%99%E7%A8%8B.md" target="_blank">操作教程</a>
+        </div>
+      </div>
+      <div class="visual reveal" style="padding:28px;align-items:stretch;flex-direction:column;gap:16px;text-align:left">
+        <div style="font-size:13px;color:var(--accent);font-weight:700;letter-spacing:.04em">LLM UPGRADE</div>
+        <div style="font-size:20px;font-weight:700;line-height:1.2">真·LLM 版供应链 RAG Agent<span style="display:inline-block;font-size:11px;font-weight:700;color:var(--green);background:rgba(63,185,80,.15);border:1px solid rgba(63,185,80,.4);padding:2px 9px;border-radius:999px;margin-left:8px;vertical-align:middle">V2 · LLM 升级</span></div>
+        <div style="font-size:14px;color:var(--text-secondary);line-height:1.7">
+          用 LLM function calling 做意图路由与工具调度，向量检索替代 TF-IDF，LLM 生成替代模板填空。LLM 管"脑"、代码管"手"，数值计算不假手模型。
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:auto">
+          <span style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--border);padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600">真实 LLM 调用</span>
+          <span style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--border);padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600">双后端兜底</span>
+          <span style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--border);padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600">防幻觉评测</span>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px">
+          <a href="https://579lqy.github.io/supply-chain-llm-agent/" target="_blank" class="btn btn-primary" style="width:fit-content">▶ 在线演示</a>
+          <a href="https://github.com/579lqy/supply-chain-llm-agent" target="_blank" class="btn btn-ghost" style="width:fit-content">GitHub 仓库</a>
+          <a href="https://github.com/579lqy/supply-chain-llm-agent/archive/refs/heads/main.zip" class="btn btn-ghost" style="width:fit-content">⬇ 下载源码</a>
         </div>
       </div>
     </div>
