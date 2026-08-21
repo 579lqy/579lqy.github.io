@@ -347,7 +347,7 @@ footer{border-top:1px solid var(--border);padding:30px 0;color:var(--text-second
           <li>演进：在关键词原型基础上把"路由 / 抽参 / 答案合成"换成调用 LLM</li>
           <li>双后端兜底：无 API Key 自动走规则，有 Key 立即切换 LLM</li>
           <li>检索升级为离线向量（bge），真实数据计算仍由 7 个 MCP 工具完成</li>
-          <li>评测新增工具调用准确率 + 忠实度 + 成本时延，规则基线 90.5% / 100% / 100% 不变</li>
+          <li>评测新增工具调用准确率 + 忠实度 + 成本时延：工具调用准确率 90.5%、答案忠实度 90.5%；Recall@3 达 92.9%</li>
         </ul>
         <div class="links">
           <a href="https://github.com/579lqy/supply-chain-llm-agent" target="_blank">GitHub 仓库</a>
