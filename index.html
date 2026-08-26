@@ -293,9 +293,9 @@ footer{border-top:1px solid var(--border);padding:30px 0;color:var(--text-second
 <!-- AI: 供应链 RAG Agent -->
 <section id="ai">
   <div class="wrap">
-    <span class="eyebrow reveal">AI Capability / 可运行的 AI 项目</span>
-    <h2 class="reveal" style="font-size:var(--h2-size)">供应链协同中台与 MCP-RAG Agent</h2>
-    <p class="lead reveal">独立完成「需求调研 → 技术可行性 → 架构设计 → Agent 原型开发 → 评测体系」全流程。把"怎么算"（知识）与"数据在哪"（工具）拆成两条独立可验证链路。</p>
+    <span class="eyebrow reveal">AI Capability / 自研 + 逆向拆解</span>
+    <h2 class="reveal" style="font-size:var(--h2-size)">AI Agent 实战：自研项目 + 产品逆向拆解</h2>
+    <p class="lead reveal">独立完成「需求调研 → 技术可行性 → 架构设计 → Agent 原型开发 → 评测体系」全流程；并能逆向拆解成熟 AI 产品的多 Agent 架构并复现验证。前两张为自研的供应链 MCP-RAG Agent（V1 关键词原型 / V2 LLM 升级），第三张为对 Polymer AI 的逆向拆解与多 Agent 复现——体现「自研 + 逆向」双线 AI 产品能力。</p>
     <div class="case">
       <div class="reveal">
         <div class="metrics">
@@ -371,6 +371,42 @@ footer{border-top:1px solid var(--border);padding:30px 0;color:var(--text-second
           <a href="https://579lqy.github.io/supply-chain-llm-agent/" target="_blank" class="btn btn-primary" style="width:fit-content">▶ 在线演示</a>
           <a href="https://github.com/579lqy/supply-chain-llm-agent" target="_blank" class="btn btn-ghost" style="width:fit-content">GitHub 仓库</a>
           <a href="https://github.com/579lqy/supply-chain-llm-agent/archive/refs/heads/main.zip" class="btn btn-ghost" style="width:fit-content">⬇ 下载源码</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="case">
+      <div class="reveal">
+        <div class="metrics">
+          <div class="m"><b>6+2</b><span>Agent + Skill 架构</span></div>
+          <div class="m"><b>8</b><span>子任务拆解粒度</span></div>
+          <div class="m"><b>72×28</b><span>数据集复现验证</span></div>
+        </div>
+        <ul style="color:var(--text-secondary);font-size:15px;padding-left:18px">
+          <li>逆向拆解 Polymer AI（轻量自助 BI）的完整产品逻辑、交互链路与可能实现方式</li>
+          <li>设计 6 Agent + 2 Skill 多 Agent 架构（编排器模式），含 Intent Agent 意图分类 5 类 + 置信度降级</li>
+          <li>基于 72 条×28 字段电信营销数据集，复现「上传→Dashboard」「提问→图表」主流程并附真实运行结果</li>
+          <li>从产品经理视角输出可落地的架构设计与复现方案，而非仅技术堆砌</li>
+        </ul>
+        <div class="links">
+          <a href="assets/polymer/polymer-ai-reverse-engineering.pdf" target="_blank" download>⬇ 下载拆解文档 (PDF)</a>
+          <a href="assets/polymer/polymer-ai-reverse-engineering.pdf" target="_blank">在线查看</a>
+        </div>
+      </div>
+      <div class="visual reveal" style="padding:28px;align-items:stretch;flex-direction:column;gap:16px;text-align:left">
+        <div style="font-size:13px;color:var(--accent);font-weight:700;letter-spacing:.04em">REVERSE ENGINEERING</div>
+        <div style="font-size:20px;font-weight:700;line-height:1.2">Polymer AI 逆向拆解<span style="display:inline-block;font-size:11px;font-weight:700;color:var(--accent);background:rgba(102,153,255,.15);border:1px solid rgba(102,153,255,.4);padding:2px 9px;border-radius:999px;margin-left:8px;vertical-align:middle">多 Agent 复现</span></div>
+        <div style="font-size:14px;color:var(--text-secondary);line-height:1.7">
+          以产品经理视角拆解轻量自助 BI 产品的功能地图、交互逻辑与多 Agent 架构，并用真实数据集复现主流程，验证拆解结论可落地。
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:auto">
+          <span style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--border);padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600">产品逆向拆解</span>
+          <span style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--border);padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600">多 Agent 架构</span>
+          <span style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--border);padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600">复现验证</span>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px">
+          <a href="assets/polymer/polymer-ai-reverse-engineering.pdf" target="_blank" class="btn btn-primary" style="width:fit-content">📄 查看拆解文档</a>
+          <a href="assets/polymer/polymer-ai-reverse-engineering.pdf" download class="btn btn-ghost" style="width:fit-content">⬇ 下载 PDF</a>
         </div>
       </div>
     </div>
